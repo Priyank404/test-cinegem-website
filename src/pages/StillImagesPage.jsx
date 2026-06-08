@@ -95,7 +95,6 @@ function AutoRatioParallaxImage({ img, revealDelay, onClick }) {
     <ParallaxImage
       src={img.src}
       alt={img.alt}
-      label={img.label}
       aspectRatio={aspectRatio}
       grayscale={img.grayscale}
       parallaxAmount={8}

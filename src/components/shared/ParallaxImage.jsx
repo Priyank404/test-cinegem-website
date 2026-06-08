@@ -209,17 +209,6 @@ export function ParallaxImage({
         )}
       </div>
 
-      {/* Gradient overlay */}
-      <div
-        ref={overlayRef}
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          opacity: 0,
-          background:
-            'linear-gradient(to top, rgba(18,18,18,0.70) 0%, rgba(18,18,18,0.08) 55%, transparent 100%)',
-        }}
-      />
-
       {/* Label */}
       {label && (
         <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
