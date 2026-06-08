@@ -1,0 +1,25 @@
+import { Routes, Route } from 'react-router-dom'
+
+import HomePage                from '@/pages/HomePage'
+import StillImagesPage         from '@/pages/StillImagesPage'
+import CreativeImagesPage      from '@/pages/CreativeImagesPage'
+import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
+import CreativeAnimationPage   from '@/pages/CreativeAnimationPage'
+import Animation360Page        from '@/pages/Animation360Page'
+import { CustomCursor }        from '@/components/ui/CustomCursor'
+
+export default function App() {
+  return (
+    <>
+      <CustomCursor />
+      <Routes>
+        <Route path="/"               element={<HomePage />} />
+        <Route path="/still"          element={<StillImagesPage />} />
+        <Route path="/creative"       element={<CreativeImagesPage />} />
+        <Route path="/onbody"         element={<OnBodyVisualizationPage />} />
+        <Route path="/creative-anim"  element={<CreativeAnimationPage />} />
+        <Route path="/360"            element={<Animation360Page />} />
+      </Routes>
+    </>
+  )
+}

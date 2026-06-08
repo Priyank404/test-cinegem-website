@@ -1,0 +1,77 @@
+import { useState, useCallback } from 'react'
+import { motion, useMotionValueEvent, useScroll } from 'framer-motion'
+import { cn } from '@/lib/utils'
+
+const LOGO_VARIANTS = {
+  hidden:  { opacity: 0, y: -8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
+}
+
+export function Navigation() {
+  const [scrolled, setScrolled] = useState(false)
+  const { scrollY } = useScroll()
+
+  useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 40))
+
+  const handleNavClick = useCallback((e, href) => {
+    e.preventDefault()
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  return (
+    <motion.header
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8, delay: 0.2 }}
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-700',
+        scrolled
+          ? 'bg-surface/80 backdrop-blur-lg border-b border-outline-variant/30 shadow-float-sm'
+          : 'bg-transparent'
+      )}
+      role="banner"
+    >
+      {/* 3-column: spacer | CINEGEM | Inquire */}
+      <div className="grid grid-cols-3 items-center px-6 md:px-[--spacing-margin-desktop] h-16 md:h-20 max-w-container mx-auto">
+
+        {/* Left spacer */}
+        <div aria-hidden="true" />
+
+        {/* Center — CINEGEM */}
+        <div className="flex justify-center">
+          <motion.a
+            href="#vault"
+            variants={LOGO_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            onClick={(e) => handleNavClick(e, '#vault')}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '32px',
+              lineHeight: '40px',
+              letterSpacing: '-0.04em',
+            }}
+            className="block leading-none whitespace-nowrap text-charcoal-deep hover:text-[#C5A059] transition-colors duration-300"
+            aria-label="Cinegem Studio — return to top"
+          >
+            CINEGEM
+          </motion.a>
+        </div>
+
+        {/* Right — Inquire */}
+        <div className="flex justify-end">
+          <motion.a
+            href="mailto:hello@cinegemstudio.com"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="hidden md:block btn-primary text-xs py-3 px-6"
+          >
+            Inquire →
+          </motion.a>
+        </div>
+
+      </div>
+    </motion.header>
+  )
+}
