@@ -1,0 +1,800 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Base reset & CSS variables
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-surface:        #fbf9f1;
+    --color-charcoal-deep:  #121212;
+    --color-champagne-gold: #C5A059;
+    --color-sand-neutral:   #E5DACE;
+    --color-cream-soft:     #FAF9F6;
+    --color-glass:          rgba(255, 255, 255, 0.4);
+
+    --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-expo:   cubic-bezier(0.19, 1, 0.22, 1);
+
+    --spacing-margin-desktop: 80px;
+    --spacing-margin-mobile:  24px;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-surface text-on-surface font-body overflow-x-hidden;
+    cursor: none;
+  }
+
+  /* Touch devices: restore default cursor */
+  @media (hover: none) {
+    body { cursor: auto; }
+    .cursor-dot,
+    .cursor-ring { display: none; }
+  }
+
+  /* Hide scrollbar — retain scroll capability */
+  ::-webkit-scrollbar { width: 0; }
+
+  /* Focus rings — only for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid var(--color-champagne-gold);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background-color: var(--color-champagne-gold);
+    color: #fff;
+  }
+
+  img, video {
+    max-width: 100%;
+    display: block;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Custom Cursor
+   ───────────────────────────────────────────────────────────────────────────── */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-charcoal-deep);
+  border-radius: 50%;
+  transition:
+    width   0.2s var(--ease-smooth),
+    height  0.2s var(--ease-smooth),
+    background 0.2s ease;
+}
+
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-charcoal-deep);
+  border-radius: 50%;
+  transition:
+    width        0.4s var(--ease-smooth),
+    height       0.4s var(--ease-smooth),
+    border-color 0.3s ease,
+    opacity      0.3s ease;
+}
+
+body.cursor-hover .cursor-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--color-champagne-gold);
+}
+
+body.cursor-hover .cursor-ring {
+  width: 60px;
+  height: 60px;
+  border-color: var(--color-champagne-gold);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Film Grain Overlay
+   ───────────────────────────────────────────────────────────────────────────── */
+.grain-overlay {
+  position: fixed;
+  inset: -200%;
+  width: 400%;
+  height: 400%;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.026;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  animation: grain 0.8s steps(1) infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Three.js canvas
+   ───────────────────────────────────────────────────────────────────────────── */
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Lenis smooth scroll
+   ───────────────────────────────────────────────────────────────────────────── */
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Loading screen progress bar
+   ───────────────────────────────────────────────────────────────────────────── */
+.loader-line {
+  height: 1px;
+  background: var(--color-champagne-gold);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Component layer — reusable UI primitives
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Glassmorphism ── */
+  .glass {
+    @apply bg-white/40 backdrop-blur-lg border border-white/20;
+    box-shadow:
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
+      0 8px 32px rgba(18, 18, 18, 0.06);
+  }
+
+  .glass-dark {
+    background: rgba(18, 18, 18, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* ── Buttons ── */
+  .btn-ghost {
+    @apply border border-charcoal-deep text-charcoal-deep
+           font-label text-label-caps tracking-[0.15em] uppercase
+           px-8 py-4 transition-all duration-500
+           hover:bg-charcoal-deep hover:text-cream-soft;
+  }
+
+  .btn-primary {
+    @apply bg-charcoal-deep text-cream-soft
+           font-label text-label-caps tracking-[0.15em] uppercase
+           px-8 py-4 transition-all duration-500
+           hover:bg-champagne-gold;
+  }
+
+  /* ── Chip ── */
+  .chip {
+    @apply glass font-label text-label-caps tracking-[0.15em] uppercase
+           px-5 py-2.5 text-charcoal-deep whitespace-nowrap;
+  }
+
+  /* ── Navigation link ── */
+  .nav-link {
+    @apply relative font-label text-label-caps tracking-[0.15em] uppercase
+           text-on-surface-variant transition-colors duration-300
+           hover:text-charcoal-deep;
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute -bottom-px left-0 w-0 h-px bg-charcoal-deep
+           transition-all duration-500;
+    transition-timing-function: var(--ease-smooth);
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    @apply w-full;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    @apply font-label text-label-caps tracking-[0.2em] uppercase text-on-surface-variant;
+  }
+
+  /* ── Scroll reveal (initial state; GSAP drives the animation) ── */
+  .reveal {
+    opacity: 0;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Utility overrides
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .ease-smooth { transition-timing-function: var(--ease-smooth); }
+  .ease-expo   { transition-timing-function: var(--ease-expo);   }
+}
+
+/* ── Service page shared styles ─────────────────────────────────── */
+.gallery-shadow {
+  box-shadow: 0 40px 80px -20px rgba(18, 18, 18, 0.08);
+}
+
+.gallery-image-hover {
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+}
+
+.gallery-image-hover:hover {
+  transform: scale(1.02) translateY(-4px);
+  box-shadow: 0 50px 100px -20px rgba(18, 18, 18, 0.12);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Vault 3D — layered film-roll bands with gaps + seamless edge melt
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.vault-room {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.vault-room__base {
+  position: absolute;
+  inset: 0;
+  background: #ddd0c2;
+}
+
+.vault-room__haze {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 95% 80% at 50% 45%, #f5efe8 0%, #ebe3d8 38%, transparent 72%),
+    radial-gradient(ellipse 60% 50% at 50% 55%, rgba(255, 252, 245, 0.6) 0%, transparent 65%);
+}
+
+.vault-room__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+.vault-room__stage {
+  position: absolute;
+  inset: 0;
+  perspective: 1000px;
+  perspective-origin: 50% 48%;
+}
+
+.vault-room__inner {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform-origin: 50% 48%;
+  will-change: transform;
+}
+
+/* Mask vault stack — lens shape + side fade (no hard horizontal ribbon) */
+.vault-vault3d {
+  -webkit-mask-image:
+    radial-gradient(ellipse 72% 58% at 50% 50%, black 25%, black 62%, transparent 92%),
+    linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 72% 58% at 50% 50%, black 25%, black 62%, transparent 92%),
+    linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.vault-vault3d__layer {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  filter: blur(0.3px);
+}
+
+.vault-vault3d__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.vault-vault3d__band-feather {
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+}
+
+.vault-vault3d__band-shadow {
+  mix-blend-mode: multiply;
+}
+
+/* Gaps between bands show base — bands are thin + spaced in SVG y coords */
+.vault-vault3d__well {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 55%;
+  height: 42%;
+  transform: translate(-50%, -50%) translateZ(-50px);
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    rgba(255, 252, 248, 0.5) 0%,
+    rgba(235, 227, 216, 0.15) 50%,
+    transparent 78%
+  );
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+/* Vertical side gaps (red-line side boundaries) */
+.vault-vault3d__gap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vault-vault3d__gap--left {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    #d4c8b8 0%,
+    rgba(220, 208, 195, 0.85) 35%,
+    transparent 100%
+  );
+}
+
+.vault-vault3d__gap--right {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    #d4c8b8 0%,
+    rgba(220, 208, 195, 0.85) 35%,
+    transparent 100%
+  );
+}
+
+/* Complete edge melt — blends vault into viewport (no visible seam) */
+.vault-vault3d__melt {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.vault-vault3d__melt--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background: linear-gradient(
+    180deg,
+    #e5dbd0 0%,
+    rgba(232, 223, 212, 0.75) 30%,
+    rgba(235, 227, 216, 0.25) 60%,
+    transparent 100%
+  );
+}
+
+.vault-vault3d__melt--bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background: linear-gradient(
+    0deg,
+    #d6c8b8 0%,
+    rgba(220, 208, 195, 0.75) 30%,
+    rgba(228, 218, 205, 0.25) 60%,
+    transparent 100%
+  );
+}
+
+.vault-vault3d__melt--sides {
+  inset: 0;
+  background: radial-gradient(
+    ellipse 88% 72% at 50% 50%,
+    transparent 42%,
+    rgba(196, 184, 170, 0.15) 78%,
+    rgba(188, 176, 162, 0.35) 100%
+  );
+}
+
+/* ── Studio lighting (centered on film roll) ── */
+.vault-room__spotlight-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.vault-room__spotlight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(70vw, 800px);
+  height: min(70vh, 700px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 253, 248, 0.55) 0%,
+    rgba(250, 242, 228, 0.2) 40%,
+    transparent 72%
+  );
+}
+
+.vault-room__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(55px);
+  z-index: 1;
+}
+
+.vault-room__glow--warm {
+  top: 50%;
+  left: 50%;
+  width: min(65vw, 750px);
+  height: min(60vh, 650px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, rgba(255, 245, 230, 0.4) 0%, transparent 68%);
+}
+
+.vault-room__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: radial-gradient(
+    ellipse 75% 68% at 50% 48%,
+    transparent 25%,
+    rgba(130, 115, 98, 0.08) 70%,
+    rgba(90, 78, 65, 0.18) 100%
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Vault Cards — Cartier "Sound of Craft" style
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Floating animation — each card gets unique timing via inline style */
+@keyframes vaultFloat {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotateZ(0deg);
+  }
+  20% {
+    transform: translateY(-7px) translateX(2px) rotateZ(0.3deg);
+  }
+  45% {
+    transform: translateY(-4px) translateX(-2px) rotateZ(-0.2deg);
+  }
+  65% {
+    transform: translateY(-10px) translateX(1px) rotateZ(0.4deg);
+  }
+  85% {
+    transform: translateY(-5px) translateX(-1px) rotateZ(-0.1deg);
+  }
+}
+
+/* The card frame — white border gallery print look */
+.vault-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  background: #ffffff;
+  box-shadow:
+    0 4px 24px -4px rgba(0, 0, 0, 0.22),
+    0 16px 48px -8px rgba(0, 0, 0, 0.16),
+    0 0 0 0.5px rgba(255, 255, 255, 0.25);
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.vault-card--hovered {
+  transform: translateZ(10px);
+  box-shadow:
+    0 8px 30px -4px rgba(0, 0, 0, 0.25),
+    0 20px 60px -10px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 0 60px -10px rgba(197, 160, 89, 0.15);
+}
+
+/* Image wrapper — clips overflow */
+.vault-card__image-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e8e0d4 0%, #d4cbbf 100%);
+}
+
+/* The actual image */
+.vault-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.08);
+  transition:
+    opacity 0.8s ease,
+    transform 6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.vault-card__image--loaded {
+  opacity: 1;
+  transform: scale(1.0);
+}
+
+.vault-card__image--hovered {
+  transform: scale(1.06);
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Service label chip — bottom-right glass panel (compact) */
+.vault-card__label {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: auto;
+  padding: 2px 7px;
+  line-height: 1.15;
+  max-width: calc(100% - 16px);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s ease;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.vault-card__label--visible {
+  opacity: 1;
+}
+
+.vault-card__label-text {
+  display: block;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 6.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.96);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Category subtitle on hover */
+.vault-card__category {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.4s ease 0.05s,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.05s;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.vault-card__category--visible {
+  opacity: 1;
+  transform: translateY(0px);
+}
+
+/* Soft glow behind card */
+.vault-card__glow {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(197, 160, 89, 0.08) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.vault-card__glow--active {
+  opacity: 1;
+}
+
+/* Float wrapper needs transform-style for 3D children */
+.vault-card-float {
+  transform-style: preserve-3d;
+}
+
+.vault-card-wrapper {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium Overlays: Sound Wave, Dotted Sidebar, and Script Typography
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Sound control button */
+.sound-toggle-btn {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-charcoal-deep);
+  opacity: 0.65;
+  transition: opacity 0.4s var(--ease-smooth);
+}
+
+.sound-toggle-btn:hover {
+  opacity: 1;
+}
+
+/* Sound wave container & bars */
+.sound-wave-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 12px;
+  width: 14px;
+}
+
+.sound-wave-bars .sound-bar {
+  width: 1.5px;
+  height: 100%;
+  background-color: var(--color-charcoal-deep);
+  border-radius: 0.5px;
+  transform: scaleY(0.25);
+  transform-origin: bottom;
+  transition: transform 0.3s var(--ease-smooth);
+}
+
+@keyframes luxurySoundBar {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1.0); }
+}
+
+.sound-wave-active .sound-bar {
+  animation: luxurySoundBar 1s ease-in-out infinite;
+}
+
+.sound-wave-active .sound-bar:nth-child(1) { animation-delay: 0.15s; }
+.sound-wave-active .sound-bar:nth-child(2) { animation-delay: 0.45s; }
+.sound-wave-active .sound-bar:nth-child(3) { animation-delay: 0.25s; }
+.sound-wave-active .sound-bar:nth-child(4) { animation-delay: 0.55s; }
+
+/* Dot navigation vertical sidebar */
+.dot-sidebar {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.dot-nav-item {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--color-charcoal-deep);
+  opacity: 0.28;
+  cursor: pointer;
+  transition:
+    transform 0.4s var(--ease-smooth),
+    opacity 0.4s var(--ease-smooth),
+    background-color 0.4s var(--ease-smooth);
+}
+
+.dot-nav-item:hover {
+  opacity: 0.6;
+  transform: scale(1.4);
+}
+
+.dot-nav-item--active {
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-charcoal-deep);
+  opacity: 0.95;
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(18, 18, 18, 0.15);
+}
+
+/* Premium central text behind cards */
+.hero-center-backdrop {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(38px, 6vw, 68px);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: rgba(250, 245, 238, 0.76);
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  mix-blend-mode: overlay;
+  text-shadow: 
+    0 1px 2px rgba(255, 255, 255, 0.15),
+    0 0 40px rgba(255, 255, 255, 0.05);
+  animation: backdropReveal 2s var(--ease-smooth) 0.5s both;
+}
+
+@keyframes backdropReveal {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.96);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+}
+
