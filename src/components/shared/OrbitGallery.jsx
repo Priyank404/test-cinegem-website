@@ -106,12 +106,12 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 0) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-6 md:gap-8">
+      <div className="orbit-row flex items-start gap-4 md:gap-8">
         <div className="w-[60%] flex-shrink-0">
-          {a && <ParallaxImage {...a} revealDelay={delay(0)} parallaxAmount={8} />}
+          {a && wrap(a, 0, { parallaxAmount: 8 })}
         </div>
-        <div className="flex-1" style={{ marginTop: '80px' }}>
-          {b && <ParallaxImage {...b} revealDelay={delay(1)} parallaxAmount={12} />}
+        <div className="flex-1" style={{ marginTop: 'clamp(30px, 8vw, 80px)' }}>
+          {b && wrap(b, 1, { parallaxAmount: 12 })}
         </div>
       </div>
     )
@@ -122,8 +122,8 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
     const [a] = imgs
     return (
       <div className="orbit-row flex justify-center">
-        <div className="w-[68%]">
-          {a && <ParallaxImage {...a} revealDelay={delay(0)} parallaxAmount={7} scrubSpeed={1.2} />}
+        <div className="w-[85%] md:w-[68%]">
+          {a && wrap(a, 0, { parallaxAmount: 7, scrubSpeed: 1.2 })}
         </div>
       </div>
     )
@@ -133,12 +133,12 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 2) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-6 md:gap-8">
-        <div className="flex-1" style={{ marginTop: '-40px' }}>
-          {a && <ParallaxImage {...a} revealDelay={delay(0)} parallaxAmount={12} />}
+      <div className="orbit-row flex items-start gap-4 md:gap-8">
+        <div className="flex-1" style={{ marginTop: 'clamp(-40px, -4vw, -15px)' }}>
+          {a && wrap(a, 0, { parallaxAmount: 12 })}
         </div>
         <div className="w-[60%] flex-shrink-0">
-          {b && <ParallaxImage {...b} revealDelay={delay(1)} parallaxAmount={8} />}
+          {b && wrap(b, 1, { parallaxAmount: 8 })}
         </div>
       </div>
     )
@@ -150,13 +150,26 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
     const offsets = [0, 100, 40] // y-offset per column in px
     const items   = [a, b, c]
     return (
-      <div className="orbit-row grid grid-cols-3 gap-5 md:gap-7">
-        {items.map((img, idx) => (
-          <div key={idx} style={{ marginTop: `${offsets[idx]}px` }}>
-            {img && <ParallaxImage {...img} revealDelay={delay(idx)} parallaxAmount={10} />}
-          </div>
-        ))}
-      </div>
+      <>
+        <style>{`
+          @media (max-width: 767px) {
+            .orbit-trio-col-0 { margin-top: 0px !important; }
+            .orbit-trio-col-1 { margin-top: 35px !important; }
+            .orbit-trio-col-2 { margin-top: 15px !important; }
+          }
+        `}</style>
+        <div className="orbit-row grid grid-cols-3 gap-3 md:gap-7">
+          {items.map((img, idx) => (
+            <div 
+              key={idx} 
+              className={`orbit-trio-col-${idx}`}
+              style={{ marginTop: `${offsets[idx]}px` }}
+            >
+              {img && wrap(img, idx, { parallaxAmount: 10 })}
+            </div>
+          ))}
+        </div>
+      </>
     )
   }
 
@@ -164,12 +177,12 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 4) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-6 md:gap-8">
+      <div className="orbit-row flex items-start gap-4 md:gap-8">
         <div className="w-[55%] flex-shrink-0">
-          {a && <ParallaxImage {...a} revealDelay={delay(0)} parallaxAmount={9} />}
+          {a && wrap(a, 0, { parallaxAmount: 9 })}
         </div>
-        <div className="flex-1 flex flex-col gap-6 md:gap-8" style={{ marginTop: '120px' }}>
-          {b && <ParallaxImage {...b} revealDelay={delay(1)} parallaxAmount={11} />}
+        <div className="flex-1 flex flex-col gap-4 md:gap-8" style={{ marginTop: 'clamp(40px, 12vw, 120px)' }}>
+          {b && wrap(b, 1, { parallaxAmount: 11 })}
         </div>
       </div>
     )

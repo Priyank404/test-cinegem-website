@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, useMotionValueEvent, useScroll } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -23,12 +24,7 @@ export function Navigation() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8, delay: 0.2 }}
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-700',
-        scrolled
-          ? 'bg-surface/80 backdrop-blur-lg border-b border-outline-variant/30 shadow-float-sm'
-          : 'bg-transparent'
-      )}
+      className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-700"
       role="banner"
     >
       {/* 3-column: spacer | CINEGEM | Inquire */}
@@ -51,7 +47,7 @@ export function Navigation() {
               lineHeight: '40px',
               letterSpacing: '-0.04em',
             }}
-            className="block leading-none whitespace-nowrap text-charcoal-deep hover:text-[#C5A059] transition-colors duration-300"
+            className="block leading-none whitespace-nowrap text-charcoal-deep hover:text-[#C5A059] transition-colors duration-300 focus:outline-none"
             aria-label="Cinegem Studio — return to top"
           >
             CINEGEM
@@ -60,15 +56,18 @@ export function Navigation() {
 
         {/* Right — Inquire */}
         <div className="flex justify-end">
-          <motion.a
-            href="mailto:hello@cinegemstudio.com"
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="hidden md:block btn-primary text-xs py-3 px-6"
           >
-            Inquire →
-          </motion.a>
+            <Link
+              to="/inquire"
+              className="hidden lg:block btn-primary text-xs py-3 px-6"
+            >
+              Inquire →
+            </Link>
+          </motion.div>
         </div>
 
       </div>

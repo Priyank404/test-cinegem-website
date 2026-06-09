@@ -6,6 +6,7 @@ import CreativeImagesPage      from '@/pages/CreativeImagesPage'
 import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
 import CreativeAnimationPage   from '@/pages/CreativeAnimationPage'
 import Animation360Page        from '@/pages/Animation360Page'
+import InquirePage             from '@/pages/InquirePage'
 import { CustomCursor }        from '@/components/ui/CustomCursor'
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/onbody"         element={<OnBodyVisualizationPage />} />
         <Route path="/creative-anim"  element={<CreativeAnimationPage />} />
         <Route path="/360"            element={<Animation360Page />} />
+        <Route path="/inquire"        element={<InquirePage />} />
       </Routes>
     </>
   )
