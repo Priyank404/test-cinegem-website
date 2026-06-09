@@ -47,13 +47,13 @@ function VideoEvenGrid({ images = [], className = '', onImageClick }) {
 
   return (
     <section
-      className={`relative grid grid-cols-2 md:grid-cols-4 gap-x-6 md:gap-x-10 gap-y-0 ${className}`}
+      className={`relative grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-10 gap-y-0 ${className}`}
       style={{ paddingBottom: '80px' }}
     >
       {columns.map((colImages, colIdx) => (
         <div
           key={colIdx}
-          className="flex flex-col gap-6 md:gap-10"
+          className="flex flex-col gap-4 md:gap-10"
         >
           {colImages.map((img, rowIdx) => (
             <ParallaxImage

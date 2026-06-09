@@ -59,35 +59,44 @@ export function ScatteredGallery({ images = [], className = '', onImageClick }) 
   const colOffsets = [0, 120, 220]
 
   return (
-    <section
-      ref={containerRef}
-      className={`relative grid grid-cols-3 gap-x-6 md:gap-x-10 ${className}`}
-      style={{ paddingBottom: '260px' }}
-    >
-      {columns.map((colImages, colIdx) => (
-        <div
-          key={colIdx}
-          className="scattered-col flex flex-col gap-6 md:gap-10"
-          style={{ marginTop: `${colOffsets[colIdx]}px` }}
-        >
-          {colImages.map((img, rowIdx) => (
-            <ParallaxImage
-              key={rowIdx}
-              src={img.src}
-              alt={img.alt}
-              label={img.label}
-              width={img.width}
-              height={img.height}
-              aspectRatio={img.aspectRatio ?? '3/4'}
-              grayscale={img.grayscale}
-              parallaxAmount={8}
-              scrubSpeed={0.9}
-              revealDelay={rowIdx * 0.08}
-              onClick={onImageClick ? () => onImageClick(img.originalIndex) : undefined}
-            />
-          ))}
-        </div>
-      ))}
-    </section>
+    <>
+      <style>{`
+        @media (max-width: 767px) {
+          .scattered-col-0 { margin-top: 0px !important; }
+          .scattered-col-1 { margin-top: 40px !important; }
+          .scattered-col-2 { margin-top: 80px !important; }
+        }
+      `}</style>
+      <section
+        ref={containerRef}
+        className={`relative grid grid-cols-3 gap-x-3 md:gap-x-10 ${className}`}
+        style={{ paddingBottom: '260px' }}
+      >
+        {columns.map((colImages, colIdx) => (
+          <div
+            key={colIdx}
+            className={`scattered-col scattered-col-${colIdx} flex flex-col gap-4 md:gap-10`}
+            style={{ marginTop: `${colOffsets[colIdx]}px` }}
+          >
+            {colImages.map((img, rowIdx) => (
+              <ParallaxImage
+                key={rowIdx}
+                src={img.src}
+                alt={img.alt}
+                label={img.label}
+                width={img.width}
+                height={img.height}
+                aspectRatio={img.aspectRatio ?? '3/4'}
+                grayscale={img.grayscale}
+                parallaxAmount={8}
+                scrubSpeed={0.9}
+                revealDelay={rowIdx * 0.08}
+                onClick={onImageClick ? () => onImageClick(img.originalIndex) : undefined}
+              />
+            ))}
+          </div>
+        ))}
+      </section>
+    </>
   )
 }
