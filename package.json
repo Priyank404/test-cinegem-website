@@ -13,6 +13,7 @@
     "@react-spring/three": "^9.7.3",
     "@react-three/drei": "^9.109.2",
     "@react-three/fiber": "^8.17.6",
+    "dotenv": "^17.4.2",
     "framer-motion": "^11.3.24",
     "gsap": "^3.12.5",
     "lenis": "^1.1.14",

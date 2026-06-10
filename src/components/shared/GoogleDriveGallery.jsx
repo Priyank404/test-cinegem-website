@@ -2,16 +2,16 @@
 // GoogleDriveGallery.jsx  —  src/components/shared/
 // ============================================================
 import { useState, useEffect } from 'react'
-
+dotenv.config()
 // ─── CONFIGURATION — fill in your folder IDs here ────────────────────────
-const API_KEY = 'AIzaSyDHKGn32bEnAixAW4vvzcenwyv0j2h7vWk'
+const API_KEY = process.env.GOOGLE_DRIVE_API
 
 export const DRIVE_FOLDERS = {
-  'still-image':    '189ojwhpp08ugXI4XJ5bMgK-3g5UjiiNy',
-  'creative-image': 'YOUR_CREATIVE_IMAGE_FOLDER_ID',
-  'onbody':         'YOUR_ONBODY_FOLDER_ID',
-  'creative-anim':  'YOUR_CREATIVE_ANIM_FOLDER_ID',
-  '360':            'YOUR_360_FOLDER_ID',
+  'still-image':    process.env.STILL_IMAGE_URL,
+  'creative-image': process.env.CREATIVE_IMAGE_URL,
+  'onbody':         process.env.ON_BODY_URL,
+  'creative-anim':  process.env.CREATIVE_ANIMATION_URL,
+  '360':            process.env_360_ANIMATION_URL,
 }
 // ─────────────────────────────────────────────────────────────────────────
 
