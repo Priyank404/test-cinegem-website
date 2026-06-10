@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ServicePageLayout } from '@/components/shared/ServicePageLayout'
@@ -7,30 +7,11 @@ import { ParallaxImage } from '@/components/shared/ParallaxImage'
 import { LightboxModal } from '@/components/shared/LightboxModal'
 import { useLightbox } from '@/hooks/useLightbox'
 import { STILL_IMAGES } from '@/constants/gallery'
+import { useDriveImages } from '@/components/shared/GoogleDriveGallery'
 
 gsap.registerPlugin(ScrollTrigger)
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Gallery images — add items to STILL_IMAGES.gallery in constants/gallery.js
-   or append here. Each entry needs: { src, alt, label }
-──────────────────────────────────────────────────────────────────────────── */
-const GALLERY_ITEMS = [
-  { src: '1.png', alt: 'Luxury diamond engagement ring macro' },
-  { src: '2.png', alt: 'Gold pendant minimalist profile' },
-  { src: '3.png', alt: 'Premium wedding bands collection' },
-  { src: '4.png', alt: 'Sapphire luxury drop earrings' },
-  { src: '1.png', alt: 'Luxury diamond engagement ring macro' },
-  { src: '2.png', alt: 'Gold pendant minimalist profile' },
-  { src: '3.png', alt: 'Premium wedding bands collection' },
-  { src: '4.png', alt: 'Sapphire luxury drop earrings' },{ src: '1.png', alt: 'Luxury diamond engagement ring macro' },
-  { src: '2.png', alt: 'Gold pendant minimalist profile' },
-  { src: '3.png', alt: 'Premium wedding bands collection' },
-  { src: '4.png', alt: 'Sapphire luxury drop earrings' },
-]
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Tag pill — matches OnBodyVisualizationPage style exactly
-──────────────────────────────────────────────────────────────────────────── */
+/* ── Tag pill ─────────────────────────────────────────────────────────────── */
 function TagPill({ label }) {
   return (
     <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase px-4 py-2 border border-[#c4c7c7] text-[#444748]">
@@ -39,9 +20,7 @@ function TagPill({ label }) {
   )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Stat card — matches OnBodyVisualizationPage style exactly
-──────────────────────────────────────────────────────────────────────────── */
+/* ── Stat card ────────────────────────────────────────────────────────────── */
 function StatCard({ value, label }) {
   return (
     <div className="flex flex-col gap-2 py-8 px-6 border-t border-[#c4c7c7]/50">
@@ -55,64 +34,8 @@ function StatCard({ value, label }) {
   )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   useNaturalRatio — loads an image URL and returns its natural w/h ratio
-   as a CSS string like "1200/1500". Falls back to "1/1" while loading.
-──────────────────────────────────────────────────────────────────────────── */
-function useNaturalRatio(src) {
-  const [ratio, setRatio] = useState(null)
-
-  useEffect(() => {
-    if (!src) return
-    const img = new Image()
-    img.onload = () => {
-      if (img.naturalWidth && img.naturalHeight) {
-        setRatio(`${img.naturalWidth}/${img.naturalHeight}`)
-      }
-    }
-    img.src = src
-  }, [src])
-
-  return ratio // null while loading — ParallaxImage will use its own default until resolved
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   AutoRatioParallaxImage — wraps ParallaxImage, auto-detects image ratio.
-   If the data already supplies width+height those take precedence.
-   Otherwise the natural dimensions are fetched at runtime.
-──────────────────────────────────────────────────────────────────────────── */
-function AutoRatioParallaxImage({ img, revealDelay, onClick }) {
-  const detectedRatio = useNaturalRatio(
-    img.width && img.height ? null : img.src
-  )
-
-  const aspectRatio = img.aspectRatio
-    ?? (img.width && img.height ? `${img.width}/${img.height}` : null)
-    ?? detectedRatio
-    ?? '1/1'
-
-  return (
-    <ParallaxImage
-      src={img.src}
-      alt={img.alt}
-      aspectRatio={aspectRatio}
-      grayscale={img.grayscale}
-      parallaxAmount={8}
-      scrubSpeed={0.9}
-      revealDelay={revealDelay}
-      onClick={onClick}
-    />
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   EvenGrid — 4-column layout, all columns scroll at the same speed.
-   Uses ParallaxImage (same component as OnBodyVisualizationPage).
-   Every image's aspect ratio is resolved dynamically from its natural
-   dimensions — no hardcoded ratio anywhere.
-──────────────────────────────────────────────────────────────────────────── */
+/* ── EvenGrid ─────────────────────────────────────────────────────────────── */
 function EvenGrid({ images = [], className = '', onImageClick }) {
-  // Distribute images evenly across 4 columns
   const columns = [[], [], [], []]
   images.forEach((img, i) => columns[i % 4].push({ ...img, originalIndex: i }))
 
@@ -122,14 +45,15 @@ function EvenGrid({ images = [], className = '', onImageClick }) {
       style={{ paddingBottom: '80px' }}
     >
       {columns.map((colImages, colIdx) => (
-        <div
-          key={colIdx}
-          className="flex flex-col gap-4 md:gap-10"
-        >
+        <div key={colIdx} className="flex flex-col gap-4 md:gap-10">
           {colImages.map((img, rowIdx) => (
-            <AutoRatioParallaxImage
-              key={rowIdx}
-              img={img}
+            <ParallaxImage
+              key={img.id ?? rowIdx}
+              src={img.src}
+              alt={img.alt}
+              aspectRatio="1/1"
+              parallaxAmount={8}
+              scrubSpeed={0.9}
               revealDelay={rowIdx * 0.08}
               onClick={onImageClick ? () => onImageClick(img.originalIndex) : undefined}
             />
@@ -140,9 +64,22 @@ function EvenGrid({ images = [], className = '', onImageClick }) {
   )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Page
-──────────────────────────────────────────────────────────────────────────── */
+/* ── Loading skeleton ─────────────────────────────────────────────────────── */
+function GallerySkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10 mb-40">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-[#f0f0f0] animate-pulse"
+          style={{ aspectRatio: '1/1', borderRadius: 4 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function StillImagesPage() {
   const heroRef    = useRef(null)
   const headingRef = useRef(null)
@@ -151,12 +88,15 @@ export default function StillImagesPage() {
   const heroImgRef = useRef(null)
   const dividerRef = useRef(null)
 
-  const { activeIndex, openAt, close, prev, next } = useLightbox(GALLERY_ITEMS)
+  // ── Fetch images from Google Drive ──────────────────────────────────────
+  const { images: driveImages, loading, error } = useDriveImages('still-image')
 
-  /* Hero entrance animation — identical to OnBodyVisualizationPage */
+  // Lightbox is wired to Drive images (falls back gracefully when loading)
+  const { activeIndex, openAt, close, prev, next } = useLightbox(driveImages)
+
+  /* Hero entrance animation */
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-
     tl.fromTo(headingRef.current,
       { opacity: 0, y: 48, skewY: 1.5 },
       { opacity: 1, y: 0, skewY: 0, duration: 1.1, delay: 0.1 }
@@ -176,20 +116,17 @@ export default function StillImagesPage() {
       { opacity: 1, scale: 1, clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'power4.out' },
       0.1
     )
-
     return () => tl.kill()
   }, [])
 
-  /* Divider line draw — identical to OnBodyVisualizationPage */
+  /* Divider line draw */
   useEffect(() => {
     if (!dividerRef.current) return
     gsap.fromTo(
       dividerRef.current,
       { scaleX: 0, transformOrigin: 'left center' },
       {
-        scaleX: 1,
-        duration: 1.2,
-        ease: 'power4.inOut',
+        scaleX: 1, duration: 1.2, ease: 'power4.inOut',
         scrollTrigger: { trigger: dividerRef.current, start: 'top 85%', once: true },
       }
     )
@@ -200,7 +137,7 @@ export default function StillImagesPage() {
   return (
     <ServicePageLayout title="Still Images" currentPage="/still">
 
-      {/* ── Split Hero ─────────────────────────────────────────────────── */}
+      {/* ── Split Hero ──────────────────────────────────────────────────── */}
       <section
         ref={heroRef}
         className="mb-28 md:mb-40 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start"
@@ -234,12 +171,11 @@ export default function StillImagesPage() {
             ))}
           </div>
 
-          {/* Stats row */}
           <div className="grid grid-cols-2 gap-px mt-10 bg-[#c4c7c7]/20">
-            <StatCard value="8K"   label="Output Resolution"  />
-            <StatCard value="48h"  label="Avg. Turnaround"    />
-            <StatCard value="360°" label="View Angles"        />
-            <StatCard value="100%" label="CGI Precision"      />
+            <StatCard value="8K"   label="Output Resolution" />
+            <StatCard value="48h"  label="Avg. Turnaround"   />
+            <StatCard value="360°" label="View Angles"       />
+            <StatCard value="100%" label="CGI Precision"     />
           </div>
         </div>
 
@@ -254,8 +190,6 @@ export default function StillImagesPage() {
             alt={hero.alt}
             className="w-full h-full object-cover"
           />
-
-          {/* Glass chip */}
           {hero.chips && (
             <div
               className="absolute bottom-6 left-6 px-5 py-3 rounded-sm flex items-center gap-3"
@@ -278,7 +212,7 @@ export default function StillImagesPage() {
         </div>
       </section>
 
-      {/* ── Section title ─────────────────────────────────────────────── */}
+      {/* ── Section title ───────────────────────────────────────────────── */}
       <div className="mb-16 md:mb-24 flex items-end justify-between gap-8">
         <h2 className="reveal font-[Playfair_Display] text-[28px] md:text-[52px] leading-[34px] md:leading-[60px] tracking-[-0.02em] text-[#121212] max-w-lg">
           Pieces in Focus
@@ -289,29 +223,49 @@ export default function StillImagesPage() {
         </p>
       </div>
 
-      {/* ── Thin rule ─────────────────────────────────────────────────── */}
+      {/* ── Thin rule ───────────────────────────────────────────────────── */}
       <div
         ref={dividerRef}
         className="w-full h-px bg-[#c4c7c7]/60 mb-16 md:mb-20"
         style={{ transformOrigin: 'left center' }}
       />
 
-      {/* ── 4-Column Even Grid ────────────────────────────────────────── */}
-      {/*
-        To add images: push items to STILL_IMAGES.gallery in src/constants/gallery.js
-        or to GALLERY_ITEMS at the top of this file.
-        Each item needs: { src, alt, label }
-        All 4 columns scroll at the same speed — no parallax offset between columns.
-      */}
-      <EvenGrid images={GALLERY_ITEMS} className="mb-40" onImageClick={openAt} />
+      {/* ── Gallery — driven by Google Drive ────────────────────────────── */}
+      {loading && <GallerySkeleton />}
 
-      <LightboxModal
-        images={GALLERY_ITEMS}
-        activeIndex={activeIndex}
-        onClose={close}
-        onPrev={prev}
-        onNext={next}
-      />
+      {error && (
+        <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
+          <p className="font-[Manrope] text-[13px] text-[#c0392b] font-semibold mb-2">
+            Could not load images
+          </p>
+          <p className="font-[Manrope] text-[12px] text-[#888]">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && driveImages.length === 0 && (
+        <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
+          <p className="font-[Manrope] text-[13px] text-[#888]">
+            No images yet — upload photos to your Google Drive folder and they'll appear here automatically.
+          </p>
+        </div>
+      )}
+
+      {!loading && !error && driveImages.length > 0 && (
+        <>
+          <EvenGrid
+            images={driveImages}
+            className="mb-40"
+            onImageClick={openAt}
+          />
+          <LightboxModal
+            images={driveImages}
+            activeIndex={activeIndex}
+            onClose={close}
+            onPrev={prev}
+            onNext={next}
+          />
+        </>
+      )}
 
     </ServicePageLayout>
   )
