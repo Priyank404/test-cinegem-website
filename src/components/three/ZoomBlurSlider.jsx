@@ -549,16 +549,6 @@ export default function ZoomBlurSlider({ onNavigate }) {
       {/* Bottom bar guidance and slider indicators - Absolute positioned */}
       <div className="absolute bottom-6 left-6 right-6 lg:bottom-[80px] lg:left-[80px] lg:right-[80px] z-20 flex items-end justify-between pointer-events-none">
         
-        {/* Navigation instructions - Hidden on mobile */}
-        <div className="hidden lg:flex flex-col gap-2 font-label text-[8px] lg:text-[9px] tracking-[0.25em] text-cream-soft/40 uppercase">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C5A059] animate-pulse" />
-            <span>SCROLL OR USE ARROWS TO NAVIGATE</span>
-          </div>
-          <div>
-            <span>DOUBLE-CLICK ANYWHERE TO ENTER</span>
-          </div>
-        </div>
 
         {/* Quick Nav Indicators - Positioned at bottom right on mobile */}
         <div className="flex items-center gap-3 lg:gap-4 pointer-events-auto ml-auto">

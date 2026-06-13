@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { FOOTER_LINKS } from '@/constants'
 
 // All service pages — used to build per-page nav links
 const ALL_SERVICES = [
@@ -202,13 +203,17 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
           © 2024 Cinegem Studio. The Art of Digital Craft.
         </div>
         <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-          {['Privacy', 'Terms', 'Instagram', 'LinkedIn'].map((label) => (
+          {FOOTER_LINKS.map((link) => (
             <a
-              key={label}
-              href="#"
+              key={link.label}
+              href={link.href}
               className="font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase text-[#444748] hover:text-[#C5A059] transition-colors duration-300"
+              {...(link.external
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {}
+              )}
             >
-              {label}
+              {link.label}
             </a>
           ))}
         </div>
