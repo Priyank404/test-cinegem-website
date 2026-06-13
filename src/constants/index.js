@@ -84,6 +84,6 @@ export const VAULT_PANELS = [
 export const FOOTER_LINKS = [
   { label: 'Privacy',   href: '#' },
   { label: 'Terms',     href: '#' },
-  { label: 'Instagram', href: 'https://instagram.com', external: true },
-  { label: 'LinkedIn',  href: 'https://linkedin.com',  external: true },
+  { label: 'Instagram', href: 'https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg==', external: true },
+  { label: 'Behance',   href: 'https://www.behance.net/cinegem-studio/projects', external: true },
 ]
