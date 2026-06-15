@@ -1,4 +1,4 @@
 export const INQUIRE_CONFIG = {
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbyzxWNj4sJOo6rgk-hAqDnJsEXJahJOPJF_QXGyVky2ch0tImr8nk12-JYHPhd_TWpuWg/exec",
-  fallbackEmail: "neevpatel19907@gmail.com"
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbyoBCKUlGzL1UiExgSdFNHBTNiS4uF43W_RhiYa0-5Z_ZfEsUo_tTZuT40vlfd59LkX/exec",
+  fallbackEmail: "info@cinegemstudio.com"
 }
