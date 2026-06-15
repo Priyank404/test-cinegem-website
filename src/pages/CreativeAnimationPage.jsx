@@ -58,11 +58,30 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
   // VideoCard renders an mp4 thumbnail with a play icon overlay,
   // clickable to open the lightbox (which plays the video fullscreen)
   function VideoCard({ img, onClick, aspectRatio }) {
+    const videoRef = useRef(null)
+
+    const handleMouseEnter = () => {
+      if (videoRef.current) {
+        videoRef.current.play().catch((err) => {
+          console.warn("Video playback was prevented:", err)
+        })
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (videoRef.current) {
+        videoRef.current.pause()
+        videoRef.current.currentTime = 0
+      }
+    }
+
     return (
       <div
         className="relative overflow-hidden cursor-pointer group"
         style={{ aspectRatio: aspectRatio ?? '3/4' }}
         onClick={onClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Poster thumbnail — Drive generates this from the video */}
         <img
@@ -71,16 +90,26 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           loading="lazy"
         />
+        {/* Subtle looping video preview on hover — muted, no controls */}
+        <video
+          ref={videoRef}
+          src={img.src}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        />
         {/* Play icon */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-all duration-300 group-hover:opacity-0 pointer-events-none">
           <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
-            <svg width="18" height-="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M1 1L17 10L1 19V1Z" fill="#121212" />
             </svg>
           </div>
         </div>
         {img.label && (
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-8 bg-gradient-to-t from-black/50 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 pt-8 bg-gradient-to-t from-black/50 to-transparent pointer-events-none">
             <span className="font-[Manrope] text-[11px] tracking-[0.12em] font-semibold uppercase text-white">{img.label}</span>
           </div>
         )}
