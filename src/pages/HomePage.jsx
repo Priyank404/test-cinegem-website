@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react'
 import { AnimatePresence }       from 'framer-motion'
 import { useNavigate }           from 'react-router-dom'
 
-import { useLenis }       from '@/hooks/useLenis'
-import { CustomCursor }   from '@/components/ui/CustomCursor'
-import { LoadingScreen }  from '@/components/ui/LoadingScreen'
-import { Navigation }     from '@/components/layout/Navigation'
-import { HeroVault }      from '@/components/sections/HeroVault'
+import { useLenis }           from '@/hooks/useLenis'
+import { CustomCursor }       from '@/components/ui/CustomCursor'
+import { LoadingScreen }      from '@/components/ui/LoadingScreen'
+import { Navigation }         from '@/components/layout/Navigation'
+import { HeroVault }          from '@/components/sections/HeroVault'
+import { DevelopmentBadge }   from '@/components/ui'
 
 export default function HomePage() {
   const [loaded, setLoaded] = useState(false)
@@ -34,6 +35,7 @@ export default function HomePage() {
         }`}
       >
         <Navigation />
+        <DevelopmentBadge />
         <main id="main-content" tabIndex={-1}>
           <HeroVault onNavigate={handleNavigate} />
         </main>
@@ -41,3 +43,4 @@ export default function HomePage() {
     </>
   )
 }
+
