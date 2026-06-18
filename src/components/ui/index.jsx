@@ -66,3 +66,6 @@ export function GhostButton({ children, href, onClick, className, type = 'button
     </button>
   )
 }
+
+export { DevelopmentBadge } from './DevelopmentBadge'
+
