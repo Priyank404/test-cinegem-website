@@ -10,6 +10,7 @@ const ALL_SERVICES = [
   { label: 'On-Body Visualization',  route: '/onbody'        },
   { label: 'Creative Animation',     route: '/creative-anim' },
   { label: '360° Animation',         route: '/360'           },
+   { label: 'Classic E-Commerce',    route: '/classic'       },
 ]
 
 /**
