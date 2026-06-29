@@ -16,33 +16,16 @@ export default function ClassicEComVisuals({
 }) {
   return (
     <ServicePageLayout title={title} currentPage="/classic">
-      {/* ── Back link ─────────────────────────────────────────────────────── */}
-      <div className="mb-10">
-        <BackToVault />
-      </div>
 
-      {/* ── Header ──────────────────────────────────────────────────────────
-           Matches StillImagesPage typography: Playfair_Display h1 + Manrope eyebrow
-      ─────────────────────────────────────────────────────────────────────── */}
-      <div className="text-center mb-12 md:mb-16">
-        <p className="font-[Manrope] text-[11px] tracking-[0.25em] font-semibold uppercase text-[#C5A059] mb-3">
-          {eyebrow}
-        </p>
-        <h1 className="font-[Playfair_Display] text-[36px] md:text-[64px] leading-[42px] md:leading-[70px] tracking-[-0.02em] text-[#121212]">
-          {title}
-        </h1>
-        {/* accent underline — matches StillImages divider palette */}
-        <div className="mx-auto mt-5 w-10 h-px bg-[#C5A059]" />
-      </div>
 
-      {/* ── Main row: [Video] [2×2 Grid] ────────────────────────────────────
-           Layout preserved exactly — only colors/radii updated to match design system
+      {/* ── Main row: [Video 50%] [2×2 Grid 50%] ───────────────────────────
+           Stacked on mobile/tablet → equal halves side-by-side on lg+
       ─────────────────────────────────────────────────────────────────────── */}
-      <div className="flex gap-4 lg:gap-6 items-stretch">
-        {/* LEFT — Video player */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch">
+        {/* LEFT — Video player (50% on lg+) */}
         <div
           className="
-            lg:flex-[2]
+            lg:w-1/2
             w-full
             aspect-[16/10]
             lg:aspect-auto
@@ -84,10 +67,10 @@ export default function ClassicEComVisuals({
           )}
         </div>
 
-        {/* RIGHT — 2×2 image grid */}
+        {/* RIGHT — 2×2 image grid (50% on lg+) */}
         <div
           className="
-            lg:flex-1
+            lg:w-1/2
             w-full
             grid grid-cols-2
             gap-3
