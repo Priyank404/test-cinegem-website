@@ -1,9 +1,10 @@
 // ClassicEComVisuals.jsx
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
+import Silk from "@/components/three/Silk";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -230,13 +231,16 @@ export default function ClassicEComVisuals({
   eyebrow = "Product Showcase",
 }) {
   const containerRef = useRef(null);
+  const [silkOn, setSilkOn] = useState(true);
 
-  // Each section's cards/video slide in from the right independently —
-  // a section only animates the first time IT enters the viewport, not
-  // when any other section does. (Section 1 sits above the fold, so it
-  // fires immediately on load; Sections 2 and 3 fire on scroll.)
-  // Pure entrance animation — no layout/position values are touched,
-  // so the existing grid stays exactly as it is.
+  // Each section's cards/video animate independently of every other
+  // section, bound only to that section's own "top 85%" line:
+  //   • scrolling down past it  -> cards slide in from the RIGHT
+  //   • scrolling back UP past it -> cards slide back out to the RIGHT
+  //     (same side, simply reversed — only fires on upward scroll)
+  // Scrolling further down past a section, or scrolling up into a
+  // section you haven't reached yet, does nothing ("none") — so there's
+  // no way for one section's trigger to act on another section.
   useEffect(() => {
     const ctx = gsap.context(() => {
       const sections = gsap.utils.toArray("section", containerRef.current);
@@ -245,8 +249,8 @@ export default function ClassicEComVisuals({
         // Mobile + desktop variants both exist in the DOM at once
         // (Tailwind just toggles `hidden`), so only animate the ones
         // actually visible at this breakpoint.
-        const cards = gsap.utils
-          .toArray(".reveal-right", section)
+        const cards = gsap
+          .utils.toArray(".reveal-right", section)
           .filter((el) => el.offsetParent !== null);
 
         if (!cards.length) return;
@@ -257,11 +261,12 @@ export default function ClassicEComVisuals({
             opacity: 0,
             x: 120,
             filter: "blur(8px)",
-            // Tiles also carry a CSS `transition-transform` (hover lift).
+            // Tiles carry a CSS `transition-transform` (hover lift).
             // Left on, the browser CSS-transitions every GSAP-driven
-            // transform frame on top of GSAP's own easing — two engines
-            // fighting over the same property — which causes stepped,
-            // jerky motion. Kill it for the tween, hand it back after.
+            // transform frame on top of GSAP's own easing — two
+            // engines fighting over the same property — causing
+            // stepped, jerky motion. Kill it for the tween, hand it
+            // back after via clearProps.
             transition: "none",
             willChange: "transform, opacity, filter",
           },
@@ -276,11 +281,18 @@ export default function ClassicEComVisuals({
             scrollTrigger: {
               trigger: section,
               start: "top 85%",
-              once: true,
+              // enter / leave / enterBack / leaveBack
+              toggleActions: "play none none reverse",
             },
-          },
+          }
         );
       });
+
+      // Section heights can shift slightly once images finish loading,
+      // which drifts trigger positions (most noticeable on later
+      // sections). Recalculate once everything has settled.
+      const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 300);
+      return () => window.clearTimeout(refreshId);
     }, containerRef);
 
     return () => ctx.revert();
@@ -288,7 +300,36 @@ export default function ClassicEComVisuals({
 
   return (
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
-      <div ref={containerRef}>
+      {/* Fixed, full-viewport Silk background — sits behind page content,
+          doesn't scroll, never intercepts clicks/scroll.
+          IMPORTANT: z-0, not a negative z-index. ServicePageLayout's
+          root div doesn't establish its own stacking context, so a
+          negative z-index here would paint BEHIND that div's own
+          background instead of just behind the content — i.e. fully
+          hidden. z-0 + the content wrapper's z-10 is enough to order
+          them correctly without that trap. */}
+      {silkOn && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Silk speed={10} scale={1} color="#633c3c" noiseIntensity={2} rotation={0} />
+        </div>
+      )}
+
+      {/* Silk on/off toggle */}
+      <button
+        onClick={() => setSilkOn((v) => !v)}
+        className="
+          fixed bottom-6 right-6 z-50
+          font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase
+          px-4 py-2.5
+          bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059]
+          border border-white/10 shadow-lg
+          transition-colors duration-300
+        "
+      >
+        Silk: {silkOn ? "On" : "Off"}
+      </button>
+
+      <div ref={containerRef} className="relative z-10">
         <Section1 images={section1Images} videoSrc={videoSrc1} />
         <Section2 images={section2Images} videoSrc={videoSrc2} />
         <Section3 images={section3Images} videoSrc={videoSrc3} />
