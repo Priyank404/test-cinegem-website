@@ -1,6 +1,11 @@
 // ClassicEComVisuals.jsx
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
+
+gsap.registerPlugin(ScrollTrigger);
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
@@ -35,6 +40,7 @@ function ImageTile({ img, className = "" }) {
   return (
     <div
       className={`
+        reveal-right
         relative overflow-hidden bg-[#FAF9F6]
         border border-[#c4c7c7]/40 gallery-shadow
         hover:-translate-y-1 transition-transform duration-300
@@ -59,6 +65,7 @@ function VideoPlayer({ videoSrc, className = "" }) {
   return (
     <div
       className={`
+        reveal-right
         relative flex items-center justify-center
         bg-[#0d0d0d] overflow-hidden border border-[#c4c7c7]/20
         ${className}
@@ -222,11 +229,70 @@ export default function ClassicEComVisuals({
   title = "Classic E-Commerce Visuals",
   eyebrow = "Product Showcase",
 }) {
+  const containerRef = useRef(null);
+
+  // Each section's cards/video slide in from the right independently —
+  // a section only animates the first time IT enters the viewport, not
+  // when any other section does. (Section 1 sits above the fold, so it
+  // fires immediately on load; Sections 2 and 3 fire on scroll.)
+  // Pure entrance animation — no layout/position values are touched,
+  // so the existing grid stays exactly as it is.
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const sections = gsap.utils.toArray("section", containerRef.current);
+
+      sections.forEach((section) => {
+        // Mobile + desktop variants both exist in the DOM at once
+        // (Tailwind just toggles `hidden`), so only animate the ones
+        // actually visible at this breakpoint.
+        const cards = gsap.utils
+          .toArray(".reveal-right", section)
+          .filter((el) => el.offsetParent !== null);
+
+        if (!cards.length) return;
+
+        gsap.fromTo(
+          cards,
+          {
+            opacity: 0,
+            x: 120,
+            filter: "blur(8px)",
+            // Tiles also carry a CSS `transition-transform` (hover lift).
+            // Left on, the browser CSS-transitions every GSAP-driven
+            // transform frame on top of GSAP's own easing — two engines
+            // fighting over the same property — which causes stepped,
+            // jerky motion. Kill it for the tween, hand it back after.
+            transition: "none",
+            willChange: "transform, opacity, filter",
+          },
+          {
+            opacity: 1,
+            x: 0,
+            filter: "blur(0px)",
+            duration: 0.9,
+            ease: "power3.out",
+            stagger: 0.07,
+            clearProps: "transform,filter,transition,willChange",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 85%",
+              once: true,
+            },
+          },
+        );
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
-      <Section1 images={section1Images} videoSrc={videoSrc1} />
-      <Section2 images={section2Images} videoSrc={videoSrc2} />
-      <Section3 images={section3Images} videoSrc={videoSrc3} />
+      <div ref={containerRef}>
+        <Section1 images={section1Images} videoSrc={videoSrc1} />
+        <Section2 images={section2Images} videoSrc={videoSrc2} />
+        <Section3 images={section3Images} videoSrc={videoSrc3} />
+      </div>
     </ServicePageLayout>
   );
 }
