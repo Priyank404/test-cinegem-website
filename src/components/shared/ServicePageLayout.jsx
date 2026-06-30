@@ -22,8 +22,12 @@ const ALL_SERVICES = [
  *   title       – <title> tag text
  *   currentPage – route string of the current page (e.g. '/still')
  *                 Used to exclude the current page from the nav links.
+ *   fullBleed   – when true, removes <main>'s default top padding,
+ *                 side padding, and max-width cap (pt-20 only, to clear
+ *                 the fixed 80px header). Used by pages that need full
+ *                 viewport width and exact header-height spacing.
  */
-export function ServicePageLayout({ children, title = 'Cinegem Studio', currentPage = '' }) {
+export function ServicePageLayout({ children, title = 'Cinegem Studio', currentPage = '', fullBleed = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
@@ -191,7 +195,7 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
       </AnimatePresence>
 
       {/* ── Page content ───────────────────────────────────────────────── */}
-      <main className="pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto">
+      <main className={fullBleed ? 'pt-20' : 'pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto'}>
         {children}
       </main>
 
