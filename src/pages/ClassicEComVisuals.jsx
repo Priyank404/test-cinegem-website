@@ -99,6 +99,91 @@ function VideoPlayer({ videoSrc, className = "" }) {
   );
 }
 
+function ScrollArrow({ direction, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={direction === "left" ? "Scroll left" : "Scroll right"}
+      className={`
+        absolute top-1/2 -translate-y-1/2 z-10
+        w-8 h-8 md:w-9 md:h-9 shrink-0
+        flex items-center justify-center rounded-full
+        bg-[#121212]/70 backdrop-blur-sm border border-[#C5A059]/50
+        text-[#FAF9F6] shadow-lg
+        hover:bg-[#C5A059] hover:text-[#121212] hover:border-[#C5A059]
+        transition-colors duration-300
+        ${direction === "left" ? "left-1" : "right-1"}
+      `}
+    >
+      <svg
+        className="w-4 h-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {direction === "left" ? <path d="M15 6l-6 6 6 6" /> : <path d="M9 6l6 6-6 6" />}
+      </svg>
+    </button>
+  );
+}
+
+/* An overflow-aware horizontal scroller: arrows only render once the
+   content actually overflows the visible track, and each arrow hides
+   itself once there's nothing further to scroll toward in that
+   direction (checked on mount, on scroll, and on resize/orientation
+   change). Falls back to plain touch-swipe when nothing overflows. */
+function ArrowScroller({ children, className = "" }) {
+  const trackRef = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const updateArrows = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    updateArrows();
+    const el = trackRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    window.addEventListener("resize", updateArrows);
+    // Images loading in can change scrollWidth after the initial check.
+    const settleId = window.setTimeout(updateArrows, 400);
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      window.removeEventListener("resize", updateArrows);
+      window.clearTimeout(settleId);
+    };
+  }, []);
+
+  const scrollByStep = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.75, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative w-full min-w-0 max-w-full">
+      {canLeft && <ScrollArrow direction="left" onClick={() => scrollByStep(-1)} />}
+      <div
+        ref={trackRef}
+        className={`filmstrip-scroll overflow-x-auto snap-x snap-mandatory max-w-full ${className}`}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {children}
+      </div>
+      {canRight && <ScrollArrow direction="right" onClick={() => scrollByStep(1)} />}
+      <style>{`.filmstrip-scroll::-webkit-scrollbar { display: none; }`}</style>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    SECTION DIVIDER — thin gold gradient rule meeting a small faceted
    gem mark at center (echoes the "CINEGEM" mark). Sits on the dark
@@ -109,7 +194,7 @@ function VideoPlayer({ videoSrc, className = "" }) {
 
 function SectionDivider() {
   return (
-    <div className="theme-divider w-full flex items-center justify-center gap-5 md:gap-8 py-2 md:py-4 px-4 sm:px-6 lg:px-10">
+    <div className="theme-divider w-full flex items-center justify-center gap-5 md:gap-8 py-2 md:py-4 px-4 sm:px-6 md:px-8 lg:px-10">
       <span
         className="divider-line flex-1 h-px max-w-[420px]"
         style={{
@@ -156,14 +241,28 @@ function SectionDivider() {
 function Section1({ images, videoSrc }) {
   return (
     <section
-      className="w-full flex items-center justify-center px-4 sm:px-6 lg:px-10"
+      className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-0"
       style={{ minHeight: "calc(100vh - 80px)" }}
     >
       <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE (<lg) */}
-        <div className="flex flex-col gap-4 lg:hidden">
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[4/5]" />
+        {/* MOBILE (<md) — stacked. Video is kept to a wide 16:9 rather
+            than a tall portrait crop so it doesn't eat the screen and
+            push the 2×2 grid (and the rest of the page) further down. */}
+        <div className="flex flex-col gap-4 md:hidden">
+          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
           <div className="grid grid-cols-2 gap-3 aspect-square">
+            {images.map((img, i) => (
+              <ImageTile key={i} img={img} />
+            ))}
+          </div>
+        </div>
+
+        {/* TABLET (md–lg) — same side-by-side idea as desktop, just a
+            shorter row height suited to iPad-class viewports instead
+            of desktop's 75vh. */}
+        <div className="hidden md:flex lg:hidden flex-row gap-6 items-center justify-center h-[52vh]">
+          <VideoPlayer videoSrc={videoSrc} className="flex-1 h-full" />
+          <div className="h-full aspect-square max-w-[42%] grid grid-cols-2 gap-3 shrink-0">
             {images.map((img, i) => (
               <ImageTile key={i} img={img} />
             ))}
@@ -194,20 +293,24 @@ function Section1({ images, videoSrc }) {
 
 function Section2({ images, videoSrc }) {
   return (
-    <section className="w-full px-4 sm:px-6 lg:px-10 py-16 md:py-24">
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
       <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE */}
+        {/* MOBILE / TABLET (<lg) — swipeable filmstrip. Left/right
+            arrows appear on top of the track (only when there's more
+            to scroll to in that direction) so tapping works as well as
+            swiping, which matters most on tablet where a mouse/trackpad
+            may be in play. */}
         <div className="flex flex-col gap-4 lg:hidden">
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1">
+          <ArrowScroller className="flex gap-3 pb-1">
             {images.map((img, i) => (
               <div
                 key={i}
-                className="shrink-0 w-[60%] sm:w-[40%] aspect-square snap-start"
+                className="shrink-0 w-[62%] sm:w-[42%] md:w-[30%] aspect-square snap-start"
               >
                 <ImageTile img={img} className="w-full h-full" />
               </div>
             ))}
-          </div>
+          </ArrowScroller>
           <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10]" />
         </div>
 
@@ -235,10 +338,11 @@ function Section3({ images, videoSrc }) {
   const [hero, img2, img3, img4] = images;
 
   return (
-    <section className="w-full px-4 sm:px-6 lg:px-10 py-16 md:py-24">
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
       <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE — hero image, then video, then a row of remaining thumbnails */}
-        <div className="flex flex-col gap-3 lg:hidden">
+        {/* MOBILE (<md) — asymmetric hero: 1 big image, portrait video,
+            then a row of the remaining thumbnails. */}
+        <div className="flex flex-col gap-3 md:hidden">
           <ImageTile img={hero} className="w-full aspect-[4/3]" />
           <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[4/5]" />
           <div className="flex gap-3">
@@ -248,11 +352,24 @@ function Section3({ images, videoSrc }) {
           </div>
         </div>
 
-        {/* DESKTOP — single row, 5 columns: image, image, video (center,
-            emphasized), image, image. All height-driven (h-full) off the
-            same row height so nothing stretches unevenly; the video gets
-            a wider aspect ratio than the square tiles so it reads as the
-            focal point without breaking the shared-height row. */}
+        {/* TABLET (md–lg) — the same 5-column pendant row as desktop,
+            just a shorter row height (48vh vs. 70vh) and tighter gap so
+            the five narrower columns still read comfortably at
+            iPad-class widths instead of feeling squeezed. */}
+        <div className="hidden md:flex lg:hidden flex-row gap-3 items-stretch justify-center h-[48vh]">
+          <ImageTile img={hero} className="h-full aspect-square" />
+          <ImageTile img={img2} className="h-full aspect-square" />
+          <VideoPlayer videoSrc={videoSrc} className="h-full aspect-[4/5]" />
+          <ImageTile img={img3} className="h-full aspect-square" />
+          <ImageTile img={img4} className="h-full aspect-square" />
+        </div>
+
+        {/* DESKTOP (lg+) — single row, 5 columns: image, image, video
+            (center, emphasized), image, image. All height-driven
+            (h-full) off the same row height so nothing stretches
+            unevenly; the video gets a wider aspect ratio than the
+            square tiles so it reads as the focal point without
+            breaking the shared-height row. */}
         <div className="hidden lg:flex flex-row gap-4 items-stretch justify-center h-[70vh]">
           <ImageTile img={hero} className="h-full aspect-square" />
           <ImageTile img={img2} className="h-full aspect-square" />
