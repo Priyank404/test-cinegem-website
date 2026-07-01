@@ -33,6 +33,14 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* `overflow-x: hidden` on body alone doesn't clip position:fixed
+       descendants — fixed elements are positioned against the initial
+       containing block (effectively html/viewport), so if any content
+       anywhere on the page pushes past 100% width, fixed elements can
+       be dragged along with that overflow on mobile browsers instead
+       of staying pinned to the visible screen. Hiding overflow on html
+       too closes that gap. */
+    overflow-x: hidden;
   }
 
   body {
@@ -797,4 +805,3 @@ html.lenis {
     filter: blur(0);
   }
 }
-
