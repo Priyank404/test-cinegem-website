@@ -249,12 +249,13 @@ function Section1({ images, videoSrc }) {
             than a tall portrait crop so it doesn't eat the screen and
             push the 2×2 grid (and the rest of the page) further down. */}
         <div className="flex flex-col gap-4 md:hidden">
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
           <div className="grid grid-cols-2 gap-3 aspect-square">
             {images.map((img, i) => (
               <ImageTile key={i} img={img} />
             ))}
           </div>
+
+          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
         </div>
 
         {/* TABLET (md–lg) — same side-by-side idea as desktop, just a
