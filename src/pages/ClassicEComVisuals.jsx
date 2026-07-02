@@ -130,56 +130,92 @@ function ScrollArrow({ direction, onClick }) {
   );
 }
 
-/* An overflow-aware horizontal scroller: arrows only render once the
-   content actually overflows the visible track, and each arrow hides
-   itself once there's nothing further to scroll toward in that
-   direction (checked on mount, on scroll, and on resize/orientation
-   change). Falls back to plain touch-swipe when nothing overflows. */
-function ArrowScroller({ children, className = "" }) {
+/* One-at-a-time "peek" carousel — a single active slide centered in
+   the track with the next/previous slide peeking in (dimmed, slightly
+   scaled down) at each edge, matching the reference gif. Every slide
+   is sized identically (same width % + aspect ratio), so nothing
+   jumps in size as it becomes active. Navigation is strictly linear:
+   the left arrow is absent on slide 1 and the right arrow is absent
+   on the last slide — there's no wraparound in either direction.
+   Swiping/dragging the track works too; the arrows and the native
+   scroll-snap stay in sync via the same activeIndex. */
+function PeekCarousel({ images, className = "" }) {
   const trackRef = useRef(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(false);
+  const slideRefs = useRef([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const updateArrows = () => {
-    const el = trackRef.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  const updateActive = () => {
+    const track = trackRef.current;
+    const slides = slideRefs.current;
+    if (!track || !slides.length) return;
+    const center = track.scrollLeft + track.clientWidth / 2;
+    let closest = 0;
+    let closestDist = Infinity;
+    slides.forEach((el, i) => {
+      if (!el) return;
+      const dist = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = i;
+      }
+    });
+    setActiveIndex(closest);
   };
 
   useEffect(() => {
-    updateArrows();
-    const el = trackRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateArrows, { passive: true });
-    window.addEventListener("resize", updateArrows);
-    // Images loading in can change scrollWidth after the initial check.
-    const settleId = window.setTimeout(updateArrows, 400);
+    updateActive();
+    const track = trackRef.current;
+    if (!track) return;
+    track.addEventListener("scroll", updateActive, { passive: true });
+    window.addEventListener("resize", updateActive);
+    // Images loading in can shift slide widths after the initial check.
+    const settleId = window.setTimeout(updateActive, 400);
     return () => {
-      el.removeEventListener("scroll", updateArrows);
-      window.removeEventListener("resize", updateArrows);
+      track.removeEventListener("scroll", updateActive);
+      window.removeEventListener("resize", updateActive);
       window.clearTimeout(settleId);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [images.length]);
 
-  const scrollByStep = (dir) => {
-    const el = trackRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.75, behavior: "smooth" });
+  const goTo = (i) => {
+    const target = Math.max(0, Math.min(images.length - 1, i));
+    const track = trackRef.current;
+    const el = slideRefs.current[target];
+    if (!track || !el) return;
+    track.scrollTo({
+      left: el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2,
+      behavior: "smooth",
+    });
   };
 
+  const canLeft = activeIndex > 0;
+  const canRight = activeIndex < images.length - 1;
+
   return (
-    <div className="relative w-full min-w-0 max-w-full">
-      {canLeft && <ScrollArrow direction="left" onClick={() => scrollByStep(-1)} />}
+    <div className={`relative w-full min-w-0 max-w-full ${className}`}>
+      {canLeft && <ScrollArrow direction="left" onClick={() => goTo(activeIndex - 1)} />}
       <div
         ref={trackRef}
-        className={`filmstrip-scroll overflow-x-auto snap-x snap-mandatory max-w-full ${className}`}
+        className="peek-scroll flex gap-3 overflow-x-auto snap-x snap-mandatory max-w-full px-[9%] sm:px-[16%] md:px-[22%]"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {children}
+        {images.map((img, i) => (
+          <div
+            key={i}
+            ref={(el) => (slideRefs.current[i] = el)}
+            className={`
+              w-full shrink-0 aspect-square snap-center
+              transition-all duration-[400ms] ease-out
+              ${i === activeIndex ? "opacity-100 scale-100" : "opacity-40 scale-[0.92] blur-[1px]"}
+            `}
+          >
+            <ImageTile img={img} className="w-full h-full" />
+          </div>
+        ))}
       </div>
-      {canRight && <ScrollArrow direction="right" onClick={() => scrollByStep(1)} />}
-      <style>{`.filmstrip-scroll::-webkit-scrollbar { display: none; }`}</style>
+      {canRight && <ScrollArrow direction="right" onClick={() => goTo(activeIndex + 1)} />}
+      <style>{`.peek-scroll::-webkit-scrollbar { display: none; }`}</style>
     </div>
   );
 }
@@ -296,22 +332,14 @@ function Section2({ images, videoSrc }) {
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
       <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE / TABLET (<lg) — swipeable filmstrip. Left/right
-            arrows appear on top of the track (only when there's more
-            to scroll to in that direction) so tapping works as well as
-            swiping, which matters most on tablet where a mouse/trackpad
-            may be in play. */}
+        {/* MOBILE / TABLET (<lg) — one-at-a-time peek carousel: the
+            active image sits centered at full slide size, the next/
+            previous image peeks in dimmed at each edge, and the arrows
+            (present only when there's somewhere left to go — no loop)
+            sit on top of the track so tapping works as well as
+            swiping. */}
         <div className="flex flex-col gap-4 lg:hidden">
-          <ArrowScroller className="flex gap-3 pb-1">
-            {images.map((img, i) => (
-              <div
-                key={i}
-                className="shrink-0 w-[62%] sm:w-[42%] md:w-[30%] aspect-square snap-start"
-              >
-                <ImageTile img={img} className="w-full h-full" />
-              </div>
-            ))}
-          </ArrowScroller>
+          <PeekCarousel images={images} />
           <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10]" />
         </div>
 
