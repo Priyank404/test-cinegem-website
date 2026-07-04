@@ -205,7 +205,7 @@ function PeekCarousel({ images, className = "" }) {
             key={i}
             ref={(el) => (slideRefs.current[i] = el)}
             className={`
-              w-full shrink-0 aspect-square snap-center
+              w-full shrink-0 aspect-square snap-center [scroll-snap-stop:always]
               transition-all duration-[400ms] ease-out
               ${i === activeIndex ? "opacity-100 scale-100" : "opacity-40 scale-[0.92] blur-[1px]"}
             `}
@@ -227,6 +227,78 @@ function PeekCarousel({ images, className = "" }) {
    charcoal tones used on the light service pages. Draws in on scroll,
    matching the site's existing divider convention.
 ═══════════════════════════════════════════════════════════════════════ */
+
+/* Single main-preview carousel: exactly one media item shown at a
+   time, full-size, with prev/next arrows sitting on the preview
+   itself — same ScrollArrow component/styling as Section 2, but
+   without Section 2's scroll-snap track. No thumbnail strip; the
+   preview's height comes from `heightClassName` so it can fill
+   whatever vertical space is given to it. Video (if provided) is
+   simply the last item in the sequence. Strictly linear — the left
+   arrow is absent on the first item, the right arrow on the last —
+   so there's no wraparound.
+   Swiping works the same as the arrows: a horizontal drag past the
+   threshold steps one item at a time. Pointer Events cover touch and
+   mouse-drag alike. The listeners live on `window` (attached only
+   while a pointer is down) rather than using setPointerCapture, so a
+   drag that starts on the video doesn't hijack its native play/seek
+   controls; a mostly-vertical drag is ignored so the page can still
+   scroll normally. */
+function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className = "" }) {
+  const media = videoSrc
+    ? [...images.map((img) => ({ type: "image", img })), { type: "video" }]
+    : images.map((img) => ({ type: "image", img }));
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = media[activeIndex];
+  const dragStart = useRef(null);
+
+  const canLeft = activeIndex > 0;
+  const canRight = activeIndex < media.length - 1;
+
+  const step = (delta) => {
+    setActiveIndex((prev) => Math.max(0, Math.min(media.length - 1, prev + delta)));
+  };
+
+  const SWIPE_THRESHOLD = 40;
+
+  useEffect(() => {
+    const handlePointerUp = (e) => {
+      const start = dragStart.current;
+      dragStart.current = null;
+      if (!start) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      // Require a clearly horizontal drag so this never fights a
+      // vertical page-scroll gesture.
+      if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+        step(dx < 0 ? 1 : -1);
+      }
+    };
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => window.removeEventListener("pointerup", handlePointerUp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media.length]);
+
+  const handlePointerDown = (e) => {
+    dragStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  return (
+    <div
+      className={`relative w-full min-w-0 max-w-full [touch-action:pan-y] ${heightClassName} ${className}`}
+      onPointerDown={handlePointerDown}
+    >
+      {canLeft && <ScrollArrow direction="left" onClick={() => step(-1)} />}
+      {active.type === "video" ? (
+        <VideoPlayer videoSrc={videoSrc} className="w-full h-full" />
+      ) : (
+        <ImageTile img={active.img} className="w-full h-full" />
+      )}
+      {canRight && <ScrollArrow direction="right" onClick={() => step(1)} />}
+    </div>
+  );
+}
 
 function SectionDivider() {
   return (
@@ -369,28 +441,19 @@ function Section3({ images, videoSrc }) {
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
       <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE (<md) — asymmetric hero: 1 big image, portrait video,
-            then a row of the remaining thumbnails. */}
-        <div className="flex flex-col gap-3 md:hidden">
-          <ImageTile img={hero} className="w-full aspect-[4/3]" />
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[4/5]" />
-          <div className="flex gap-3">
-            {[img2, img3, img4].map((img, i) => (
-              <ImageTile key={i} img={img} className="flex-1 aspect-square" />
-            ))}
-          </div>
-        </div>
-
-        {/* TABLET (md–lg) — the same 5-column pendant row as desktop,
-            just a shorter row height (48vh vs. 70vh) and tighter gap so
-            the five narrower columns still read comfortably at
-            iPad-class widths instead of feeling squeezed. */}
-        <div className="hidden md:flex lg:hidden flex-row gap-3 items-stretch justify-center h-[48vh]">
-          <ImageTile img={hero} className="h-full aspect-square" />
-          <ImageTile img={img2} className="h-full aspect-square" />
-          <VideoPlayer videoSrc={videoSrc} className="h-full aspect-[4/5]" />
-          <ImageTile img={img3} className="h-full aspect-square" />
-          <ImageTile img={img4} className="h-full aspect-square" />
+        {/* MOBILE / TABLET (<lg) — same main-preview container/arrows
+            as before (ScrollArrow, same styling), just without the
+            thumbnail strip underneath. With that strip gone, the
+            preview now fills the height it used to occupy, sized for
+            vertical pieces like pendants and chains. Video is the
+            last item in the sequence, arrow-navigable like the
+            images. No looping at either end. */}
+        <div className="lg:hidden">
+          <MainPreviewCarousel
+            images={[hero, img2, img3, img4]}
+            videoSrc={videoSrc}
+            heightClassName="h-[58vh] sm:h-[62vh] md:h-[66vh]"
+          />
         </div>
 
         {/* DESKTOP (lg+) — single row, 5 columns: image, image, video
