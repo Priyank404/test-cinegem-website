@@ -35,7 +35,7 @@ export default function HomePage() {
         }`}
       >
         <Navigation />
-        <DevelopmentBadge />
+        {/* <DevelopmentBadge /> */}
         <main id="main-content" tabIndex={-1}>
           <HeroVault onNavigate={handleNavigate} />
         </main>

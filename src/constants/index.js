@@ -14,7 +14,7 @@ export const VAULT_PANELS = [
     id:        'still',
     label:     'Still Images',
     category:  'Photorealistic Render',
-    img:       'https://lh3.googleusercontent.com/aida-public/AB6AXuC0Tc7i2mEJj2Aie7usQQBNK2jiIcwkzB8pgnSa3D9kAIjhaGWVz9homlQmZTh9D6uywm4rUfWVttwZh3Sdn15iOcuTofKXUYBnzd_2Kn7FAAhvuXEC_NzJkyT379MwmRRk8DczOeGnoNu94kGimLDYlBlyau8y3K38SScC_d-6EqgIUbyAcBC5-xR5Q2FjiOVSeOFd1CaCjYzylvTJo-Y_STku8ta51d0Wi6hSLIe-vKbSFoiv59rR79VIDNBIKrWU6oP8yFwJh1o',
+    img:       'Band Ring With Enamel Marquise-Y-V1.jpg',
     route:     '/still',
     position:  { x: -470, y: -80, z: -100 },
     rotation:  { x: 5, y: 20, z: -7 },
