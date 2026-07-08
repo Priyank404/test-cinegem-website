@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import TrailText from "@/components/shared/TrailText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,7 +19,9 @@ export default function HeroSection({
   // TODO: once /hero.jpg exists in /public, this default is all you need to
   // change — everything else (sizing, crop, animation) just works as-is.
   backgroundSrc = "/hero.jpg",
-  heading = "Classic E-Commerce Visuals",
+  // Array of lines — each one trails in as its own line. Pass a different
+  // array per page, e.g. ["Creative", "Images"].
+  heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
 }) {
   const heroRef = useRef(null);
@@ -33,14 +36,15 @@ export default function HeroSection({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const ctx = gsap.context(() => {
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: true, // 1:1 with scroll position — no snapping, no lag
-        },
-      })
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: true, // 1:1 with scroll position — no snapping, no lag
+          },
+        })
         // Background: slow zoom + rising blur/darken + slight upward drift.
         // scale/y are handled by GSAP's own transform engine (GPU-accelerated
         // translate3d/scale under the hood); `filter` is a single tween with
@@ -56,16 +60,21 @@ export default function HeroSection({
             filter: "blur(18px) brightness(0.55)",
             ease: "none",
           },
-          0
+          0,
         )
         // Overlay: gradient stays the same shape, just deepens overall.
-        .fromTo(overlayRef.current, { opacity: 0.55 }, { opacity: 1, ease: "none" }, 0)
+        .fromTo(
+          overlayRef.current,
+          { opacity: 0.55 },
+          { opacity: 1, ease: "none" },
+          0,
+        )
         // Copy: fades/rises/scales down slightly as the image takes over.
         .fromTo(
           contentRef.current,
           { opacity: 1, y: 0, scale: 1 },
           { opacity: 0, y: -60, scale: 0.92, ease: "none" },
-          0
+          0,
         );
     }, heroRef);
 
@@ -100,7 +109,8 @@ export default function HeroSection({
         ref={overlayRef}
         className="absolute inset-0 will-change-[opacity]"
         style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.75))",
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.75))",
         }}
       />
 
@@ -116,13 +126,26 @@ export default function HeroSection({
           max-w-[88%] sm:max-w-md md:max-w-lg lg:max-w-xl
         "
       >
-        <h1 className="font-[Playfair_Display] text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5">
+        <TrailText
+          as="h1"
+          itemAs="div"
+          open={true}
+          splitBy="lines"
+          className="font-[Playfair_Display] text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5"
+        >
           {heading}
-        </h1>
+        </TrailText>
 
-        <p className="font-[Manrope] text-white/80 text-sm sm:text-base leading-relaxed max-w-md">
+        <TrailText
+          as="p"
+          itemAs="span"
+          open={true}
+          splitBy="words"
+          delay={300}
+          className="font-[Manrope] text-white/80 text-sm sm:text-base leading-relaxed max-w-md"
+        >
           {paragraph}
-        </p>
+        </TrailText>
       </div>
     </section>
   );

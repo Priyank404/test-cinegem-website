@@ -28,10 +28,10 @@ const section2Images = [
 ];
 
 const section3Images = [
-  { src: "/9.png", alt: "Front view", label: "Front" },
-  { src: "/10.png", alt: "Side view", label: "Side" },
-  { src: "/11.png", alt: "Detail view", label: "Detail" },
-  { src: "/12.png", alt: "Macro view", label: "Macro" },
+  { src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png", alt: "Front view", label: "Front" },
+  { src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png", alt: "Side view", label: "Side" },
+  { src: "/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png", alt: "Detail view", label: "Detail" },
+  { src: "/G7P25CLACRAW0113D00-TZPDP00005-24Y-V3-WB.png", alt: "Macro view", label: "Macro" },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -480,9 +480,9 @@ function Section3({ images, videoSrc }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function ClassicEComVisuals({
-  videoSrc1 = "https://drive.google.com/file/d/1LZSD2xmhrvFbRs4xDnipktbywr3lyHYs/view?usp=sharing",
-  videoSrc2 = "https://drive.google.com/file/d/1LZSD2xmhrvFbRs4xDnipktbywr3lyHYs/view?usp=sharing",
-  videoSrc3 = "https://drive.google.com/file/d/1LZSD2xmhrvFbRs4xDnipktbywr3lyHYs/view?usp=sharing",
+  videoSrc1 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
+  videoSrc2 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
+  videoSrc3 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
   title = "Classic E-Commerce Visuals",
   eyebrow = "Product Showcase",
 }) {
@@ -615,7 +615,11 @@ export default function ClassicEComVisuals({
           `containerRef` for "section"/".reveal-right"/".theme-divider"
           elements to drive Section 1–3's own reveal + divider animations,
           and this keeps the hero from ever being swept into that scan. */}
-      <HeroSection />
+      <HeroSection
+      backgroundSrc="/4.png"
+  heading={["Classic", "E-Commerce", "Visuals"]}
+  paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
+/>
 
       <div ref={containerRef} className="relative z-10">
         <Section1 images={section1Images} videoSrc={videoSrc1} />
@@ -627,3 +631,6 @@ export default function ClassicEComVisuals({
     </ServicePageLayout>
   );
 }
+
+
+
