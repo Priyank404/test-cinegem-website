@@ -5,6 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
 import Silk from "@/components/three/Silk";
+import HeroSection from "@/components/sections/HeroSection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -607,6 +608,14 @@ export default function ClassicEComVisuals({
       >
         Silk: {silkOn ? "On" : "Off"}
       </button>
+
+      {/* Cinematic scroll-zoom hero — entirely self-contained (own GSAP
+          context/ScrollTrigger, own cleanup) in HeroSection.jsx. Kept
+          outside `containerRef` on purpose: the effect above scans
+          `containerRef` for "section"/".reveal-right"/".theme-divider"
+          elements to drive Section 1–3's own reveal + divider animations,
+          and this keeps the hero from ever being swept into that scan. */}
+      <HeroSection />
 
       <div ref={containerRef} className="relative z-10">
         <Section1 images={section1Images} videoSrc={videoSrc1} />
