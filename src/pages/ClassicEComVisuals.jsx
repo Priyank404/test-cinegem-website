@@ -229,14 +229,14 @@ function PeekCarousel({ images, className = "" }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 /* Single main-preview carousel: exactly one media item shown at a
-   time, full-size, with prev/next arrows sitting on the preview
-   itself — same ScrollArrow component/styling as Section 2, but
-   without Section 2's scroll-snap track. No thumbnail strip; the
-   preview's height comes from `heightClassName` so it can fill
-   whatever vertical space is given to it. Video (if provided) is
-   simply the last item in the sequence. Strictly linear — the left
-   arrow is absent on the first item, the right arrow on the last —
-   so there's no wraparound.
+   time, with prev/next arrows anchored to the outer edges of the
+   container — same ScrollArrow component/styling as Section 2 — and
+   the image/video itself inset between them (rather than the arrows
+   floating on top of it). No thumbnail strip; the preview's height
+   comes from `heightClassName` so it can fill whatever vertical space
+   is given to it. Video (if provided) is simply the last item in the
+   sequence. Strictly linear — the left arrow is absent on the first
+   item, the right arrow on the last — so there's no wraparound.
    Swiping works the same as the arrows: a horizontal drag past the
    threshold steps one item at a time. Pointer Events cover touch and
    mouse-drag alike. The listeners live on `window` (attached only
@@ -286,7 +286,7 @@ function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className
 
   return (
     <div
-      className={`relative w-full min-w-0 max-w-full [touch-action:pan-y] ${heightClassName} ${className}`}
+      className={`relative w-full min-w-0 max-w-full px-12 sm:px-14 md:px-16 [touch-action:pan-y] ${heightClassName} ${className}`}
       onPointerDown={handlePointerDown}
     >
       {canLeft && <ScrollArrow direction="left" onClick={() => step(-1)} />}
