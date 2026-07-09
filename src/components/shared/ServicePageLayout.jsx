@@ -34,6 +34,9 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
 
   useEffect(() => {
     document.title = `${title} — Cinegem Studio`
+    // Check initial scroll position in case of page reload/restored scroll position
+    setScrolled(window.scrollY > 50)
+    
     const onScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -62,9 +65,9 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
       {/* ── Navigation ─────────────────────────────────────────────────── */}
       <nav
         className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${
-          scrolled
-            ? 'backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
-            : 'bg-transparent border-white/20'
+          scrolled || menuOpen
+            ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
+            : '-translate-y-full opacity-0 pointer-events-none bg-transparent border-white/20'
         }`}
       >
         <div className="flex justify-between items-center px-6 md:px-20 max-w-[1440px] mx-auto h-20">
