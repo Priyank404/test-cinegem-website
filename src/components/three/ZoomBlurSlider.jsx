@@ -77,6 +77,17 @@ const FRAGMENT_SHADER = `
   }
 `;
 
+// Below this viewport width, use each panel's 9:16 mobileImg instead of its
+// 16:9 desktop img — mirrors how shop.qweenjewels.com swaps in a separate
+// MobileHero asset rather than trying to crop the desktop one down.
+const MOBILE_BREAKPOINT = 768;
+
+// Pick the correct source for the current viewport, falling back to the
+// desktop image if no mobileImg has been supplied yet for that panel.
+function pickPanelSrc(panel, isMobile) {
+  return (isMobile && panel.mobileImg) ? panel.mobileImg : panel.img;
+}
+
 export default function ZoomBlurSlider({ onNavigate }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -85,6 +96,9 @@ export default function ZoomBlurSlider({ onNavigate }) {
   const [currentIndexState, setCurrentIndexState] = useState(0);
   const [texturesLoaded, setTexturesLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT,
+  );
 
   // WebGL references
   const rendererRef = useRef(null);
@@ -108,15 +122,30 @@ export default function ZoomBlurSlider({ onNavigate }) {
   // Touch variables
   const touchStart = useRef({ x: 0, y: 0 });
 
-  // 1. Texture Loading
+  // 0. Track viewport breakpoint so we know whether to load desktop (16:9)
+  // or mobile (9:16) hero assets. Re-checks on resize/orientation change.
   useEffect(() => {
+    const checkBreakpoint = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    checkBreakpoint();
+    window.addEventListener("resize", checkBreakpoint);
+    return () => window.removeEventListener("resize", checkBreakpoint);
+  }, []);
+
+  // 1. Texture Loading — re-runs whenever isMobile flips, so crossing the
+  // breakpoint (e.g. rotating a tablet, or resizing a desktop window past
+  // 768px) swaps in the correctly-cropped source instead of stretching the
+  // wrong-aspect asset.
+  useEffect(() => {
+    setTexturesLoaded(false);
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin("anonymous");
 
     const loadPromises = VAULT_PANELS.map((panel) => {
       return new Promise((resolve, reject) => {
         loader.load(
-          panel.img,
+          pickPanelSrc(panel, isMobile),
           (texture) => {
             // Apply high quality filtering
             texture.minFilter = THREE.LinearFilter;
@@ -145,7 +174,7 @@ export default function ZoomBlurSlider({ onNavigate }) {
         );
         setLoadError(true);
       });
-  }, []);
+  }, [isMobile]);
 
   // 2. WebGL initialization and lifecycle
   useEffect(() => {
@@ -293,13 +322,13 @@ export default function ZoomBlurSlider({ onNavigate }) {
     };
   }, [texturesLoaded, loadError]);
 
-  // Helper: Emulates css 'object-fit: contain' inside WebGL shader uniforms.
-  // The entire image is always shown at its natural aspect ratio, scaled
-  // to fit within the canvas — never cropped, never stretched. Whichever
-  // axis has leftover space is left transparent (the shader discards
-  // fragments outside the [0,1] sampled rect), and the existing vignette
-  // gradients in the JSX sit behind it so the letterbox reads as intentional
-  // rather than blank. This adapts dynamically to any screen size/orientation.
+  // Helper: Emulates CSS 'object-fit: cover' inside WebGL shader uniforms —
+  // matches the behavior shop.qweenjewels.com uses for its own hero image
+  // (plain <img class="object-cover">). The image always fills the canvas
+  // edge-to-edge; whichever axis has "extra" image gets center-cropped
+  // rather than letterboxed. Pair this with a properly-shaped source asset
+  // per breakpoint (16:9 desktop, 9:16 mobile via `pickPanelSrc`) so the
+  // crop stays gentle instead of cutting off the subject.
   const updateTextureCover = (uniforms, texture) => {
     if (!texture || !texture.image || !rendererRef.current) return;
 
@@ -316,16 +345,16 @@ export default function ZoomBlurSlider({ onNavigate }) {
 
     if (iRatio > canvasRatio) {
       // Image is proportionately wider than the canvas (e.g. a wide shot on
-      // a tall mobile screen). Fit by width — full width visible, letterbox
-      // bars above/below.
-      uniforms.uvScale.value.y = iRatio / canvasRatio;
-      uniforms.uvOffset.value.y = (1 - uniforms.uvScale.value.y) / 2;
-    } else {
-      // Canvas is proportionately wider than the image (e.g. a portrait/
-      // square shot on a wide desktop screen). Fit by height — full height
-      // visible, letterbox bars left/right.
+      // a tall mobile screen). Fit by height, crop the excess width off the
+      // left/right edges — full height visible, no letterbox.
       uniforms.uvScale.value.x = canvasRatio / iRatio;
       uniforms.uvOffset.value.x = (1 - uniforms.uvScale.value.x) / 2;
+    } else {
+      // Canvas is proportionately wider than the image (e.g. a portrait/
+      // square shot on a wide desktop screen). Fit by width, crop the excess
+      // height off the top/bottom — full width visible, no letterbox.
+      uniforms.uvScale.value.y = iRatio / canvasRatio;
+      uniforms.uvOffset.value.y = (1 - uniforms.uvScale.value.y) / 2;
     }
   };
 
@@ -519,7 +548,7 @@ export default function ZoomBlurSlider({ onNavigate }) {
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 bg-center bg-cover scale-125"
             style={{
-              backgroundImage: `url(${VAULT_PANELS[currentIndexState].img})`,
+              backgroundImage: `url(${pickPanelSrc(VAULT_PANELS[currentIndexState], isMobile)})`,
               filter: "blur(60px) brightness(0.85) saturate(1.1)",
             }}
           />
