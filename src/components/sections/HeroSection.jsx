@@ -28,7 +28,14 @@ export default function HeroSection({
   const bgRef = useRef(null);
   const overlayRef = useRef(null);
   const contentRef = useRef(null);
-  const [imgFailed, setImgFailed] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
+
+  const isVideo = typeof backgroundSrc === "string" && (
+    backgroundSrc.endsWith(".mp4") ||
+    backgroundSrc.endsWith(".webm") ||
+    backgroundSrc.endsWith(".ogg") ||
+    backgroundSrc.endsWith(".mov")
+  );
 
   useEffect(() => {
     // Respect reduced-motion preferences — show the finished (settled)
@@ -86,16 +93,30 @@ export default function HeroSection({
       ref={heroRef}
       className="relative z-10 w-full h-[100svh] min-h-[480px] -mt-20 overflow-hidden bg-[#0d0d0d]"
     >
-      {/* Background image — falls back to a dark gradient (rather than a
-          broken-image icon) until /hero.jpg is actually in /public. */}
-      {!imgFailed ? (
-        <img
-          ref={bgRef}
-          src={backgroundSrc}
-          alt=""
-          onError={() => setImgFailed(true)}
-          className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
-        />
+      {/* Background media (image or video) — falls back to a dark gradient (rather than a
+          broken-image icon) until backgroundSrc is actually in /public. */}
+      {!mediaFailed ? (
+        isVideo ? (
+          <video
+            ref={bgRef}
+            src={backgroundSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onError={() => setMediaFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
+          />
+        ) : (
+          <img
+            ref={bgRef}
+            src={backgroundSrc}
+            alt=""
+            onError={() => setMediaFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
+          />
+        )
       ) : (
         <div
           ref={bgRef}

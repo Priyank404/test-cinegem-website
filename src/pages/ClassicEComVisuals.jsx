@@ -616,7 +616,7 @@ export default function ClassicEComVisuals({
           elements to drive Section 1–3's own reveal + divider animations,
           and this keeps the hero from ever being swept into that scan. */}
       <HeroSection
-      backgroundSrc="/4.png"
+      backgroundSrc="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
   heading={["Classic", "E-Commerce", "Visuals"]}
   paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
 />
