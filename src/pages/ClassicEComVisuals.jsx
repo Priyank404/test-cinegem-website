@@ -221,14 +221,6 @@ function PeekCarousel({ images, className = "" }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION DIVIDER — thin gold gradient rule meeting a small faceted
-   gem mark at center (echoes the "CINEGEM" mark). Sits on the dark
-   Silk background, so it's rendered in cream/gold rather than the
-   charcoal tones used on the light service pages. Draws in on scroll,
-   matching the site's existing divider convention.
-═══════════════════════════════════════════════════════════════════════ */
-
 /* Single main-preview carousel: exactly one media item shown at a
    time, with prev/next arrows anchored to the outer edges of the
    container — same ScrollArrow component/styling as Section 2 — and
@@ -297,44 +289,6 @@ function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className
         <ImageTile img={active.img} className="w-full h-full" />
       )}
       {canRight && <ScrollArrow direction="right" onClick={() => step(1)} />}
-    </div>
-  );
-}
-
-function SectionDivider() {
-  return (
-    <div className="theme-divider w-full flex items-center justify-center gap-5 md:gap-8 py-2 md:py-4 px-4 sm:px-6 md:px-8 lg:px-10">
-      <span
-        className="divider-line flex-1 h-px max-w-[420px]"
-        style={{
-          transformOrigin: "right center",
-          background: "linear-gradient(to right, transparent, rgba(197,160,89,0.6))",
-        }}
-      />
-      <svg
-        className="divider-gem w-4 h-4 md:w-5 md:h-5 shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        style={{ filter: "drop-shadow(0 0 6px rgba(197,160,89,0.6))" }}
-      >
-        <path
-          d="M8 4H16L20 9L12 20L4 9L8 4Z"
-          fill="rgba(197,160,89,0.15)"
-          stroke="#C5A059"
-          strokeWidth="1"
-          strokeLinejoin="round"
-        />
-        <path d="M4 9H20" stroke="#C5A059" strokeWidth="0.75" opacity="0.7" />
-        <path d="M8 4L12 20" stroke="#C5A059" strokeWidth="0.6" opacity="0.55" />
-        <path d="M16 4L12 20" stroke="#C5A059" strokeWidth="0.6" opacity="0.55" />
-      </svg>
-      <span
-        className="divider-line flex-1 h-px max-w-[420px]"
-        style={{
-          transformOrigin: "left center",
-          background: "linear-gradient(to left, transparent, rgba(197,160,89,0.6))",
-        }}
-      />
     </div>
   );
 }
@@ -544,30 +498,6 @@ export default function ClassicEComVisuals({
         );
       });
 
-      // Ornamental dividers between sections: the two gradient lines
-      // draw outward from the center gem, which then pops in with a
-      // slight overshoot. Each divider triggers once, independently,
-      // the first time it crosses into view — no reverse, since an
-      // already-drawn rule shouldn't undraw itself on scroll-back.
-      gsap.utils.toArray(".theme-divider", containerRef.current).forEach((divider) => {
-        const lines = divider.querySelectorAll(".divider-line");
-        const gem = divider.querySelector(".divider-gem");
-
-        gsap.set(lines, { scaleX: 0 });
-        gsap.set(gem, { scale: 0, rotate: -30, opacity: 0 });
-
-        gsap
-          .timeline({
-            scrollTrigger: { trigger: divider, start: "top 88%", once: true },
-          })
-          .to(lines, { scaleX: 1, duration: 1, ease: "power3.inOut" }, 0)
-          .to(
-            gem,
-            { scale: 1, rotate: 0, opacity: 1, duration: 0.6, ease: "back.out(2.2)" },
-            0.35
-          );
-      });
-
       // Section heights can shift slightly once images finish loading,
       // which drifts trigger positions (most noticeable on later
       // sections). Recalculate once everything has settled.
@@ -616,16 +546,14 @@ export default function ClassicEComVisuals({
           elements to drive Section 1–3's own reveal + divider animations,
           and this keeps the hero from ever being swept into that scan. */}
       <HeroSection
-      backgroundSrc="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
+      backgroundSrc="/4.png"
   heading={["Classic", "E-Commerce", "Visuals"]}
   paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
 />
 
       <div ref={containerRef} className="relative z-10">
         <Section1 images={section1Images} videoSrc={videoSrc1} />
-        <SectionDivider />
         <Section2 images={section2Images} videoSrc={videoSrc2} />
-        <SectionDivider />
         <Section3 images={section3Images} videoSrc={videoSrc3} />
       </div>
     </ServicePageLayout>
