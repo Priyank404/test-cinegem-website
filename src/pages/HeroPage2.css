@@ -8,6 +8,30 @@
   width: 100%;
   color: #fff;
   font-family: "Inter", system-ui, sans-serif;
+  /* White custom cursor — browsers can't recolor the native OS cursor
+     via CSS, only swap the icon, so this is an inline SVG arrow drawn
+     in white with a thin dark outline for contrast against the black
+     hero background. Hotspot (14 8) roughly matches a normal arrow's
+     tip. Falls back to the default cursor if data-URI cursors aren't
+     supported (very old browsers only). Scoped to this page only via
+     the .hero2-page selector so it doesn't affect the rest of the site. */
+  cursor:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M14 8 L14 24 L18.5 19.8 L21.2 25.8 L23.6 24.7 L20.9 18.7 L26 18.3 Z" fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"/></svg>')
+      14 8,
+    auto;
+}
+
+.hero2-page a,
+.hero2-page button,
+.hero2-page [role="button"] {
+  /* Same white arrow for interactive elements — swap for a filled
+     white circle/pointer here later if you want a distinct "hover"
+     cursor state, but keeping it consistent for now avoids a jarring
+     shape change on every link/button hover. */
+  cursor:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M14 8 L14 24 L18.5 19.8 L21.2 25.8 L23.6 24.7 L20.9 18.7 L26 18.3 Z" fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round"/></svg>')
+      14 8,
+    pointer;
 }
 
 .hero2-nav {
