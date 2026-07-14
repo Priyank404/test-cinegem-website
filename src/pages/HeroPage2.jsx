@@ -265,20 +265,20 @@ export default function HeroPage2() {
   // FULL card object, not just the changed field).
   const [cardLayoutValues, setCardLayoutValues] = useState([
     {
-      x: -1.36,
-      y: 0,
+      x: -1.34,
+      y: -0.11,
       z: -0.66,
-      scale: 0.77,
+      scale: 0.94,
       rotX: -2.12,
       rotY: -0.2,
       rotZ: -2.88,
     },
-    { x: 0.03, y: 0, z: -0.68, scale: 1, rotX: 0.78, rotY: 0, rotZ: 0 },
+    { x: 0.03, y: -0.02, z: -0.68, scale: 1.02, rotX: 0.78, rotY: 0, rotZ: 0 },
     {
-      x: 1.36,
-      y: 0,
+      x: 1.53,
+      y: -0.13,
       z: -0.66,
-      scale: 0.98,
+      scale: 1.06,
       rotX: -3.14,
       rotY: -2.88,
       rotZ: -2.51,

@@ -197,30 +197,21 @@ export const BEATS = [
 // as 2 NEW copies emerging from the 1 that's already there, not 3 new
 // + the original all visible at once).
 const CARD_LAYOUT = [
-  {
-    x: -1.36,
-    y: 0,
-    z: -0.66,
-    scale: 0.88,
-    rot: { x: -2.12, y: -0.2, z: -2.88 },
-    label: "top",
-  },
-  {
-    x: 0.03,
-    y: 0,
-    z: -0.68,
-    scale: 1,
-    rot: { x: 0.73, y: 0, z: 0 },
-    label: "front",
-  },
-  {
-    x: 1.36,
-    y: 0,
-    z: -0.66,
-    scale: 1.06,
-    rot: { x: -3.14, y: -2.88, z: -2.51 },
-    label: "side",
-  },
+  { x: -1.39, y: -0.12, z: -0.66, scale: 0.94, rot: { x: -2.12, y: -0.2, z: -2.88 }, label: "top" },
+  { x: 0, y: -0.12, z: -0.68, scale: 1.02, rot: { x: 0.75, y: 0, z: 0 }, label: "front" },
+  { x: 1.39, y: -0.12, z: -0.66, scale: 1.06, rot: { x: -3.14, y: -2.88, z: -2.51 }, label: "side" },
+];
+
+// Ring position INSIDE each card slot, baked in as the default (still
+// overridable live via the demerge/card-layout panel — see
+// DEFAULT_CARD_RING_OFFSET's use in liveRingOffset() below):
+// top:   { x: 0, y: -0.18, z: 0 }
+// front: { x: 0, y: -0.08, z: 0 } (front has no frame — additive on top of X/Y/Z offset above)
+// side:  { x: 0.18, y: -0.2, z: 0 }
+const DEFAULT_CARD_RING_OFFSET = [
+  { x: 0, y: -0.18, z: 0 },
+  { x: 0, y: -0.08, z: 0 },
+  { x: 0.18, y: -0.2, z: 0 },
 ];
 
 // Ring's resting position/rotation on the hand mesh, in the hand's local
@@ -1877,7 +1868,12 @@ export default function RingHero({
         ];
         const liveRingOffset = (layoutIndex) => {
           const ov = ringOffOv[layoutIndex];
-          return { x: ov?.x ?? 0, y: ov?.y ?? 0, z: ov?.z ?? 0 };
+          const def = DEFAULT_CARD_RING_OFFSET[layoutIndex];
+          return {
+            x: ov?.x ?? def.x,
+            y: ov?.y ?? def.y,
+            z: ov?.z ?? def.z,
+          };
         };
         if (onBody <= 0.001) {
           // Blend FROM the ring's actual current scale/z (whatever
