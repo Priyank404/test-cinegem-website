@@ -67,15 +67,23 @@ gsap.registerPlugin(ScrollTrigger);
 // Scroll "beats" — camera + rotation. Material intensities live per-material
 // below and are tweened separately so gem and metal can react differently.
 //
-// 5-beat storyboard (see docs/HERO2_5BEAT_PRD.md):
+// 5-beat storyboard (see docs/HERO2_5BEAT_PRD.md) — REORDERED:
 //   1. Idle ring — no change from load.
-//   2. Floor rises from below, ring rests on it, floor fades out by the
-//      end of the beat.
-//   3. On-body reveal — hand slides in, ring seats on the finger, then
-//      backs off again (existing behavior, unchanged).
-//   4. Demerge — ring splits into 3 e-commerce-style cards (top/front/
+//   2. Demerge — ring splits into 3 e-commerce-style cards (top/front/
 //      side view), then re-merges into one ring.
+//   3. Floor rises from below, ring rests on it, floor fades out by the
+//      end of the beat.
+//   4. On-body reveal — hand slides in, ring seats on the finger, then
+//      backs off again (existing behavior, unchanged).
 //   5. Standing spin — single ring, full 360° turn to close.
+//
+// NOTE: all beat-to-beat transition detection (isOnBodyExit,
+// isCardsDemerge, isCardsMerge, isFloorFadeOut in setupScrollTimeline())
+// is computed dynamically by comparing each beat's pose flags
+// (handEntry/ringOnBody/floorEntry/floorOpacity/cardsState) against the
+// PREVIOUS array entry — not by beat number — so reordering this array
+// is safe and the transitions re-derive themselves for the new
+// adjacency automatically.
 export const BEATS = [
   {
     // Beat 1 — idle ring, exactly today's opening pose.
@@ -92,16 +100,34 @@ export const BEATS = [
     cardsState: 0,
   },
   {
-    // Beat 2 — floor rises up from below the frame. Camera + ring pose
-    // are DELIBERATELY nudged (not identical to Beat 1 anymore) so the
-    // ring visibly "settles" as the floor arrives under it — a small
-    // camera dip + ring tilting slightly forward/down, like a product
-    // easing down onto a surface, instead of sitting perfectly static
-    // while only the floor moves.
-    // floorOpacity is still 1 here; it stays at 1 through Beat 3 (the
+    // Beat 2 — demerge: ring splits into 3 view cards (top / front /
+    // side). cardsState peaks here; it eases back to 0 into Beat 3, i.e.
+    // the cards re-merge into a single ring across the outgoing
+    // transition. Background intentionally matches Beat 1 exactly — no
+    // background crossfade in or out of this beat.
+    bgTop: "#0d0d10",
+    bgBottom: "#1a1a1f",
+    camPos: { x: 0, y: 0, z: 3.2, lookAtY: 0 },
+    ringRot: { x: 0.15, y: 0 },
+    metalEnvIntensity: 8,
+    gemEnvIntensity: 2.0,
+    handEntry: 0,
+    ringOnBody: 0,
+    floorEntry: 0,
+    floorOpacity: 0,
+    cardsState: 1, // 0 = single merged ring, 1 = fully split into 3 cards
+  },
+  {
+    // Beat 3 — floor rises up from below the frame. Camera + ring pose
+    // are DELIBERATELY nudged (not identical to Beat 1) so the ring
+    // visibly "settles" as the floor arrives under it — a small camera
+    // dip + ring tilting slightly forward/down, like a product easing
+    // down onto a surface, instead of sitting perfectly static while
+    // only the floor moves.
+    // floorOpacity is still 1 here; it stays at 1 through Beat 4 (the
     // floor's world position does NOT move again — see floorEntry on
-    // Beat 3 below) and it's floorOpacity alone that eases to 0 across
-    // the Beat 2 -> Beat 3 range, i.e. the floor dissolves in place
+    // Beat 4 below) and it's floorOpacity alone that eases to 0 across
+    // the Beat 3 -> Beat 4 range, i.e. the floor dissolves in place
     // instead of sinking back down.
     bgTop: "#241a12",
     bgBottom: "#3b2417",
@@ -123,11 +149,11 @@ export const BEATS = [
     cardsState: 0,
   },
   {
-    // Beat 3 — on-body reveal beat: hand slides in from the right, ring
+    // Beat 4 — on-body reveal beat: hand slides in from the right, ring
     // drops down and settles onto the finger. The floor stays at its
-    // Beat 2 resting height here (floorEntry stays 1 — NOT back to 0),
+    // Beat 3 resting height here (floorEntry stays 1 — NOT back to 0),
     // so it can never visibly "sink"; only floorOpacity (already 0 by
-    // now, tweened across the incoming Beat 2 -> Beat 3 range) controls
+    // now, tweened across the incoming Beat 3 -> Beat 4 range) controls
     // whether you can see it. Position and opacity are fully decoupled.
     bgTop: "#0c0c0e",
     bgBottom: "#000000",
@@ -141,24 +167,6 @@ export const BEATS = [
     floorEntry: 1,
     floorOpacity: 0,
     cardsState: 0,
-  },
-  {
-    // Beat 4 — hand backs off / ring comes off the finger (handEntry &
-    // ringOnBody back to 0, same mechanism as before), while the ring
-    // demerges into 3 view cards (top / front / side). cardsState peaks
-    // here; it eases back to 0 into Beat 5, i.e. the cards re-merge into
-    // a single ring across the outgoing transition.
-    bgTop: "#3a1c0c",
-    bgBottom: "#0c0a08",
-    camPos: { x: 0, y: 0, z: 3.2, lookAtY: 0 },
-    ringRot: { x: 0.15, y: 0 },
-    metalEnvIntensity: 8,
-    gemEnvIntensity: 2.0,
-    handEntry: 0,
-    ringOnBody: 0,
-    floorEntry: 0,
-    floorOpacity: 0,
-    cardsState: 1, // 0 = single merged ring, 1 = fully split into 3 cards
   },
   {
     // Beat 5 — standing spin: single ring, one full extra turn (2*PI on
@@ -189,9 +197,30 @@ export const BEATS = [
 // as 2 NEW copies emerging from the 1 that's already there, not 3 new
 // + the original all visible at once).
 const CARD_LAYOUT = [
-  { x: -1.4, rot: { x: Math.PI / 2 - 0.05, y: 0 }, label: "top" },
-  { x: 0, rot: { x: 0.15, y: 0 }, label: "front" }, // no clone — see above
-  { x: 1.4, rot: { x: 0, y: Math.PI / 2 }, label: "side" },
+  {
+    x: -1.36,
+    y: 0,
+    z: -0.66,
+    scale: 0.88,
+    rot: { x: -2.12, y: -0.2, z: -2.88 },
+    label: "top",
+  },
+  {
+    x: 0.03,
+    y: 0,
+    z: -0.68,
+    scale: 1,
+    rot: { x: 0.73, y: 0, z: 0 },
+    label: "front",
+  },
+  {
+    x: 1.36,
+    y: 0,
+    z: -0.66,
+    scale: 1.06,
+    rot: { x: -3.14, y: -2.88, z: -2.51 },
+    label: "side",
+  },
 ];
 
 // Ring's resting position/rotation on the hand mesh, in the hand's local
@@ -358,6 +387,26 @@ export default function RingHero({
     floorPosX: null, // number | null
     floorPosZ: null, // number | null
     floorRot: null, // { x, y, z } | null — radians
+    // Per-card live override for the Beat 2 demerge layout (see
+    // CARD_LAYOUT above) — array of 3 slots, indices matching
+    // CARD_LAYOUT's order (0 = top, 1 = front, 2 = side). Each slot is
+    // either null (use CARD_LAYOUT's default) or a partial
+    // { x?, z?, rot?: { x?, y? } }. Read every tick in the demerge block
+    // below; the "front" slot's z/rot only affect the clones' visual
+    // reference — the main ring (which IS the front card) reads its own
+    // x/rot separately since it doesn't move off-center.
+    cardLayout: [null, null, null],
+
+    // Ring-only position offset WITHIN each card — independent of
+    // cardLayout above. cardLayout/CARD_LAYOUT positions the card
+    // "slot" (and its outline frame); this offset nudges just the ring
+    // clone mesh inside that slot without moving the frame. Index
+    // order matches CARD_LAYOUT (0 = top, 2 = side). Front (index 1)
+    // has no frame, so its "ring position" is already just
+    // cardLayout[1].x/y directly — this offset is additive on top of
+    // that for consistency, but mainly meant for 0/2. Each slot is
+    // either null or a partial { x?, y?, z? }.
+    cardRingOffset: [null, null, null],
   });
 
   // Saved per-beat keyframes from the "Beat Coordinates" panel — keyed by
@@ -959,18 +1008,21 @@ export default function RingHero({
         ringHeroTransform.diameter = Math.max(size.x, size.z) * scale;
 
         // Now that the ring's real geometry/scale/position is in place,
-        // measure where its underside actually sits at Beat 2's tilt AND
-        // Beat 2's ring position offset, and use that as the floor's
+        // measure where its underside actually sits at the floor beat's
+        // tilt AND ring position offset, and use that as the floor's
         // resting height, instead of the -0.62 guess (see FLOOR_REST_Y
         // declaration above) or a hand-tuned magic number that drifts
-        // out of sync the moment Beat 2's numbers change.
+        // out of sync the moment the floor beat's numbers change.
+        // NOTE: floor is BEATS[2] post-reorder (idle, demerge, floor,
+        // onbody, spin) — do not hardcode BEATS[1] here, that's the
+        // demerge beat now.
         FLOOR_REST_Y =
           FLOOR_REST_Y_MANUAL_OVERRIDE ??
           measureFloorRestY(
             ring,
-            BEATS[1].ringRot.x,
-            BEATS[1].ringRot.y,
-            BEATS[1].ringPosOffset?.y ?? 0,
+            BEATS[2].ringRot.x,
+            BEATS[2].ringRot.y,
+            BEATS[2].ringPosOffset?.y ?? 0,
           );
 
         // Beat 4 — build the 3 demerge clones + card frame outlines now
@@ -979,15 +1031,24 @@ export default function RingHero({
         // so this costs no extra HDR/texture memory. Start fully
         // collapsed (scale 0, hidden) — the ticker below grows/shrinks
         // them as cardsState eases 0 -> 1 -> 0 across Beat 4.
-        cardClones = CARD_LAYOUT.filter(({ label }) => label !== "front").map(
-          ({ x, rot }) => {
+        cardClones = CARD_LAYOUT.map((entry, layoutIndex) => ({
+          entry,
+          layoutIndex,
+        }))
+          .filter(({ entry }) => entry.label !== "front")
+          .map(({ entry, layoutIndex }) => {
             const clone = ring.clone(true);
             clone.visible = false;
             clone.scale.setScalar(0);
             scene.add(clone);
-            return { mesh: clone, x, rot };
-          },
-        );
+            return {
+              mesh: clone,
+              x: entry.x,
+              z: entry.z,
+              rot: entry.rot,
+              layoutIndex,
+            };
+          });
 
         cardFrames = CARD_LAYOUT.map(({ x }) => {
           const frameGeo = new THREE.EdgesGeometry(
@@ -1319,6 +1380,39 @@ export default function RingHero({
             setupScrollTimeline();
           },
           getKeyframeSnapshot: () => ({ ...beatKeyframesRef.current }),
+          // Beat 2 demerge card-layout panel — index matches CARD_LAYOUT
+          // (0 = top, 1 = front, 2 = side). partial merges onto whatever
+          // that slot already has; pass null to clear just that slot back
+          // to CARD_LAYOUT's baked-in default.
+          setCardLayoutOverride: (index, partial) => {
+            const cur = poseOverrideRef.current.cardLayout;
+            const next = [...cur];
+            next[index] = partial
+              ? {
+                  ...cur[index],
+                  ...partial,
+                  rot: { ...cur[index]?.rot, ...partial.rot },
+                }
+              : null;
+            poseOverrideRef.current.cardLayout = next;
+          },
+          resetCardLayoutOverride: () => {
+            poseOverrideRef.current.cardLayout = [null, null, null];
+          },
+          // Ring-only position offset inside a card slot — see
+          // cardRingOffset declaration above. Same merge/clear pattern
+          // as setCardLayoutOverride, just x/y/z, no rot/scale (rotation
+          // is already ring-only via cardLayout's rot field, which never
+          // touches the frame).
+          setCardRingOffsetOverride: (index, partial) => {
+            const cur = poseOverrideRef.current.cardRingOffset;
+            const next = [...cur];
+            next[index] = partial ? { ...cur[index], ...partial } : null;
+            poseOverrideRef.current.cardRingOffset = next;
+          },
+          resetCardRingOffsetOverride: () => {
+            poseOverrideRef.current.cardRingOffset = [null, null, null];
+          },
         });
       }
 
@@ -1753,6 +1847,38 @@ export default function RingHero({
         // it and shrink back into it on the reverse, matching the
         // storyboard's "2 copies emerge from the 1 that's there".
         const cs = cardsState.value;
+        // Live per-card overrides from the demerge/card-layout dev panel
+        // (see poseOverrideRef.cardLayout above) — each slot, when set,
+        // wins over CARD_LAYOUT's default x/z/rot for that card, matching
+        // the same "live wins over baked-in value" pattern as camPos/
+        // ringRot/etc elsewhere in this ticker.
+        const cardOv = poseOverrideRef.current.cardLayout ?? [null, null, null];
+        const liveCard = (layoutIndex) => {
+          const base = CARD_LAYOUT[layoutIndex];
+          const ov = cardOv[layoutIndex];
+          return {
+            x: ov?.x ?? base.x,
+            y: ov?.y ?? base.y,
+            z: ov?.z ?? base.z,
+            scale: ov?.scale ?? base.scale,
+            rot: {
+              x: ov?.rot?.x ?? base.rot.x,
+              y: ov?.rot?.y ?? base.rot.y,
+              z: ov?.rot?.z ?? base.rot.z,
+            },
+          };
+        };
+        // Ring-only offset inside its card slot (does NOT move the
+        // outline frame — see cardRingOffset declaration up top).
+        const ringOffOv = poseOverrideRef.current.cardRingOffset ?? [
+          null,
+          null,
+          null,
+        ];
+        const liveRingOffset = (layoutIndex) => {
+          const ov = ringOffOv[layoutIndex];
+          return { x: ov?.x ?? 0, y: ov?.y ?? 0, z: ov?.z ?? 0 };
+        };
         if (onBody <= 0.001) {
           // Blend FROM the ring's actual current scale/z (whatever
           // effScale/effPosOffsetZ just set a few lines above — including
@@ -1764,25 +1890,101 @@ export default function RingHero({
           // ringHeroTransform.scale/position.z regardless of cs, which
           // only happened to look right because no BEATS[] entry uses a
           // non-default scale or z-offset yet.
+          const front = liveCard(1);
+          const frontRingOff = liveRingOffset(1);
           const baseScale = ringHeroTransform.scale * effScale;
           const baseZ = ringHeroTransform.position.z + effPosOffsetZ;
-          const frontCardScale = ringHeroTransform.scale * 0.72;
+          const frontCardScale = ringHeroTransform.scale * 0.72 * front.scale;
           ring.scale.setScalar(
             THREE.MathUtils.lerp(baseScale, frontCardScale, cs),
           );
-          ring.position.z = THREE.MathUtils.lerp(baseZ, baseZ + 0.35, cs);
+          ring.position.z = THREE.MathUtils.lerp(
+            baseZ,
+            baseZ + front.z + frontRingOff.z,
+            cs,
+          );
+          // X/Y always blend toward the front card's position — safe to
+          // leave unconditional (unlike rotation below) because `cs`
+          // already gates this to zero everywhere outside Beat 2, and
+          // front.x/front.y default to CARD_LAYOUT's own baked-in
+          // values (0.03/0) when no override is set, which is
+          // indistinguishable from "centered" to the eye. Previously
+          // this was gated behind `if (cardOv[1] || ringOffOv[1])`,
+          // which was both unnecessary (cs already protects it) and
+          // fragile — merging a partial override (e.g. touching ONLY
+          // the Y slider) could leave cardOv[1] in a shape where this
+          // still evaluated correctly, but any future partial-merge
+          // edge case could silently drop Y updates. Removing the gate
+          // removes that whole class of bug.
+          ring.position.x = THREE.MathUtils.lerp(
+            ring.position.x,
+            front.x + frontRingOff.x,
+            cs,
+          );
+          ring.position.y = THREE.MathUtils.lerp(
+            ring.position.y,
+            front.y + frontRingOff.y,
+            cs,
+          );
+          // Rotation stays gated — CARD_LAYOUT's front.rot (0.78, 0, 0)
+          // is a deliberately different pose than the ring's normal
+          // beat rotation, so applying it unconditionally would spin
+          // the front card into that pose by default even with no
+          // panel override touched. Only apply once the panel has
+          // explicitly set that axis.
+          if (cardOv[1]?.rot?.x != null) {
+            ring.rotation.x = THREE.MathUtils.lerp(
+              ring.rotation.x,
+              front.rot.x,
+              cs,
+            );
+          }
+          if (cardOv[1]?.rot?.y != null) {
+            ring.rotation.y = THREE.MathUtils.lerp(
+              ring.rotation.y,
+              front.rot.y,
+              cs,
+            );
+          }
+          if (cardOv[1]?.rot?.z != null) {
+            ring.rotation.z = THREE.MathUtils.lerp(
+              ring.rotation.z,
+              front.rot.z,
+              cs,
+            );
+          }
         }
         if (cardClones.length) {
-          cardClones.forEach(({ mesh, x, rot }) => {
+          cardClones.forEach(({ mesh, layoutIndex }) => {
+            const card = liveCard(layoutIndex);
+            const ringOff = liveRingOffset(layoutIndex);
             const visible = cs > 0.01;
             mesh.visible = visible;
-            mesh.scale.setScalar(ringHeroTransform.scale * 0.72 * cs);
-            mesh.position.set(x * cs, 0, 0.35 * cs);
-            mesh.rotation.set(rot.x, rot.y, 0);
+            mesh.scale.setScalar(
+              ringHeroTransform.scale * 0.72 * card.scale * cs,
+            );
+            // Ring mesh position = card slot position + ring-only offset,
+            // both scaled by cs so the ring still grows in from center
+            // during demerge-in/out. The card frame below intentionally
+            // does NOT get ringOff — that's what keeps this a "ring
+            // position inside the slot" control instead of moving the
+            // slot itself.
+            mesh.position.set(
+              (card.x + ringOff.x) * cs,
+              (card.y + ringOff.y) * cs,
+              (card.z + ringOff.z) * cs,
+            );
+            mesh.rotation.set(card.rot.x, card.rot.y, card.rot.z);
           });
           cardFrames.forEach((frame, i) => {
+            const card = liveCard(i);
             frame.material.opacity = cs * 0.45;
-            frame.position.x = CARD_LAYOUT[i].x * cs;
+            frame.position.x = card.x * cs;
+            frame.position.y = card.y * cs;
+            // z was previously never set here, so the frame stayed at
+            // its initial z (-0.15) regardless of the card's Z offset —
+            // any Z tuning visually detached the mesh from its frame.
+            frame.position.z = card.z * cs - 0.15 * (1 - cs);
             frame.visible = cs > 0.01;
           });
         }

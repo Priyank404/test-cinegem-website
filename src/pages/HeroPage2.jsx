@@ -69,7 +69,7 @@ const BEAT2_EFFECT_CONFIGS = {
       raysOrigin: "top-center",
       raysColor: "#6cd068",
       raysSpeed: 1,
-      lightSpread: 2,
+      lightSpread: 3,
       rayLength: 3,
       followMouse: true,
       mouseInfluence: 0.1,
@@ -247,6 +247,88 @@ export default function HeroPage2() {
     rotZ: 0,
   });
   const [floorPanelVisible, setFloorPanelVisible] = useState(true);
+
+  // Beat 2 demerge — live control over the 3 view cards (top/front/side)
+  // that the ring splits into. Index order matches CARD_LAYOUT in
+  // RingHero.jsx: 0 = top, 1 = front (the ring itself, no clone), 2 =
+  // side. Applied unconditionally every tick via setCardLayoutOverride,
+  // same "always-on override" pattern as the floor panel — scroll to
+  // Beat 2 ("ring splits into 3 cards") to see it.
+  // Defaults here MUST mirror CARD_LAYOUT in RingHero.jsx exactly — this
+  // is just the panel's mirror of that baked-in constant, not an
+  // independent source of truth. Previously these were left at old
+  // placeholder numbers (x:-1.4, z:0.35, rotX: Math.PI/2-0.05, etc.)
+  // while CARD_LAYOUT itself had since been tuned to different values —
+  // so the panel silently showed stale sliders on load, and touching
+  // ANY one of them would snap the ring from RingHero's real tuned pose
+  // to these stale defaults (since updateCardLayout always sends the
+  // FULL card object, not just the changed field).
+  const [cardLayoutValues, setCardLayoutValues] = useState([
+    {
+      x: -1.36,
+      y: 0,
+      z: -0.66,
+      scale: 0.77,
+      rotX: -2.12,
+      rotY: -0.2,
+      rotZ: -2.88,
+    },
+    { x: 0.03, y: 0, z: -0.68, scale: 1, rotX: 0.78, rotY: 0, rotZ: 0 },
+    {
+      x: 1.36,
+      y: 0,
+      z: -0.66,
+      scale: 0.98,
+      rotX: -3.14,
+      rotY: -2.88,
+      rotZ: -2.51,
+    },
+  ]);
+  const [cardPanelVisible, setCardPanelVisible] = useState(true);
+
+  // Ring-only position offset INSIDE each card slot — independent of
+  // cardLayoutValues above. cardLayoutValues moves the card "slot"
+  // itself (and its outline frame moves with it); this moves just the
+  // ring mesh inside that slot, frame stays put. Index order matches
+  // CARD_LAYOUT: 0 = top, 1 = front (unused — front has no frame, its
+  // own x/y already IS its ring position), 2 = side.
+  const [cardRingOffsetValues, setCardRingOffsetValues] = useState([
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+  ]);
+
+  function updateCardLayout(index, partial) {
+    setCardLayoutValues((prev) => {
+      const next = prev.map((v, i) =>
+        i === index ? { ...v, ...partial } : v,
+      );
+      const card = next[index];
+      poseApiRef.current?.setCardLayoutOverride(index, {
+        x: card.x,
+        y: card.y,
+        z: card.z,
+        scale: card.scale,
+        rot: { x: card.rotX, y: card.rotY, z: card.rotZ },
+      });
+      return next;
+    });
+  }
+
+  function updateCardRingOffset(index, partial) {
+    setCardRingOffsetValues((prev) => {
+      const next = prev.map((v, i) =>
+        i === index ? { ...v, ...partial } : v,
+      );
+      const ring = next[index];
+      poseApiRef.current?.setCardRingOffsetOverride(index, {
+        x: ring.x,
+        y: ring.y,
+        z: ring.z,
+      });
+      return next;
+    });
+  }
 
   function updateFloor(partial) {
     const next = { ...floorValues, ...partial };
@@ -564,6 +646,39 @@ export default function HeroPage2() {
         </button>
       )}
 
+      {SHOW_DEV_PANEL && cardPanelVisible && (
+        <CardLayoutPanel
+          values={cardLayoutValues}
+          onChange={updateCardLayout}
+          ringOffsetValues={cardRingOffsetValues}
+          onRingOffsetChange={updateCardRingOffset}
+          onJumpToBeat={() => poseApiRef.current?.jumpToBeat(1)}
+          onHide={() => setCardPanelVisible(false)}
+        />
+      )}
+      {SHOW_DEV_PANEL && !cardPanelVisible && (
+        <button
+          onClick={() => setCardPanelVisible(true)}
+          style={{
+            position: "fixed",
+            top: 84,
+            right: 910,
+            zIndex: 51,
+            background: "rgba(20,20,22,0.9)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 8,
+            padding: "8px 12px",
+            color: "#fff",
+            fontSize: 11,
+            fontFamily: "monospace",
+            cursor: "pointer",
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          Show card layout
+        </button>
+      )}
+
       {SHOW_DEV_PANEL && coordPanelVisible && (
         <BeatCoordPanel
           values={coordValues}
@@ -796,6 +911,7 @@ boreToFingerRatio: ${values.boreRatio},`;
 
   return (
     <div
+      data-lenis-prevent
       style={{
         position: "fixed",
         top: 84,
@@ -930,6 +1046,7 @@ floor.rotation.set(${values.rotX}, ${values.rotY}, ${values.rotZ});`;
 
   return (
     <div
+      data-lenis-prevent
       style={{
         position: "fixed",
         top: 84,
@@ -990,6 +1107,234 @@ floor.rotation.set(${values.rotX}, ${values.rotY}, ${values.rotZ});`;
       {row("Rot Z (roll)", "rotZ", -1.57, 1.57, 0.005)}
 
       <div style={{ marginTop: 12, marginBottom: 4, opacity: 0.55 }}>
+        Copy into RingHero.jsx once happy:
+      </div>
+      <pre
+        style={{
+          background: "rgba(255,255,255,0.06)",
+          padding: "8px 10px",
+          borderRadius: 6,
+          fontSize: 10,
+          whiteSpace: "pre-wrap",
+          margin: 0,
+        }}
+      >
+        {codeSnippet}
+      </pre>
+    </div>
+  );
+}
+
+/**
+ * CardLayoutPanel
+ * -------------------------------------------------------------------------
+ * Live control over the 3 view-cards Beat 2 ("demerge") splits the ring
+ * into — top / front / side. Each card gets its own X offset, Z (depth)
+ * offset, and rotation X/Y, applied every tick via
+ * setCardLayoutOverride(index, ...) regardless of scroll position (jump
+ * to Beat 2 with the button below to actually see cs > 0 and the cards
+ * fanned out). Index order matches CARD_LAYOUT in RingHero.jsx: 0 = top,
+ * 1 = front (the ring itself — no clone, so only its x/z/rotation move,
+ * scale stays governed by the beat), 2 = side. Once happy, copy the
+ * snippet into CARD_LAYOUT.
+ * -------------------------------------------------------------------------
+ */
+function CardLayoutPanel({
+  values,
+  onChange,
+  ringOffsetValues,
+  onRingOffsetChange,
+  onJumpToBeat,
+  onHide,
+}) {
+  const labels = ["Top", "Front", "Side"];
+
+  const row = (cardIndex, label, key, min, max, step) => {
+    const card = values[cardIndex];
+    return (
+      <label style={{ display: "block", marginBottom: 6 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 2,
+          }}
+        >
+          <span>{label}</span>
+          <span style={{ opacity: 0.6 }}>{card[key].toFixed(3)}</span>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={card[key]}
+          onChange={(e) =>
+            onChange(cardIndex, { [key]: Number(e.target.value) })
+          }
+          style={{ width: "100%" }}
+        />
+      </label>
+    );
+  };
+
+  // Same slider control as `row`, but drives ringOffsetValues via
+  // onRingOffsetChange instead of the card-slot values above — this is
+  // the ring's own position INSIDE its card, not the card/frame itself.
+  const ringRow = (cardIndex, label, key, min, max, step) => {
+    const ring = ringOffsetValues[cardIndex];
+    return (
+      <label style={{ display: "block", marginBottom: 6 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 2,
+          }}
+        >
+          <span>{label}</span>
+          <span style={{ opacity: 0.6 }}>{ring[key].toFixed(3)}</span>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={ring[key]}
+          onChange={(e) =>
+            onRingOffsetChange(cardIndex, { [key]: Number(e.target.value) })
+          }
+          style={{ width: "100%" }}
+        />
+      </label>
+    );
+  };
+
+  const codeSnippet = `const CARD_LAYOUT = [
+  { x: ${values[0].x}, y: ${values[0].y}, z: ${values[0].z}, scale: ${values[0].scale}, rot: { x: ${values[0].rotX}, y: ${values[0].rotY}, z: ${values[0].rotZ} }, label: "top" },
+  { x: ${values[1].x}, y: ${values[1].y}, z: ${values[1].z}, scale: ${values[1].scale}, rot: { x: ${values[1].rotX}, y: ${values[1].rotY}, z: ${values[1].rotZ} }, label: "front" },
+  { x: ${values[2].x}, y: ${values[2].y}, z: ${values[2].z}, scale: ${values[2].scale}, rot: { x: ${values[2].rotX}, y: ${values[2].rotY}, z: ${values[2].rotZ} }, label: "side" },
+];
+
+// Ring position INSIDE each card slot (add these x/y/z straight onto
+// the mesh.position.set(...) call for that clone in RingHero.jsx, or
+// fold into CARD_LAYOUT's x/y/z directly once you're happy with them):
+// top:   { x: ${ringOffsetValues[0].x}, y: ${ringOffsetValues[0].y}, z: ${ringOffsetValues[0].z} }
+// front: { x: ${ringOffsetValues[1].x}, y: ${ringOffsetValues[1].y}, z: ${ringOffsetValues[1].z} } (front has no frame — additive on top of X/Y/Z offset above)
+// side:  { x: ${ringOffsetValues[2].x}, y: ${ringOffsetValues[2].y}, z: ${ringOffsetValues[2].z} }`;
+
+  return (
+    <div
+      data-lenis-prevent
+      style={{
+        position: "fixed",
+        top: 84,
+        right: 910,
+        zIndex: 51,
+        background: "rgba(20,20,22,0.92)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: 10,
+        padding: "14px 16px",
+        color: "#fff",
+        fontSize: 12,
+        fontFamily: "monospace",
+        width: 300,
+        maxHeight: "85vh",
+        overflowY: "auto",
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.8 }}>
+          CARD LAYOUT (BEAT 2)
+        </span>
+        <button
+          onClick={onHide}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#fff",
+            opacity: 0.6,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ opacity: 0.55, marginBottom: 8, lineHeight: 1.4 }}>
+        Controls the 3 rings Beat 2 splits into — top, front, side.
+      </div>
+
+      <button
+        onClick={onJumpToBeat}
+        style={{
+          width: "100%",
+          marginBottom: 12,
+          background: "rgba(77,163,255,0.2)",
+          border: "1px solid rgba(77,163,255,0.4)",
+          borderRadius: 6,
+          padding: "6px 10px",
+          color: "#fff",
+          fontSize: 11,
+          fontFamily: "monospace",
+          cursor: "pointer",
+        }}
+      >
+        Jump to Beat 2 (demerge)
+      </button>
+
+      {[0, 1, 2].map((cardIndex) => (
+        <div
+          key={cardIndex}
+          style={{
+            marginBottom: 12,
+            paddingBottom: 10,
+            borderBottom:
+              cardIndex < 2 ? "1px solid rgba(255,255,255,0.1)" : "none",
+          }}
+        >
+          <div
+            style={{ opacity: 0.8, marginBottom: 6, fontWeight: 700 }}
+          >
+            {labels[cardIndex]}
+            {cardIndex === 1 ? " (main ring)" : ""}
+          </div>
+          {row(cardIndex, "X offset", "x", -3, 3, 0.01)}
+          {row(cardIndex, "Y offset", "y", -3, 3, 0.01)}
+          {row(cardIndex, "Z offset (depth)", "z", -1, 1.5, 0.01)}
+          {row(cardIndex, "Scale", "scale", 0.1, 2.5, 0.01)}
+          {row(cardIndex, "Rot X", "rotX", -3.14, 3.14, 0.01)}
+          {row(cardIndex, "Rot Y", "rotY", -3.14, 3.14, 0.01)}
+          {row(cardIndex, "Rot Z", "rotZ", -3.14, 3.14, 0.01)}
+
+          <div
+            style={{
+              marginTop: 10,
+              marginBottom: 6,
+              opacity: 0.6,
+              fontSize: 11,
+              borderTop: "1px dashed rgba(255,255,255,0.15)",
+              paddingTop: 8,
+            }}
+          >
+            {cardIndex === 1
+              ? "Ring position (front has no frame — this nudges the ring itself, additive on top of X/Y/Z offset above)"
+              : "Ring position (inside card — frame stays put)"}
+          </div>
+          {ringRow(cardIndex, "Ring X", "x", -1.5, 1.5, 0.01)}
+          {ringRow(cardIndex, "Ring Y", "y", -1.5, 1.5, 0.01)}
+          {ringRow(cardIndex, "Ring Z", "z", -1.5, 1.5, 0.01)}
+        </div>
+      ))}
+
+      <div style={{ marginTop: 4, marginBottom: 4, opacity: 0.55 }}>
         Copy into RingHero.jsx once happy:
       </div>
       <pre
@@ -1071,6 +1416,7 @@ ringScale: ${values.scale},
 
   return (
     <div
+      data-lenis-prevent
       style={{
         position: "fixed",
         top: 84,
@@ -1295,6 +1641,7 @@ function MaterialDevPanel({
 
   return (
     <div
+      data-lenis-prevent
       style={{
         position: "fixed",
         bottom: 20,

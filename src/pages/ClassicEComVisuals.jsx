@@ -590,7 +590,7 @@ export default function ClassicEComVisuals({
           them correctly without that trap. */}
       {silkOn && (
         <div className="fixed inset-0 z-0 pointer-events-none">
-          <Silk speed={10} scale={1} color="#633c3c" noiseIntensity={2} rotation={0} />
+          <Silk speed={10} scale={1} color="#413d3d" noiseIntensity={0} rotation={0} />
         </div>
       )}
 
