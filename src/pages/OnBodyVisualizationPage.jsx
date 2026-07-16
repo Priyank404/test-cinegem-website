@@ -1,186 +1,235 @@
-import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { ServicePageLayout } from '@/components/shared/ServicePageLayout'
-import { BackToVault } from '@/components/shared/BackToVault'
-import { ScatteredGallery } from '@/components/shared/ScatteredGallery'
-import { LightboxModal } from '@/components/shared/LightboxModal'
-import { useLightbox } from '@/hooks/useLightbox'
-import { ONBODY_IMAGES } from '@/constants/gallery'
-import { useDriveImages } from '@/components/shared/GoogleDriveGallery'
+// OnBodyVisualizationPage.jsx
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
+import HeroSection from "@/components/sections/HeroSection";
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger);
 
-function TagPill({ label }) {
-  return (
-    <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase px-4 py-2 border border-[#c4c7c7] text-[#444748]">
-      {label}
-    </span>
-  )
+/* ═══════════════════════════════════════════════════════════════════════
+   DATA
+   Placeholder paths for now — drop real files into /public and swap the
+   src values below (or wire this up to /constants/gallery.js). Add as
+   many entries as needed; the layout below packs them automatically no
+   matter how many images are in this array.
+═══════════════════════════════════════════════════════════════════════ */
+
+const galleryImages = [
+  { src: "1.png", alt: "On-body visualization" },
+  { src: "2.png", alt: "On-body visualization" },
+  { src: "3.png", alt: "On-body visualization" },
+  { src: "4.png", alt: "On-body visualization" },
+  { src: "Band Ring With Enamel Marquise-Y-V1_2560x3840.jpg", alt: "On-body visualization" },
+  { src: "G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png", alt: "On-body visualization" },
+  { src: "cinegem jewellery.png", alt: "On-body visualization" },
+  { src: "1.png", alt: "On-body visualization" },
+  { src: "2.png", alt: "On-body visualization" },
+  { src: "3.png", alt: "On-body visualization" },
+  { src: "4.png", alt: "On-body visualization" },
+  { src: "5.jpg", alt: "On-body visualization" },
+    { src: "6.jpg", alt: "On-body visualization" },
+
+];
+
+const GAP = 20; // px, both the column gutter and the vertical gap between tiles
+
+// A column's width scales continuously with the viewport instead of
+// staying fixed — narrow on phones, noticeably larger on desktop —
+// so there's no single hardcoded size and no breakpoint jump. Read as
+// "never below 280px, never above 620px, otherwise ~30% of viewport
+// width." Raise the max (620px) if you want desktop tiles even bigger,
+// or the middle value (30vw) to change how quickly it grows.
+const COLUMN_WIDTH = "clamp(280px, 30vw, 620px)";
+
+/* Used only until an image's real aspect ratio is known (first paint /
+   before the browser has decoded it), so tiles don't pop/resize once
+   the real ratio arrives. */
+const FALLBACK_AR = 0.8;
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ASPECT RATIO DETECTION
+   Loads every image once, off-DOM, purely to read naturalWidth/
+   naturalHeight. This is what makes each tile's row-height exactly
+   match that image's own proportions (via CSS aspect-ratio below)
+   instead of a fixed/cropped box.
+═══════════════════════════════════════════════════════════════════════ */
+
+function useAspectRatios(images) {
+  const [ratios, setRatios] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    images.forEach(({ src }) => {
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        setRatios((prev) =>
+          prev[src] ? prev : { ...prev, [src]: img.naturalWidth / img.naturalHeight }
+        );
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        setRatios((prev) => (prev[src] ? prev : { ...prev, [src]: FALLBACK_AR }));
+      };
+      img.src = src;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [images]);
+
+  return ratios;
 }
 
-function StatCard({ value, label }) {
+/* ═══════════════════════════════════════════════════════════════════════
+   PRIMITIVES
+═══════════════════════════════════════════════════════════════════════ */
+
+function Tile({ img, aspectRatio }) {
   return (
-    <div className="flex flex-col gap-2 py-8 px-6 border-t border-[#c4c7c7]/50">
-      <span className="font-[Playfair_Display] text-[36px] md:text-[48px] leading-none text-[#121212]">
-        {value}
-      </span>
-      <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase text-[#444748]">
-        {label}
-      </span>
+    <div
+      className="
+        reveal-right
+        w-full mb-4
+      "
+      style={{ breakInside: "avoid", marginBottom: GAP }}
+    >
+      {/* The box's height is never set in px — it's derived purely from
+          this image's own width:height ratio via the aspect-ratio
+          property, scaled to whatever width the column ends up at.
+          object-cover is just a safety net for sub-pixel rounding;
+          nothing is ever visibly cropped since the box IS the image's
+          own ratio. */}
+      <div
+        className="
+          relative overflow-hidden bg-[#FAF9F6]
+          border border-[#c4c7c7]/40 gallery-shadow
+          hover:-translate-y-1 transition-transform duration-300
+        "
+        style={{ aspectRatio }}
+      >
+        <img
+          src={img.src}
+          alt={img.alt}
+          loading="lazy"
+          decoding="async"
+          className="block w-full h-full object-cover object-center"
+          style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
+        />
+      </div>
     </div>
-  )
+  );
 }
 
-function GallerySkeleton() {
+/* ═══════════════════════════════════════════════════════════════════════
+   ON-BODY GALLERY
+   Column count is set by the browser: CSS `columns` fits as many
+   COLUMN_WIDTH-wide columns as the container allows and stretches them
+   evenly. Since COLUMN_WIDTH itself grows with the viewport (see the
+   clamp() above), desktop naturally lands on fewer, bigger columns
+   instead of the same tile size just repeated more times. All of this
+   reflows on resize with no breakpoints or JS width tracking needed.
+   Each tile's row-height is set by that image's own
+   aspect ratio (see Tile above), so tiles are never a fixed size —
+   tall images take a tall row, wide images take a short one.
+
+   Note: multi-column CSS fills top-to-bottom within a column before
+   starting the next column (this is how masonry/Pinterest-style grids
+   work), not strict left-to-right reading order. Say the word if you'd
+   rather have strict row-major order — that needs a small JS
+   shortest-column-first placement pass instead of pure CSS.
+═══════════════════════════════════════════════════════════════════════ */
+
+function OnBodyGallery({ images }) {
+  const ratios = useAspectRatios(images);
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-40">
-      {Array.from({ length: 9 }).map((_, i) => (
-        <div key={i} className="bg-[#f0f0f0] animate-pulse" style={{ aspectRatio: '3/4', borderRadius: 4 }} />
-      ))}
-    </div>
-  )
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
+      <div
+        className="w-full max-w-[1800px] mx-auto"
+        style={{ columnWidth: COLUMN_WIDTH, columnGap: GAP }}
+      >
+        {images.map((img, i) => (
+          <Tile
+            key={`${img.src}-${i}`}
+            img={img}
+            aspectRatio={ratios[img.src] ?? FALLBACK_AR}
+          />
+        ))}
+      </div>
+    </section>
+  );
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
-  const headingRef = useRef(null)
-  const subtextRef = useRef(null)
-  const tagsRef    = useRef(null)
-  const heroImgRef = useRef(null)
-  const dividerRef = useRef(null)
+  const containerRef = useRef(null);
 
-  const { images: driveImages, loading, error } = useDriveImages('onbody')
-  const { activeIndex, openAt, close, prev, next } = useLightbox(driveImages)
-
+  // Same reveal-on-scroll behavior as before: cards slide in from the
+  // right as the section enters view, reverse out to the right on
+  // scroll-up, and do nothing otherwise.
   useEffect(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    tl.fromTo(headingRef.current,
-      { opacity: 0, y: 48, skewY: 1.5 },
-      { opacity: 1, y: 0, skewY: 0, duration: 1.1, delay: 0.1 }
-    )
-    .fromTo(subtextRef.current,
-      { opacity: 0, y: 24 },
-      { opacity: 1, y: 0, duration: 0.9 }, '-=0.6'
-    )
-    .fromTo(tagsRef.current?.children ?? [],
-      { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.6, stagger: 0.1 }, '-=0.5'
-    )
-    .fromTo(heroImgRef.current,
-      { opacity: 0, scale: 1.04, clipPath: 'inset(8% 0% 0% 0%)' },
-      { opacity: 1, scale: 1, clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'power4.out' },
-      0.1
-    )
-    return () => tl.kill()
-  }, [])
+    const ctx = gsap.context(() => {
+      const sections = gsap.utils.toArray("section", containerRef.current);
 
-  useEffect(() => {
-    if (!dividerRef.current) return
-    gsap.fromTo(dividerRef.current,
-      { scaleX: 0, transformOrigin: 'left center' },
-      { scaleX: 1, duration: 1.2, ease: 'power4.inOut',
-        scrollTrigger: { trigger: dividerRef.current, start: 'top 85%', once: true } }
-    )
-  }, [])
+      sections.forEach((section) => {
+        const cards = gsap
+          .utils.toArray(".reveal-right", section)
+          .filter((el) => el.offsetParent !== null);
 
-  const { hero } = ONBODY_IMAGES
+        if (!cards.length) return;
+
+        gsap.fromTo(
+          cards,
+          {
+            opacity: 0,
+            x: 120,
+            filter: "blur(8px)",
+            transition: "none",
+            willChange: "transform, opacity, filter",
+          },
+          {
+            opacity: 1,
+            x: 0,
+            filter: "blur(0px)",
+            duration: 0.9,
+            ease: "power3.out",
+            stagger: 0.07,
+            clearProps: "transform,filter,transition,willChange",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            },
+          }
+        );
+      });
+
+      const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 300);
+      return () => window.clearTimeout(refreshId);
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <ServicePageLayout title="On-Body Visualization" currentPage="/onbody">
-
-      <section className="mb-28 md:mb-40 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start">
-        <div className="flex flex-col gap-6 pt-4 md:pt-12">
-          <BackToVault />
-          <h1
-            ref={headingRef}
-            className="font-[Playfair_Display] text-[40px] md:text-[80px] leading-[44px] md:leading-[86px] tracking-[-0.03em] text-[#121212]"
-            style={{ opacity: 0 }}
-          >
-            On-Body<br />Visualization.
-          </h1>
-          <p
-            ref={subtextRef}
-            className="font-[Manrope] text-[15px] md:text-[18px] leading-[24px] md:leading-[30px] text-[#555] max-w-md"
-            style={{ opacity: 0 }}
-          >
-            Photorealistic on-model composites that place your pieces in context —
-            without a single photoshoot. Effortless, scalable, and skin-accurate.
-          </p>
-          <div ref={tagsRef} className="flex flex-wrap gap-3 mt-2">
-            {['Model Compositing', 'Skin-accurate', 'Full Post'].map((tag) => (
-              <TagPill key={tag} label={tag} />
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-px mt-10 bg-[#c4c7c7]/20">
-            <StatCard value="0"    label="Photoshoots needed" />
-            <StatCard value="48h"  label="Avg. Turnaround"    />
-            <StatCard value="8K"   label="Output Resolution"  />
-            <StatCard value="100%" label="Skin-tone matched"  />
-          </div>
-        </div>
-
-        <div
-          ref={heroImgRef}
-          className="relative overflow-hidden gallery-shadow"
-          style={{ aspectRatio: '3/4', opacity: 0 }}
-        >
-          <img src={hero.src} alt={hero.alt} className="w-full h-full object-cover" />
-          {hero.chips && (
-            <div
-              className="absolute bottom-6 left-6 px-5 py-3 rounded-sm flex items-center gap-3"
-              style={{ background: 'rgba(255,255,255,0.38)', backdropFilter: 'blur(20px)', border: '0.5px solid rgba(255,255,255,0.22)' }}
-            >
-              {hero.chips.map((chip, i) => (
-                <span key={chip} className="flex items-center gap-3">
-                  {i > 0 && <div className="w-1 h-1 bg-[#121212] rounded-full" />}
-                  <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase text-[#121212]">{chip}</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div className="mb-16 md:mb-24 flex items-end justify-between gap-8">
-        <h2 className="reveal font-[Playfair_Display] text-[28px] md:text-[52px] leading-[34px] md:leading-[60px] tracking-[-0.02em] text-[#121212] max-w-lg">
-          Pieces in Context
-        </h2>
-        <p className="reveal hidden md:block font-[Manrope] text-[13px] leading-[20px] text-[#888] max-w-xs text-right">
-          Every image below is a composite — no model, no set.
-          Pure digital craft on real skin texture.
-        </p>
-      </div>
-
-      <div
-        ref={dividerRef}
-        className="w-full h-px bg-[#c4c7c7]/60 mb-16 md:mb-20"
-        style={{ transformOrigin: 'left center' }}
+    <ServicePageLayout title="On-Body Visualization" currentPage="/onbody" fullBleed>
+      <HeroSection
+        backgroundSrc="/onbody-1.png"
+        heading={["On-Body", "Visualization"]}
+        paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."
       />
 
-      {loading && <GallerySkeleton />}
-
-      {error && (
-        <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
-          <p className="font-[Manrope] text-[13px] text-[#c0392b] font-semibold mb-2">Could not load images</p>
-          <p className="font-[Manrope] text-[12px] text-[#888]">{error}</p>
-        </div>
-      )}
-
-      {!loading && !error && driveImages.length === 0 && (
-        <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
-          <p className="font-[Manrope] text-[13px] text-[#888]">
-            No images yet — upload photos to your Google Drive folder and they'll appear here automatically.
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && driveImages.length > 0 && (
-        <>
-          <ScatteredGallery images={driveImages} className="mb-40" onImageClick={openAt} />
-          <LightboxModal images={driveImages} activeIndex={activeIndex} onClose={close} onPrev={prev} onNext={next} />
-        </>
-      )}
-
+      <div ref={containerRef} className="relative z-10">
+        <OnBodyGallery images={galleryImages} />
+      </div>
     </ServicePageLayout>
-  )
+  );
 }
