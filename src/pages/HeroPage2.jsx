@@ -98,11 +98,28 @@ const BEAT2_EFFECT_CONFIGS = {
     },
   },
 };
-import ScrollDebugHud from "@/components/three/ScrollDebugHud";
+import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
+import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
+import TimelineEditor from "@/components/three/TimelineEditor";
 import { metalPresets } from "@/components/three/metalMaterials";
 import "./HeroPage2.css";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// ---------------------------------------------------------------------
+// Global frame timeline. The whole scroll (all 5 beats) is mapped to a
+// single continuous frame range, NOT a per-beat 0–50 scale:
+//   Beat 1:  frame   0 –  10
+//   Beat 2:  frame  11 –  61
+//   Beat 3:  frame  61 – 111
+//   Beat 4:  frame 111 – 161
+//   Beat 5:  frame 161 – 211
+// TOTAL_FRAMES is the top of that range — everything that used to do
+// `progress * 50` (a local, beat-relative frame) now does
+// `progress * TOTAL_FRAMES` so slider/timing values line up with the
+// actual global frame the ring/timeline is on.
+// ---------------------------------------------------------------------
+const TOTAL_FRAMES = 260;
 
 const SHOW_DEV_PANEL = true;
 
@@ -135,8 +152,16 @@ export default function HeroPage2() {
   // watching raw window.scrollY on its own timer and the two could
   // drift out of step.
   useEffect(() => {
+    // Custom easing: exponential decay curve — feels like genuine physical
+    // inertia (fast start, smooth deceleration) rather than the default
+    // linear lerp that Lenis ships with. t^3-based so the tail end is very
+    // gradual, preventing the abrupt "clunk" stop that linear lerp produces
+    // right at the scroll target.
+    const lenisEasing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
+
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 1.4, // longer inertia tail — was 1.1
+      easing: lenisEasing,
       smoothWheel: true,
       // Kept intentionally light — this only interpolates native
       // scroll input into something continuous; RingHero's own
@@ -151,21 +176,29 @@ export default function HeroPage2() {
     // gsap.ticker's callback (which reads the scrub-tweened camera/ring
     // state and writes it to the 3D scene) could run BEFORE Lenis had
     // pushed that frame's scroll update into ScrollTrigger, using
-    // slightly stale scroll data for one frame. That's a plausible
-    // source of an intermittent position/size snap — most frames line
-    // up fine, occasionally one doesn't, which matches "the jump comes
-    // back" (not present every time, only some scrolls). Routing both
-    // through the same ticker guarantees lenis.raf() runs, then
+    // slightly stale scroll data for one frame. Routing both through
+    // the same ticker guarantees lenis.raf() runs, then
     // ScrollTrigger.update() picks it up, then RingHero's own ticker
-    // reads the now-current value, all within one single tick — this is
-    // the integration pattern GSAP's own docs recommend for Lenis
-    // (gsap.com/resources/Lenis). gsap.ticker's time argument is
-    // milliseconds already multiplied out; Lenis expects raw ms too, so
-    // no conversion is needed (`time * 1000` is only needed if using
-    // gsap.ticker's "raw" deltaRatio-based frame arg — passing the
-    // already-ms `time` GSAP hands the callback works directly).
+    // reads the now-current value, all within one single tick.
+    //
+    // gsap.ticker's `time` argument is in SECONDS. Lenis.raf() expects
+    // MILLISECONDS — hence `time * 1000`.
+    //
+    // Delta is capped at 100ms: if the tab was backgrounded and GSAP
+    // tried to catch up across many skipped frames, we clamp the single
+    // tick fed to Lenis so it doesn't snap the scroll position forward
+    // by a large amount all at once (the "jump on tab return" bug).
+    let lastLenisTime = null;
     function lenisTick(time) {
-      lenis.raf(time * 1000);
+      const ms = time * 1000;
+      if (lastLenisTime === null) {
+        lastLenisTime = ms;
+      }
+      const delta = ms - lastLenisTime;
+      lastLenisTime = ms;
+      // Feed Lenis only the capped delta added to the last known time so
+      // it continues from where it left off rather than teleporting.
+      lenis.raf(lastLenisTime - Math.max(0, delta - 100));
     }
     gsap.ticker.add(lenisTick);
     // Let Lenis solely own scroll-driven timing instead of GSAP silently
@@ -209,140 +242,8 @@ export default function HeroPage2() {
 
   const [postFxEnabled, setPostFxEnabled] = useState(true);
   const [panelVisible, setPanelVisible] = useState(true);
-  // Debug finger-probe toggle — see RingHero's fingerProbeEnabled prop.
-  // Point at the hand in the on-body beat and read off the exact
-  // RING_ON_FINGER coordinate under the cursor.
-  const [fingerProbeEnabled, setFingerProbeEnabled] = useState(false);
 
-  // Ring-on-finger live calibration — RingHero hands us get/set functions
-  // once its scene is ready (see onRingCalibrationReady below). We store
-  // them in a ref (not state) since calling them shouldn't trigger a
-  // React re-render — the 3D scene updates itself every frame regardless.
-  const ringCalibRef = useRef(null);
-  const [calibValues, setCalibValues] = useState({
-    x: -5.842,
-    y: 12.609,
-    z: 4.253,
-    rx: -1.425,
-    ry: 0.687,
-    rz: -0.785,
-    boreRatio: 1.08,
-  });
-  const [calibPanelVisible, setCalibPanelVisible] = useState(true);
-
-  // Standalone floor panel — independent of the Beat Coordinates panel's
-  // "Live override" workflow (that one only applies while a beat is
-  // selected + live is checked, and is really meant for the full
-  // cam/ring/floor tuning pass). This one drives the floor's full
-  // position (X/Y/Z) and rotation directly, any time, via the
-  // setFloorRestYOverride/setFloorPosOverride/setFloorRotOverride API
-  // RingHero exposes — works standalone without touching camera/ring/
-  // beat state at all.
-  const [floorValues, setFloorValues] = useState({
-    x: 0,
-    y: -0.62,
-    z: 0,
-    rotX: 0,
-    rotY: 0,
-    rotZ: 0,
-  });
-  const [floorPanelVisible, setFloorPanelVisible] = useState(true);
-
-  // Beat 2 demerge — live control over the 3 view cards (top/front/side)
-  // that the ring splits into. Index order matches CARD_LAYOUT in
-  // RingHero.jsx: 0 = top, 1 = front (the ring itself, no clone), 2 =
-  // side. Applied unconditionally every tick via setCardLayoutOverride,
-  // same "always-on override" pattern as the floor panel — scroll to
-  // Beat 2 ("ring splits into 3 cards") to see it.
-  // Defaults here MUST mirror CARD_LAYOUT in RingHero.jsx exactly — this
-  // is just the panel's mirror of that baked-in constant, not an
-  // independent source of truth. Previously these were left at old
-  // placeholder numbers (x:-1.4, z:0.35, rotX: Math.PI/2-0.05, etc.)
-  // while CARD_LAYOUT itself had since been tuned to different values —
-  // so the panel silently showed stale sliders on load, and touching
-  // ANY one of them would snap the ring from RingHero's real tuned pose
-  // to these stale defaults (since updateCardLayout always sends the
-  // FULL card object, not just the changed field).
-  const [cardLayoutValues, setCardLayoutValues] = useState([
-    {
-      x: -1.34,
-      y: -0.11,
-      z: -0.66,
-      scale: 0.94,
-      rotX: -2.12,
-      rotY: -0.2,
-      rotZ: -2.88,
-    },
-    { x: 0.03, y: -0.02, z: -0.68, scale: 1.02, rotX: 0.78, rotY: 0, rotZ: 0 },
-    {
-      x: 1.53,
-      y: -0.13,
-      z: -0.66,
-      scale: 1.06,
-      rotX: -3.14,
-      rotY: -2.88,
-      rotZ: -2.51,
-    },
-  ]);
-  const [cardPanelVisible, setCardPanelVisible] = useState(true);
-
-  // Ring-only position offset INSIDE each card slot — independent of
-  // cardLayoutValues above. cardLayoutValues moves the card "slot"
-  // itself (and its outline frame moves with it); this moves just the
-  // ring mesh inside that slot, frame stays put. Index order matches
-  // CARD_LAYOUT: 0 = top, 1 = front (unused — front has no frame, its
-  // own x/y already IS its ring position), 2 = side.
-  const [cardRingOffsetValues, setCardRingOffsetValues] = useState([
-    { x: 0, y: 0, z: 0 },
-    { x: 0, y: 0, z: 0 },
-    { x: 0, y: 0, z: 0 },
-  ]);
-
-  function updateCardLayout(index, partial) {
-    setCardLayoutValues((prev) => {
-      const next = prev.map((v, i) =>
-        i === index ? { ...v, ...partial } : v,
-      );
-      const card = next[index];
-      poseApiRef.current?.setCardLayoutOverride(index, {
-        x: card.x,
-        y: card.y,
-        z: card.z,
-        scale: card.scale,
-        rot: { x: card.rotX, y: card.rotY, z: card.rotZ },
-      });
-      return next;
-    });
-  }
-
-  function updateCardRingOffset(index, partial) {
-    setCardRingOffsetValues((prev) => {
-      const next = prev.map((v, i) =>
-        i === index ? { ...v, ...partial } : v,
-      );
-      const ring = next[index];
-      poseApiRef.current?.setCardRingOffsetOverride(index, {
-        x: ring.x,
-        y: ring.y,
-        z: ring.z,
-      });
-      return next;
-    });
-  }
-
-  function updateFloor(partial) {
-    const next = { ...floorValues, ...partial };
-    setFloorValues(next);
-    poseApiRef.current?.setFloorRestYOverride(next.y);
-    poseApiRef.current?.setFloorPosOverride({ x: next.x, z: next.z });
-    poseApiRef.current?.setFloorRotOverride({
-      x: next.rotX,
-      y: next.rotY,
-      z: next.rotZ,
-    });
-  }
-
-  // Beat coordinate panel — works across ALL beats (not just on-body).
+  // Beat coordinate panel — works across ALL beats.
   // poseApiRef holds the jumpToBeat/setCamOverride/etc functions RingHero
   // hands back once its scroll timeline is set up (see onPoseOverrideReady
   // below). coordPanelVisible/coordValues drive the panel UI itself.
@@ -353,61 +254,120 @@ export default function HeroPage2() {
   // with the ring's own beat position without an extra render cycle.
   const beatBackgroundRef = useRef(null);
   const sideRaysRef = useRef(null);
-  // ScrollDebugHud's imperative handle — see onScrollDebugUpdate below.
-  const scrollDebugRef = useRef(null);
-  const [coordPanelVisible, setCoordPanelVisible] = useState(true);
+  // TimelineEditor's imperative handle — see onScrollDebugUpdate below.
+  const timelineRef = useRef(null);
+  const scrollDebounceRef = useRef(null);
+  // Tracks the last global frame reported by RingHero's scroll ticker, so
+  // the card-timing preview can be recomputed live (see the
+  // cardTimingConfig useEffect below) any time a timing slider changes,
+  // without requiring the user to scroll first.
+  const lastFrameRef = useRef(0);
+
+  // Refs for the new glassy overlay gallery components
+  const beat2OverlayRef = useRef(null);
+  const beat2SlideTrackRef = useRef(null);
+  const beat2Slide1Ref = useRef(null);
+  const beat2Slide2Ref = useRef(null);
+  const beat2Slide3Ref = useRef(null);
+  const beat2VideoRef = useRef(null);
+
+  const beat3OverlayRef = useRef(null);
+  const beat3SlideTrackRef = useRef(null);
+  const beat3Slide1Ref = useRef(null);
+  const beat3Slide2Ref = useRef(null);
+  const beat3Slide3Ref = useRef(null);
+  const beat3VideoRef = useRef(null);
+
+  const beat4OverlayRef = useRef(null);
   const [coordValues, setCoordValues] = useState({
-    beatIndex: 0,
+    activeFrame: 0,
     live: false,
     camX: 0,
     camY: 0.2,
     camZ: 4.2,
     rotX: 0.15,
     rotY: 0,
+    rotZ: 0,
     posX: 0,
     posY: 0,
     posZ: 0,
     scale: 1,
-    floorRestY: -0.62,
   });
-  // Which beats currently have a saved keyframe — drives the badge on
-  // each beat-select button. Synced from RingHero's beatKeyframesRef via
-  // getKeyframeSnapshot() right after every save/clear.
+  // Which frames currently have a saved keyframe — drives the markers.
   const [savedBeats, setSavedBeats] = useState(new Set());
 
-  function updateCalib(partial) {
-    const next = { ...calibValues, ...partial };
-    setCalibValues(next);
-    ringCalibRef.current?.setRingOnFinger({
-      position: { x: next.x, y: next.y, z: next.z },
-      rotation: { x: next.rx, y: next.ry, z: next.rz },
-      boreToFingerRatio: next.boreRatio,
-    });
-  }
+  // Developers card layout config state (drives Title/Content positions)
+  const [layoutConfig, setLayoutConfig] = useState({
+    contentLeft: 9.5,
+    contentTop: 15.5,
+    contentWidth: 940,
+    contentHeight: 520,
+    titleLeft: 59.5,
+    titleTop: 15.5,
+    titleWidth: 360,
+    heightAnchor: "top", // "center" | "top" | "bottom"
+  });
 
-  // Selecting a beat prefills the sliders from that beat's current
-  // BEATS[] values (read-only reference), UNLESS a keyframe was already
-  // saved for it — in that case prefill from the saved keyframe instead,
-  // so re-opening a beat you already tuned shows your saved numbers, not
-  // the original defaults.
-  function selectCoordBeat(index) {
-    const b = BEATS[index];
+  // Card timing config — controls when each Beat's card enters/exits, now
+  // expressed on the GLOBAL frame scale (0–211) instead of a per-beat
+  // 0–50 scale. Beat 2 spans global frames 11–61, Beat 3 spans 61–111,
+  // so these entry/exit values are chosen to fall inside those windows.
+  const DEFAULT_CARD_TIMING_CONFIG = {
+    beat2EntryStart: 25,
+    beat2EntryEnd: 35,
+    beat2ExitStart: 51,
+    beat2ExitEnd: 61,
+    beat3EntryStart: 75,
+    beat3EntryEnd: 85,
+    beat3ExitStart: 101,
+    beat3ExitEnd: 111,
+    beat4EntryStart: 111,
+    beat4EntryEnd: 131,
+    beat4ExitStart: 141,
+    beat4ExitEnd: 161,
+  };
+  const [cardTimingConfig, setCardTimingConfig] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("hero2CardTimingConfig");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Force the new 20-frame duration configuration for Beat 4
+        parsed.beat4EntryEnd = 131;
+        parsed.beat4ExitStart = 141;
+        return { ...DEFAULT_CARD_TIMING_CONFIG, ...parsed };
+      }
+    } catch (err) {
+      console.warn("Could not read saved card timing config:", err);
+    }
+    return DEFAULT_CARD_TIMING_CONFIG;
+  });
+
+  // Selecting a frame prefills the sliders from that frame's interpolated
+  // base values, UNLESS a keyframe was already saved for it.
+  function selectCoordFrame(frame) {
     const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
-    const kf = snap[index];
+    const kf = snap[frame];
+    const base = poseApiRef.current?.getBaseValuesForFrame?.(frame) ?? {
+      camPos: { x: 0, y: 0.2, z: 4.2 },
+      ringRot: { x: 0.15, y: 0, z: 0 },
+      ringPosOffset: { x: 0, y: 0, z: 0 },
+      ringScale: 1,
+    };
     setCoordValues((prev) => ({
       ...prev,
-      beatIndex: index,
-      camX: kf?.camPos?.x ?? b.camPos.x,
-      camY: kf?.camPos?.y ?? b.camPos.y,
-      camZ: kf?.camPos?.z ?? b.camPos.z,
-      rotX: kf?.ringRot?.x ?? b.ringRot.x,
-      rotY: kf?.ringRot?.y ?? b.ringRot.y,
-      posX: kf?.ringPosOffset?.x ?? 0,
-      posY: kf?.ringPosOffset?.y ?? 0,
-      posZ: kf?.ringPosOffset?.z ?? 0,
-      scale: kf?.ringScale ?? 1,
+      activeFrame: frame,
+      camX: kf?.camPos?.x ?? base.camPos.x,
+      camY: kf?.camPos?.y ?? base.camPos.y,
+      camZ: kf?.camPos?.z ?? base.camPos.z,
+      rotX: kf?.ringRot?.x ?? base.ringRot.x,
+      rotY: kf?.ringRot?.y ?? base.ringRot.y,
+      rotZ: kf?.ringRot?.z ?? base.ringRot.z ?? 0,
+      posX: kf?.ringPosOffset?.x ?? base.ringPosOffset?.x ?? 0,
+      posY: kf?.ringPosOffset?.y ?? base.ringPosOffset?.y ?? 0,
+      posZ: kf?.ringPosOffset?.z ?? base.ringPosOffset?.z ?? 0,
+      scale: kf?.ringScale ?? base.ringScale ?? 1,
     }));
-    poseApiRef.current?.jumpToBeat(index);
+    poseApiRef.current?.jumpToBeat(frame);
   }
 
   function applyLiveOverride(next) {
@@ -416,14 +376,17 @@ export default function HeroPage2() {
       y: next.camY,
       z: next.camZ,
     });
-    poseApiRef.current?.setRingRotOverride({ x: next.rotX, y: next.rotY });
+    poseApiRef.current?.setRingRotOverride({
+      x: next.rotX,
+      y: next.rotY,
+      z: next.rotZ,
+    });
     poseApiRef.current?.setRingPosOffsetOverride({
       x: next.posX,
       y: next.posY,
       z: next.posZ,
     });
     poseApiRef.current?.setRingScaleOverride(next.scale);
-    poseApiRef.current?.setFloorRestYOverride(next.floorRestY);
   }
 
   function updateCoord(partial) {
@@ -453,11 +416,11 @@ export default function HeroPage2() {
               camZ: current.camPos.z,
               rotX: current.ringRot.x,
               rotY: current.ringRot.y,
+              rotZ: current.ringRot.z ?? 0,
               posX: current.ringPosOffset.x,
               posY: current.ringPosOffset.y,
               posZ: current.ringPosOffset.z,
               scale: current.ringScale,
-              floorRestY: current.floorRestY,
             }
           : {}),
       };
@@ -470,7 +433,6 @@ export default function HeroPage2() {
       poseApiRef.current?.setRingRotOverride(null);
       poseApiRef.current?.setRingPosOffsetOverride(null);
       poseApiRef.current?.setRingScaleOverride(null);
-      poseApiRef.current?.setFloorRestYOverride(null);
     }
   }
 
@@ -479,16 +441,29 @@ export default function HeroPage2() {
     setSavedBeats(new Set(Object.keys(snap).map(Number)));
   }
 
-  // Persists the current slider values as beat `beatIndex`'s keyframe —
-  // plays back on scroll from then on, no "live" toggle required. Does
-  // NOT touch the live-override state, so you can keep previewing while
-  // stacking up saves across multiple beats.
-  function saveCoordKeyframe() {
-    const { beatIndex, camX, camY, camZ, rotX, rotY, posX, posY, posZ, scale } =
-      coordValues;
-    poseApiRef.current?.saveKeyframe(beatIndex, {
+  // Persists the current slider values as a keyframe at activeFrame —
+  // plays back on scroll from then on, no "live" toggle required.
+  function saveCoordKeyframe(optionalData) {
+    const dataToSave =
+      optionalData && optionalData.activeFrame !== undefined
+        ? optionalData
+        : coordValues;
+    const {
+      activeFrame,
+      camX,
+      camY,
+      camZ,
+      rotX,
+      rotY,
+      rotZ,
+      posX,
+      posY,
+      posZ,
+      scale,
+    } = dataToSave;
+    poseApiRef.current?.saveKeyframe(activeFrame, {
       camPos: { x: camX, y: camY, z: camZ },
-      ringRot: { x: rotX, y: rotY },
+      ringRot: { x: rotX, y: rotY, z: rotZ },
       ringPosOffset: { x: posX, y: posY, z: posZ },
       ringScale: scale,
     });
@@ -496,9 +471,302 @@ export default function HeroPage2() {
   }
 
   function clearCoordKeyframe() {
-    poseApiRef.current?.clearKeyframe(coordValues.beatIndex);
+    poseApiRef.current?.clearKeyframe(coordValues.activeFrame);
     refreshSavedBeats();
   }
+
+  function moveCoordKeyframe(oldFrame, newFrame) {
+    if (oldFrame === newFrame) return;
+    poseApiRef.current?.moveKeyframe?.(oldFrame, newFrame);
+    refreshSavedBeats();
+    selectCoordFrame(newFrame);
+  }
+
+  // ---------------------------------------------------------------------
+  // applyCardOverlayFrame
+  // -----------------------------------------------------------------------
+  // Pure DOM-mutation pass that positions/fades the Beat 2 and Beat 3
+  // glassy overlays for a given GLOBAL frame, using whatever
+  // cardTimingConfig values are current at call time. This is the exact
+  // math that used to live inline inside onScrollDebugUpdate — pulled out
+  // so it can ALSO be called from the cardTimingConfig useEffect below
+  // (live slider preview) without needing an actual scroll event to
+  // trigger it. Reads config fresh every call (not memoized) so it always
+  // reflects the latest slider values.
+  // ---------------------------------------------------------------------
+  function applyCardOverlayFrame(frame, config) {
+    // ---- BEAT 2 ----
+    const b2es = config.beat2EntryStart;
+    const b2ee = config.beat2EntryEnd;
+    const b2xs = config.beat2ExitStart;
+    const b2xe = config.beat2ExitEnd;
+
+    let beat2YOffset = 800;
+    let beat2Opacity = 0;
+
+    if (frame < b2es) {
+      beat2YOffset = 800;
+      beat2Opacity = 0;
+    } else if (frame >= b2es && frame < b2ee) {
+      const t = (frame - b2es) / Math.max(0.001, b2ee - b2es);
+      const easeT = t * t * (3 - 2 * t);
+      beat2YOffset = 800 * (1 - easeT);
+      beat2Opacity = easeT;
+    } else if (frame >= b2ee && frame < b2xs) {
+      beat2YOffset = 0;
+      beat2Opacity = 1;
+    } else if (frame >= b2xs && frame <= b2xe) {
+      const t = (frame - b2xs) / Math.max(0.001, b2xe - b2xs);
+      const easeT = t * t * (3 - 2 * t);
+      beat2YOffset = -800 * easeT;
+      beat2Opacity = 1 - easeT;
+    } else {
+      beat2YOffset = -800;
+      beat2Opacity = 0;
+    }
+
+    if (beat2OverlayRef.current) {
+      beat2OverlayRef.current.style.transform = `translateY(${beat2YOffset}px)`;
+      beat2OverlayRef.current.style.opacity = beat2Opacity;
+      beat2OverlayRef.current.style.pointerEvents =
+        beat2Opacity > 0.05 ? "auto" : "none";
+    }
+
+    if (frame >= b2ee && frame <= b2xe) {
+      const activeRange = Math.max(0.001, b2xs - b2ee);
+      const trackProgress = Math.min(
+        1,
+        Math.max(0, (frame - b2ee) / activeRange),
+      );
+      const totalSlides = 3;
+      const slideH = beat2Slide1Ref.current?.clientHeight ?? 380;
+      const containerH =
+        beat2SlideTrackRef.current?.parentElement?.clientHeight ?? 380;
+      const maxScrollOffset = Math.max(0, totalSlides * slideH - containerH);
+      const pxOffset = trackProgress * maxScrollOffset;
+      if (beat2SlideTrackRef.current) {
+        beat2SlideTrackRef.current.style.transform = `translateY(-${pxOffset}px)`;
+      }
+      const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
+      if (beat2VideoRef.current) {
+        if (dominant === 2) {
+          if (beat2VideoRef.current.paused)
+            beat2VideoRef.current.play().catch(() => {});
+        } else {
+          if (!beat2VideoRef.current.paused) beat2VideoRef.current.pause();
+        }
+      }
+    } else {
+      if (beat2SlideTrackRef.current) {
+        beat2SlideTrackRef.current.style.transform = "translateY(0px)";
+      }
+      if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
+        beat2VideoRef.current.pause();
+      }
+    }
+
+    // ---- BEAT 3 ----
+    const b3es = config.beat3EntryStart;
+    const b3ee = config.beat3EntryEnd;
+    const b3xs = config.beat3ExitStart;
+    const b3xe = config.beat3ExitEnd;
+
+    let beat3YOffset = 800;
+    let beat3Opacity = 0;
+
+    if (frame < b3es) {
+      beat3YOffset = 800;
+      beat3Opacity = 0;
+    } else if (frame >= b3es && frame < b3ee) {
+      const t = (frame - b3es) / Math.max(0.001, b3ee - b3es);
+      const easeT = t * t * (3 - 2 * t);
+      beat3YOffset = 800 * (1 - easeT);
+      beat3Opacity = easeT;
+    } else if (frame >= b3ee && frame < b3xs) {
+      beat3YOffset = 0;
+      beat3Opacity = 1;
+    } else if (frame >= b3xs && frame <= b3xe) {
+      const t = (frame - b3xs) / Math.max(0.001, b3xe - b3xs);
+      const easeT = t * t * (3 - 2 * t);
+      beat3YOffset = -800 * easeT;
+      beat3Opacity = 1 - easeT;
+    } else {
+      beat3YOffset = -800;
+      beat3Opacity = 0;
+    }
+
+    if (beat3OverlayRef.current) {
+      beat3OverlayRef.current.style.transform = `translateY(${beat3YOffset}px)`;
+      beat3OverlayRef.current.style.opacity = beat3Opacity;
+      beat3OverlayRef.current.style.pointerEvents =
+        beat3Opacity > 0.05 ? "auto" : "none";
+    }
+
+    if (frame >= b3ee && frame <= b3xe) {
+      const activeRange = Math.max(0.001, b3xs - b3ee);
+      const trackProgress = Math.min(
+        1,
+        Math.max(0, (frame - b3ee) / activeRange),
+      );
+      const totalSlides = 3;
+      const slideH = beat3Slide1Ref.current?.clientHeight ?? 380;
+      const containerH =
+        beat3SlideTrackRef.current?.parentElement?.clientHeight ?? 380;
+      const maxScrollOffset = Math.max(0, totalSlides * slideH - containerH);
+      const pxOffset = trackProgress * maxScrollOffset;
+      if (beat3SlideTrackRef.current) {
+        beat3SlideTrackRef.current.style.transform = `translateY(-${pxOffset}px)`;
+      }
+      const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
+      if (beat3VideoRef.current) {
+        if (dominant === 2) {
+          if (beat3VideoRef.current.paused)
+            beat3VideoRef.current.play().catch(() => {});
+        } else {
+          if (!beat3VideoRef.current.paused) beat3VideoRef.current.pause();
+        }
+      }
+    } else {
+      if (beat3SlideTrackRef.current) {
+        beat3SlideTrackRef.current.style.transform = "translateY(0px)";
+      }
+      if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
+        beat3VideoRef.current.pause();
+      }
+    }
+
+    // ---- BEAT 4 ----
+    const b4es = config.beat4EntryStart;
+    const b4ee = config.beat4EntryEnd;
+    const b4xs = config.beat4ExitStart;
+    const b4xe = config.beat4ExitEnd;
+
+    // Center point of entry/exit
+    const b4midEntry = b4es + (b4ee - b4es) / 2;
+    const b4midExit = b4xs + (b4xe - b4xs) / 2;
+
+    let beat4Width = "60vw";
+    let beat4Height = "35vh";
+    let beat4YOffset = 100; // in vh (fully down)
+    let beat4Opacity = 0;
+    let beat4BorderRadius = "24px";
+
+    if (frame < b4es) {
+      beat4Width = "60vw";
+      beat4Height = "35vh";
+      beat4YOffset = 100;
+      beat4Opacity = 0;
+      beat4BorderRadius = "24px";
+    } else if (frame >= b4es && frame < b4midEntry) {
+      // Bottom to Center (keeps small card size)
+      const t = (frame - b4es) / Math.max(0.001, b4midEntry - b4es);
+      const easeT = t * t * (3 - 2 * t);
+      beat4Width = "60vw";
+      beat4Height = "35vh";
+      beat4YOffset = 100 * (1 - easeT);
+      beat4BorderRadius = "24px";
+      beat4Opacity = easeT;
+    } else if (frame >= b4midEntry && frame < b4ee) {
+      // Center to Fullscreen (expands from small card size to fullscreen)
+      const t = (frame - b4midEntry) / Math.max(0.001, b4ee - b4midEntry);
+      const easeT = t * t * (3 - 2 * t);
+      beat4Width = `${60 + (100 - 60) * easeT}vw`;
+      beat4Height = `${35 + (100 - 35) * easeT}vh`;
+      beat4YOffset = 0;
+      beat4BorderRadius = `${24 * (1 - easeT)}px`;
+      beat4Opacity = 1;
+    } else if (frame >= b4ee && frame < b4xs) {
+      // Steady Fullscreen
+      beat4Width = "100vw";
+      beat4Height = "100vh";
+      beat4YOffset = 0;
+      beat4BorderRadius = "0px";
+      beat4Opacity = 1;
+    } else if (frame >= b4xs && frame < b4midExit) {
+      // Fullscreen to Center (shrinks from fullscreen back to small card size)
+      const t = (frame - b4xs) / Math.max(0.001, b4midExit - b4xs);
+      const easeT = t * t * (3 - 2 * t);
+      beat4Width = `${100 - (100 - 60) * easeT}vw`;
+      beat4Height = `${100 - (100 - 35) * easeT}vh`;
+      beat4YOffset = 0;
+      beat4BorderRadius = `${24 * easeT}px`;
+      beat4Opacity = 1;
+    } else if (frame >= b4midExit && frame <= b4xe) {
+      // Center to Top (keeps small card size while moving off screen)
+      const t = (frame - b4midExit) / Math.max(0.001, b4xe - b4midExit);
+      const easeT = t * t * (3 - 2 * t);
+      beat4Width = "60vw";
+      beat4Height = "35vh";
+      beat4YOffset = -100 * easeT;
+      beat4BorderRadius = "24px";
+      beat4Opacity = 1 - easeT;
+    } else {
+      beat4Width = "60vw";
+      beat4Height = "35vh";
+      beat4YOffset = -100;
+      beat4Opacity = 0;
+      beat4BorderRadius = "24px";
+    }
+
+    if (beat4OverlayRef.current) {
+      beat4OverlayRef.current.style.width = beat4Width;
+      beat4OverlayRef.current.style.height = beat4Height;
+      beat4OverlayRef.current.style.transform = `translate(-50%, -50%) translateY(${beat4YOffset}vh)`;
+      beat4OverlayRef.current.style.borderRadius = beat4BorderRadius;
+      beat4OverlayRef.current.style.opacity = beat4Opacity;
+      beat4OverlayRef.current.style.pointerEvents =
+        beat4Opacity > 0.05 ? "auto" : "none";
+    }
+  }
+
+  // Live preview: any time a card-timing slider changes, immediately
+  // re-apply the overlay at whatever frame the page is currently
+  // sitting on (lastFrameRef, kept in sync by the scroll handler below).
+  // This is what makes dragging a timing slider show its effect right
+  // away instead of requiring the user to scroll first.
+  useEffect(() => {
+    applyCardOverlayFrame(lastFrameRef.current, cardTimingConfig);
+  }, [cardTimingConfig]);
+
+  // Persists cardTimingConfig to localStorage as a dedicated, explicit
+  // save action — separate from "Reset Timing". Values are picked back
+  // up on next load via the lazy useState initializer below, so tuned
+  // timings survive a refresh instead of silently reverting to defaults.
+  function saveCardTimingConfig() {
+    try {
+      window.localStorage.setItem(
+        "hero2CardTimingConfig",
+        JSON.stringify(cardTimingConfig),
+      );
+      alert("Card timing saved!");
+    } catch (err) {
+      console.error("Failed to save card timing config:", err);
+      alert("Could not save card timing (see console).");
+    }
+  }
+
+  // Automatically turn off live override when the user scrolls the page
+  // so the scroll animation plays smoothly and doesn't freeze.
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      if (coordValues.live) {
+        toggleCoordLive(false);
+      }
+    };
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [coordValues.live]);
+
+  const getContentCardStyle = () => {
+    const { contentLeft, contentTop, contentWidth } = layoutConfig;
+    return {
+      position: "absolute",
+      left: `${contentLeft}%`,
+      top: `${contentTop}%`,
+      width: `${contentWidth}px`,
+      bottom: "20px", // always stretches to 20px from screen bottom
+    };
+  };
 
   return (
     <div className="hero2-page">
@@ -519,8 +787,137 @@ export default function HeroPage2() {
         {...BEAT2_EFFECT_CONFIGS[BEAT2_EFFECT].props}
       />
 
-      {/* Live scroll/beat readout — bottom-left HUD, dev-only. */}
-      <ScrollDebugHud ref={scrollDebugRef} />
+      {/* Live scroll/beat readout integrated inside the Animation Timeline */}
+
+      {/* Glassmorphism Title & Content Cards Overlay */}
+      <div className="glassy-content-overlay">
+        {/* Beat 2 Layout */}
+        <div ref={beat2OverlayRef} className="glassy-beat-layout">
+          <ContentGlassyCard
+            className="beat-content-left"
+            style={getContentCardStyle()}
+          >
+            <div className="glassy-slide-container">
+              <div ref={beat2SlideTrackRef} className="glassy-slide-track">
+                {/* Slide 1: First 2 images */}
+                <div ref={beat2Slide1Ref} className="glassy-slide">
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img src="/1.png" alt="Yellow Gold band" />
+                    </div>
+                    <div className="glassy-grid-item">
+                      <img src="/2.png" alt="Pave close up" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Slide 2: Next 2 images */}
+                <div ref={beat2Slide2Ref} className="glassy-slide">
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img src="/3.png" alt="Prong profiles" />
+                    </div>
+                    <div className="glassy-grid-item">
+                      <img src="/4.png" alt="Diamond cuts" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Slide 3: Video */}
+                <div ref={beat2Slide3Ref} className="glassy-slide">
+                  <div className="glassy-video-container">
+                    <video
+                      ref={beat2VideoRef}
+                      src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
+                      loop
+                      muted
+                      playsInline
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ContentGlassyCard>
+          <TitleGlassyCard
+            className="beat-title-right"
+            style={{
+              left: `${layoutConfig.titleLeft}%`,
+              top: `${layoutConfig.titleTop}%`,
+              width: `${layoutConfig.titleWidth}px`,
+            }}
+            subtitle="Details"
+            title="Grounded in the details"
+          />
+        </div>
+
+        {/* Beat 3 Layout */}
+        <div ref={beat3OverlayRef} className="glassy-beat-layout">
+          <ContentGlassyCard
+            className="beat-content-left"
+            style={getContentCardStyle()}
+          >
+            <div className="glassy-slide-container">
+              <div ref={beat3SlideTrackRef} className="glassy-slide-track">
+                {/* Slide 1: First 2 images */}
+                <div ref={beat3Slide1Ref} className="glassy-slide">
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img src="/2.png" alt="Diamond cuts" />
+                    </div>
+                    <div className="glassy-grid-item">
+                      <img src="/4.png" alt="Prong profiles" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Slide 2: Next 2 images */}
+                <div ref={beat3Slide2Ref} className="glassy-slide">
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img src="/1.png" alt="Yellow Gold band" />
+                    </div>
+                    <div className="glassy-grid-item">
+                      <img src="/3.png" alt="Pave close up" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Slide 3: Video */}
+                <div ref={beat3Slide3Ref} className="glassy-slide">
+                  <div className="glassy-video-container">
+                    <video
+                      ref={beat3VideoRef}
+                      src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
+                      loop
+                      muted
+                      playsInline
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ContentGlassyCard>
+          <TitleGlassyCard
+            className="beat-title-right"
+            style={{
+              left: `${layoutConfig.titleLeft}%`,
+              top: `${layoutConfig.titleTop}%`,
+              width: `${layoutConfig.titleWidth}px`,
+            }}
+            subtitle="Precision"
+            title="Seen from every angle"
+          />
+        </div>
+
+        {/* Beat 4 Layout (Emerging / Fullscreen Box) */}
+        <div ref={beat4OverlayRef} className="beat4-box-overlay">
+          <img
+            src="/Gemini_Generated_Image_udnfihudnfihudnf.png"
+            alt="Jellyfish underwater"
+            className="beat4-media"
+          />
+        </div>
+      </div>
 
       {/* Fixed 3D background — canvas + gradient overlay, pinned behind
           everything else via z-index (see RingHero.jsx inline styles) */}
@@ -544,174 +941,91 @@ export default function HeroPage2() {
         gemHdrPower={gemHdrConfig.power}
         gemHdrGamma={gemHdrConfig.gamma}
         postFxEnabled={postFxEnabled}
-        handGlbUrl="/models/half_hand.glb"
-        fingerProbeEnabled={fingerProbeEnabled}
-        onRingCalibrationReady={(api) => {
-          ringCalibRef.current = api;
-        }}
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
+          refreshSavedBeats();
         }}
         onBeatBlendUpdate={(blend) => {
           beatBackgroundRef.current?.setBlend(blend);
           sideRaysRef.current?.setBlend(blend);
         }}
         onScrollDebugUpdate={(info) => {
-          scrollDebugRef.current?.setDebug(info);
+          if (timelineRef.current) {
+            const currentPose = poseApiRef.current?.getCurrentPose?.();
+            timelineRef.current.update(info, currentPose);
+          }
+
+          const frame = info.progress * TOTAL_FRAMES;
+          const roundedFrame = Math.round(frame);
+
+          // Keep the last-known global frame available outside this
+          // callback (the live-preview useEffect on cardTimingConfig
+          // reads it) and apply the beat 2/3 overlay math for this frame.
+          lastFrameRef.current = frame;
+          applyCardOverlayFrame(frame, cardTimingConfig);
+
+          // Debounce React state update so sliders sync to scrolled values when scrolling stops
+          clearTimeout(scrollDebounceRef.current);
+          scrollDebounceRef.current = setTimeout(() => {
+            if (poseApiRef.current) {
+              const currentFrame = Math.round(info.progress * TOTAL_FRAMES);
+
+              setCoordValues((prev) => {
+                if (prev.activeFrame === currentFrame) return prev;
+                const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
+                const kf = snap[currentFrame];
+                const base = poseApiRef.current?.getBaseValuesForFrame?.(
+                  currentFrame,
+                ) ?? {
+                  camPos: { x: 0, y: 0.2, z: 4.2 },
+                  ringRot: { x: 0.15, y: 0, z: 0 },
+                  ringPosOffset: { x: 0, y: 0, z: 0 },
+                  ringScale: 1,
+                };
+                return {
+                  ...prev,
+                  activeFrame: currentFrame,
+                  camX: kf?.camPos?.x ?? base.camPos.x,
+                  camY: kf?.camPos?.y ?? base.camPos.y,
+                  camZ: kf?.camPos?.z ?? base.camPos.z,
+                  rotX: kf?.ringRot?.x ?? base.ringRot.x,
+                  rotY: kf?.ringRot?.y ?? base.ringRot.y,
+                  rotZ: kf?.ringRot?.z ?? base.ringRot.z ?? 0,
+                  posX: kf?.ringPosOffset?.x ?? base.ringPosOffset?.x ?? 0,
+                  posY: kf?.ringPosOffset?.y ?? base.ringPosOffset?.y ?? 0,
+                  posZ: kf?.ringPosOffset?.z ?? base.ringPosOffset?.z ?? 0,
+                  scale: kf?.ringScale ?? base.ringScale ?? 1,
+                };
+              });
+            }
+          }, 150);
         }}
       />
 
       {SHOW_DEV_PANEL && (
-        <button
-          onClick={() => setFingerProbeEnabled((v) => !v)}
-          style={{
-            position: "fixed",
-            top: 84,
-            right: 480,
-            zIndex: 51,
-            background: fingerProbeEnabled
-              ? "rgba(77,163,255,0.25)"
-              : "rgba(20,20,22,0.9)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          {fingerProbeEnabled ? "Hide finger probe" : "Show finger probe"}
-        </button>
-      )}
-
-      {SHOW_DEV_PANEL && calibPanelVisible && (
-        <RingCalibrationPanel
-          values={calibValues}
-          onChange={updateCalib}
-          onHide={() => setCalibPanelVisible(false)}
-        />
-      )}
-      {SHOW_DEV_PANEL && !calibPanelVisible && (
-        <button
-          onClick={() => setCalibPanelVisible(true)}
-          style={{
-            position: "fixed",
-            top: 84,
-            right: 310,
-            zIndex: 51,
-            background: "rgba(20,20,22,0.9)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          Show ring calibration
-        </button>
-      )}
-
-      {SHOW_DEV_PANEL && floorPanelVisible && (
-        <FloorCalibrationPanel
-          values={floorValues}
-          onChange={updateFloor}
-          onHide={() => setFloorPanelVisible(false)}
-        />
-      )}
-      {SHOW_DEV_PANEL && !floorPanelVisible && (
-        <button
-          onClick={() => setFloorPanelVisible(true)}
-          style={{
-            position: "fixed",
-            top: 84,
-            right: 750,
-            zIndex: 51,
-            background: "rgba(20,20,22,0.9)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          Show floor calibration
-        </button>
-      )}
-
-      {SHOW_DEV_PANEL && cardPanelVisible && (
-        <CardLayoutPanel
-          values={cardLayoutValues}
-          onChange={updateCardLayout}
-          ringOffsetValues={cardRingOffsetValues}
-          onRingOffsetChange={updateCardRingOffset}
-          onJumpToBeat={() => poseApiRef.current?.jumpToBeat(1)}
-          onHide={() => setCardPanelVisible(false)}
-        />
-      )}
-      {SHOW_DEV_PANEL && !cardPanelVisible && (
-        <button
-          onClick={() => setCardPanelVisible(true)}
-          style={{
-            position: "fixed",
-            top: 84,
-            right: 910,
-            zIndex: 51,
-            background: "rgba(20,20,22,0.9)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          Show card layout
-        </button>
-      )}
-
-      {SHOW_DEV_PANEL && coordPanelVisible && (
-        <BeatCoordPanel
+        <TimelineEditor
+          ref={timelineRef}
           values={coordValues}
           savedBeats={savedBeats}
-          onSelectBeat={selectCoordBeat}
+          onSelectBeat={selectCoordFrame}
           onChange={updateCoord}
           onToggleLive={toggleCoordLive}
           onSave={saveCoordKeyframe}
           onClear={clearCoordKeyframe}
-          onHide={() => setCoordPanelVisible(false)}
-        />
-      )}
-      {SHOW_DEV_PANEL && !coordPanelVisible && (
-        <button
-          onClick={() => setCoordPanelVisible(true)}
-          style={{
-            position: "fixed",
-            top: 84,
-            right: 590,
-            zIndex: 51,
-            background: "rgba(20,20,22,0.9)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
+          poseApiRef={poseApiRef}
+          beatCount={BEATS.length}
+          onJumpToProgress={(progress, smooth) =>
+            poseApiRef.current?.jumpToProgress(progress, smooth)
+          }
+          onReboot={() => {
+            console.log(
+              "Model reload clicked! Re-loading GLB and updating beats:",
+              BEATS,
+            );
+            poseApiRef.current?.reloadRingModel(BEATS);
           }}
-        >
-          Show beat coords
-        </button>
+          onMoveKeyframe={moveCoordKeyframe}
+        />
       )}
 
       {SHOW_DEV_PANEL && (
@@ -760,6 +1074,12 @@ export default function HeroPage2() {
               setGemHdrConfig={setGemHdrConfig}
               postFxEnabled={postFxEnabled}
               setPostFxEnabled={setPostFxEnabled}
+              layoutConfig={layoutConfig}
+              setLayoutConfig={setLayoutConfig}
+              cardTimingConfig={cardTimingConfig}
+              setCardTimingConfig={setCardTimingConfig}
+              defaultCardTimingConfig={DEFAULT_CARD_TIMING_CONFIG}
+              onSaveCardTiming={saveCardTimingConfig}
             />
           )}
         </>
@@ -782,8 +1102,8 @@ export default function HeroPage2() {
           timeline inside RingHero. Must match id used in
           scrollContainerSelector prop above. */}
       {/* One <section> per BEATS[i] entry in RingHero.jsx — keep both in
-          sync (see docs/HERO2_5BEAT_PRD.md). 5 beats: idle -> floor ->
-          on-body -> demerge/cards -> standing spin. */}
+          sync. 6 beats: idle -> corner park -> pose -> pose -> center
+          (ring back to Beat 1 pose) -> standing spin. */}
       <div id="scroll-content" className="hero2-scroll-content">
         {/* Beat 1 — idle ring */}
         <section className="hero2-section">
@@ -802,7 +1122,8 @@ export default function HeroPage2() {
           </div>
         </section>
 
-        {/* Beat 2 — floor rises, ring rests on it, floor fades out */}
+        {/* Beat 2 — ring parks in the bottom-right corner (cinematic
+            camera arc + push-in zoom, see BEATS[1] in RingHero.jsx) */}
         <section id="work" className="hero2-section">
           <div className="hero2-section-inner align-right">
             <h2>Grounded in the details</h2>
@@ -814,25 +1135,18 @@ export default function HeroPage2() {
           </div>
         </section>
 
-        {/* Beat 3 — on-body reveal */}
-        <section id="onbody" className="hero2-section">
+        {/* Beat 3 — pose beat (see BEATS[2] in RingHero.jsx) */}
+        <section id="details" className="hero2-section">
           <div className="hero2-section-inner align-right">
-            <h2>Seen the way it'll be worn</h2>
+            <h2>Seen from every angle</h2>
             <p>
-              Off the mount and onto the hand — the same ring, the same light,
-              now read against skin instead of a studio backdrop.
+              The same ring, the same light — reframed to show off a different
+              facet of the piece.
             </p>
-            <a
-              href="/onbody"
-              className="hero2-cta-btn"
-              style={{ marginTop: 20 }}
-            >
-              Full on-body gallery →
-            </a>
           </div>
         </section>
 
-        {/* Beat 4 — demerge into top / front / side view cards */}
+        {/* Beat 4 — pose beat (see BEATS[3] in RingHero.jsx) */}
         <section id="views" className="hero2-section">
           <div className="hero2-section-inner">
             <h2>Every angle, considered</h2>
@@ -843,7 +1157,18 @@ export default function HeroPage2() {
           </div>
         </section>
 
-        {/* Beat 5 — standing spin, closing beat */}
+        {/* Beat 5 — ring returns to center (idle hero pose, like Beat 1) */}
+        <section id="center" className="hero2-section">
+          <div className="hero2-section-inner">
+            <h2>Back to the beginning</h2>
+            <p>
+              The same ring, the same light — seen again from the top, exactly
+              as it was. Familiar, but now you've seen everything in between.
+            </p>
+          </div>
+        </section>
+
+        {/* Beat 6 — standing spin, closing beat */}
         <section id="contact" className="hero2-section hero2-section-cta">
           <div className="hero2-section-inner">
             <h2>Let's build something</h2>
@@ -859,6 +1184,41 @@ export default function HeroPage2() {
 }
 
 /**
+ * buildCardCss
+ * -------------------------------------------------------------------------
+ * Builds the .beat-content-left / .beat-title-right CSS text from the
+ * current layoutConfig — shared by both the "Copy CSS" and "Save CSS"
+ * dev-panel buttons so they can never drift out of sync with each other.
+ * -------------------------------------------------------------------------
+ */
+function buildCardCss(layoutConfig) {
+  let contentPosCss = "";
+  if (layoutConfig.heightAnchor === "center") {
+    contentPosCss = `  top: ${layoutConfig.contentTop}%;
+  transform: translateY(-50%);`;
+  } else if (layoutConfig.heightAnchor === "top") {
+    contentPosCss = `  top: calc(${layoutConfig.contentTop}% - 190px);`;
+  } else if (layoutConfig.heightAnchor === "bottom") {
+    contentPosCss = `  bottom: calc(${100 - layoutConfig.contentTop}% - 190px);
+  top: auto;`;
+  }
+
+  return `.beat-content-left {
+  position: absolute;
+  left: ${layoutConfig.contentLeft}%;
+  width: ${layoutConfig.contentWidth}px;
+  bottom: 20px;
+${contentPosCss}
+}
+.beat-title-right {
+  position: absolute;
+  left: ${layoutConfig.titleLeft}%;
+  top: ${layoutConfig.titleTop}%;
+  width: ${layoutConfig.titleWidth}px;
+}`;
+}
+
+/**
  * MaterialDevPanel
  * -------------------------------------------------------------------------
  * Floating overlay for live-tuning metal preset, per-element HDR URLs,
@@ -868,756 +1228,18 @@ export default function HeroPage2() {
  * (SHOW_DEV_PANEL = false) before shipping.
  * -------------------------------------------------------------------------
  */
-/**
- * RingCalibrationPanel
- * -------------------------------------------------------------------------
- * Live sliders for the ring's on-finger position/rotation/scale-ratio
- * (RING_ON_FINGER in RingHero.jsx). Moves the ring in real time as you
- * drag — scroll to the on-body beat (3rd section) to see it while
- * adjusting. Values are also logged to the console (via RingHero's
- * recomputeRingOnFingerScale) so you can copy the final numbers back
- * into RING_ON_FINGER's default in RingHero.jsx once you're happy, and
- * then remove this panel for production.
- * -------------------------------------------------------------------------
- */
-function RingCalibrationPanel({ values, onChange, onHide }) {
-  const row = (label, key, min, max, step) => (
-    <label style={{ display: "block", marginBottom: 8 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 2,
-        }}
-      >
-        <span>{label}</span>
-        <span style={{ opacity: 0.6 }}>{values[key]}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={values[key]}
-        onChange={(e) => onChange({ [key]: Number(e.target.value) })}
-        style={{ width: "100%" }}
-      />
-    </label>
-  );
-
-  const codeSnippet = `position: { x: ${values.x}, y: ${values.y}, z: ${values.z} },
-rotation: { x: ${values.rx}, y: ${values.ry}, z: ${values.rz} },
-boreToFingerRatio: ${values.boreRatio},`;
-
-  return (
-    <div
-      data-lenis-prevent
-      style={{
-        position: "fixed",
-        top: 84,
-        right: 310,
-        zIndex: 51,
-        background: "rgba(20,20,22,0.92)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        color: "#fff",
-        fontSize: 12,
-        fontFamily: "monospace",
-        width: 260,
-        maxHeight: "85vh",
-        overflowY: "auto",
-        backdropFilter: "blur(6px)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.8 }}>
-          RING-ON-FINGER CALIBRATION
-        </span>
-        <button
-          onClick={onHide}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            opacity: 0.6,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div style={{ opacity: 0.55, marginBottom: 10, lineHeight: 1.4 }}>
-        Scroll to the 3rd section ("Seen the way it'll be worn") to see the ring
-        move as you drag these.
-      </div>
-
-      <div style={{ opacity: 0.7, marginBottom: 4 }}>
-        Position (hand-local space)
-      </div>
-      {row("X (left/right on finger)", "x", -10, 10, 0.02)}
-      {row("Y (up/down the finger)", "y", -15, 15, 0.02)}
-      {row("Z (toward/away from palm)", "z", -10, 10, 0.02)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Rotation (radians)
-      </div>
-      {row("Rot X", "rx", -3.14, 3.14, 0.01)}
-      {row("Rot Y", "ry", -3.14, 3.14, 0.01)}
-      {row("Rot Z", "rz", -3.14, 3.14, 0.01)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>Fit</div>
-      {row("Bore-to-finger ratio", "boreRatio", 0.8, 2, 0.01)}
-
-      <div style={{ marginTop: 12, marginBottom: 4, opacity: 0.55 }}>
-        Copy into RING_ON_FINGER once happy:
-      </div>
-      <pre
-        style={{
-          background: "rgba(255,255,255,0.06)",
-          padding: "8px 10px",
-          borderRadius: 6,
-          fontSize: 10,
-          whiteSpace: "pre-wrap",
-          margin: 0,
-        }}
-      >
-        {codeSnippet}
-      </pre>
-    </div>
-  );
-}
 
 /**
- * FloorCalibrationPanel
+ * CornerParkPanel
  * -------------------------------------------------------------------------
- * Standalone floor control — full X/Y/Z position and X/Y/Z rotation,
- * driving the floor directly via setFloorRestYOverride/setFloorPosOverride/
- * setFloorRotOverride, independent of the Beat Coordinates panel's
- * beat-select + live-override workflow. Works any time (RingHero applies
- * these overrides unconditionally every tick, see the floor block in
- * RingHero.jsx's ticker), though the floor is only actually visible
- * during/around Beat 2 (floorEntry/floorOpacity > 0), so scroll there to
- * see the effect. Once happy, copy the printed values into RingHero.jsx —
- * Y maps to FLOOR_REST_Y_MANUAL_OVERRIDE (see the comment beside
- * FLOOR_REST_Y's declaration), X/Z/rotation map to the floor mesh's
- * initial position.x/.z and rotation right after it's created.
+ * Live control over Beat 2's corner-park amount — how far the ring has
+ * traveled/shrunk into the bottom-right corner, driven by cornerPark in
+ * RingHero's BEATS[1] and read every tick via poseOverrideRef.cornerPark
+ * when "live" is on. Jump to Beat 2 with the button below to see it.
  * -------------------------------------------------------------------------
  */
-function FloorCalibrationPanel({ values, onChange, onHide }) {
-  const row = (label, key, min, max, step) => (
-    <label style={{ display: "block", marginBottom: 8 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 2,
-        }}
-      >
-        <span>{label}</span>
-        <span style={{ opacity: 0.6 }}>{values[key]}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={values[key]}
-        onChange={(e) => onChange({ [key]: Number(e.target.value) })}
-        style={{ width: "100%" }}
-      />
-    </label>
-  );
 
-  const codeSnippet = `// Y — set FLOOR_REST_Y_MANUAL_OVERRIDE in RingHero.jsx:
-FLOOR_REST_Y_MANUAL_OVERRIDE = ${values.y};
-// X/Z — set on the floor mesh right after it's created:
-floor.position.x = ${values.x};
-floor.position.z = ${values.z};
-// Rotation (radians):
-floor.rotation.set(${values.rotX}, ${values.rotY}, ${values.rotZ});`;
-
-  return (
-    <div
-      data-lenis-prevent
-      style={{
-        position: "fixed",
-        top: 84,
-        right: 750,
-        zIndex: 51,
-        background: "rgba(20,20,22,0.92)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        color: "#fff",
-        fontSize: 12,
-        fontFamily: "monospace",
-        width: 280,
-        maxHeight: "85vh",
-        overflowY: "auto",
-        backdropFilter: "blur(6px)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.8 }}>
-          FLOOR CALIBRATION
-        </span>
-        <button
-          onClick={onHide}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            opacity: 0.6,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div style={{ opacity: 0.55, marginBottom: 10, lineHeight: 1.4 }}>
-        Scroll to Beat 2 ("the floor rises") to see this. Full position +
-        rotation control over the floor slab.
-      </div>
-
-      <div style={{ opacity: 0.7, marginBottom: 4 }}>Position</div>
-      {row("X (left/right)", "x", -3, 3, 0.005)}
-      {row("Y (up/down — top face height)", "y", -2, 1, 0.005)}
-      {row("Z (toward/away from camera)", "z", -3, 3, 0.005)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Rotation (radians)
-      </div>
-      {row("Rot X (tilt forward/back)", "rotX", -1.57, 1.57, 0.005)}
-      {row("Rot Y (spin)", "rotY", -3.14, 3.14, 0.005)}
-      {row("Rot Z (roll)", "rotZ", -1.57, 1.57, 0.005)}
-
-      <div style={{ marginTop: 12, marginBottom: 4, opacity: 0.55 }}>
-        Copy into RingHero.jsx once happy:
-      </div>
-      <pre
-        style={{
-          background: "rgba(255,255,255,0.06)",
-          padding: "8px 10px",
-          borderRadius: 6,
-          fontSize: 10,
-          whiteSpace: "pre-wrap",
-          margin: 0,
-        }}
-      >
-        {codeSnippet}
-      </pre>
-    </div>
-  );
-}
-
-/**
- * CardLayoutPanel
- * -------------------------------------------------------------------------
- * Live control over the 3 view-cards Beat 2 ("demerge") splits the ring
- * into — top / front / side. Each card gets its own X offset, Z (depth)
- * offset, and rotation X/Y, applied every tick via
- * setCardLayoutOverride(index, ...) regardless of scroll position (jump
- * to Beat 2 with the button below to actually see cs > 0 and the cards
- * fanned out). Index order matches CARD_LAYOUT in RingHero.jsx: 0 = top,
- * 1 = front (the ring itself — no clone, so only its x/z/rotation move,
- * scale stays governed by the beat), 2 = side. Once happy, copy the
- * snippet into CARD_LAYOUT.
- * -------------------------------------------------------------------------
- */
-function CardLayoutPanel({
-  values,
-  onChange,
-  ringOffsetValues,
-  onRingOffsetChange,
-  onJumpToBeat,
-  onHide,
-}) {
-  const labels = ["Top", "Front", "Side"];
-
-  const row = (cardIndex, label, key, min, max, step) => {
-    const card = values[cardIndex];
-    return (
-      <label style={{ display: "block", marginBottom: 6 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 2,
-          }}
-        >
-          <span>{label}</span>
-          <span style={{ opacity: 0.6 }}>{card[key].toFixed(3)}</span>
-        </div>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={card[key]}
-          onChange={(e) =>
-            onChange(cardIndex, { [key]: Number(e.target.value) })
-          }
-          style={{ width: "100%" }}
-        />
-      </label>
-    );
-  };
-
-  // Same slider control as `row`, but drives ringOffsetValues via
-  // onRingOffsetChange instead of the card-slot values above — this is
-  // the ring's own position INSIDE its card, not the card/frame itself.
-  const ringRow = (cardIndex, label, key, min, max, step) => {
-    const ring = ringOffsetValues[cardIndex];
-    return (
-      <label style={{ display: "block", marginBottom: 6 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 2,
-          }}
-        >
-          <span>{label}</span>
-          <span style={{ opacity: 0.6 }}>{ring[key].toFixed(3)}</span>
-        </div>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={ring[key]}
-          onChange={(e) =>
-            onRingOffsetChange(cardIndex, { [key]: Number(e.target.value) })
-          }
-          style={{ width: "100%" }}
-        />
-      </label>
-    );
-  };
-
-  const codeSnippet = `const CARD_LAYOUT = [
-  { x: ${values[0].x}, y: ${values[0].y}, z: ${values[0].z}, scale: ${values[0].scale}, rot: { x: ${values[0].rotX}, y: ${values[0].rotY}, z: ${values[0].rotZ} }, label: "top" },
-  { x: ${values[1].x}, y: ${values[1].y}, z: ${values[1].z}, scale: ${values[1].scale}, rot: { x: ${values[1].rotX}, y: ${values[1].rotY}, z: ${values[1].rotZ} }, label: "front" },
-  { x: ${values[2].x}, y: ${values[2].y}, z: ${values[2].z}, scale: ${values[2].scale}, rot: { x: ${values[2].rotX}, y: ${values[2].rotY}, z: ${values[2].rotZ} }, label: "side" },
-];
-
-// Ring position INSIDE each card slot (add these x/y/z straight onto
-// the mesh.position.set(...) call for that clone in RingHero.jsx, or
-// fold into CARD_LAYOUT's x/y/z directly once you're happy with them):
-// top:   { x: ${ringOffsetValues[0].x}, y: ${ringOffsetValues[0].y}, z: ${ringOffsetValues[0].z} }
-// front: { x: ${ringOffsetValues[1].x}, y: ${ringOffsetValues[1].y}, z: ${ringOffsetValues[1].z} } (front has no frame — additive on top of X/Y/Z offset above)
-// side:  { x: ${ringOffsetValues[2].x}, y: ${ringOffsetValues[2].y}, z: ${ringOffsetValues[2].z} }`;
-
-  return (
-    <div
-      data-lenis-prevent
-      style={{
-        position: "fixed",
-        top: 84,
-        right: 910,
-        zIndex: 51,
-        background: "rgba(20,20,22,0.92)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        color: "#fff",
-        fontSize: 12,
-        fontFamily: "monospace",
-        width: 300,
-        maxHeight: "85vh",
-        overflowY: "auto",
-        backdropFilter: "blur(6px)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.8 }}>
-          CARD LAYOUT (BEAT 2)
-        </span>
-        <button
-          onClick={onHide}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            opacity: 0.6,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div style={{ opacity: 0.55, marginBottom: 8, lineHeight: 1.4 }}>
-        Controls the 3 rings Beat 2 splits into — top, front, side.
-      </div>
-
-      <button
-        onClick={onJumpToBeat}
-        style={{
-          width: "100%",
-          marginBottom: 12,
-          background: "rgba(77,163,255,0.2)",
-          border: "1px solid rgba(77,163,255,0.4)",
-          borderRadius: 6,
-          padding: "6px 10px",
-          color: "#fff",
-          fontSize: 11,
-          fontFamily: "monospace",
-          cursor: "pointer",
-        }}
-      >
-        Jump to Beat 2 (demerge)
-      </button>
-
-      {[0, 1, 2].map((cardIndex) => (
-        <div
-          key={cardIndex}
-          style={{
-            marginBottom: 12,
-            paddingBottom: 10,
-            borderBottom:
-              cardIndex < 2 ? "1px solid rgba(255,255,255,0.1)" : "none",
-          }}
-        >
-          <div
-            style={{ opacity: 0.8, marginBottom: 6, fontWeight: 700 }}
-          >
-            {labels[cardIndex]}
-            {cardIndex === 1 ? " (main ring)" : ""}
-          </div>
-          {row(cardIndex, "X offset", "x", -3, 3, 0.01)}
-          {row(cardIndex, "Y offset", "y", -3, 3, 0.01)}
-          {row(cardIndex, "Z offset (depth)", "z", -1, 1.5, 0.01)}
-          {row(cardIndex, "Scale", "scale", 0.1, 2.5, 0.01)}
-          {row(cardIndex, "Rot X", "rotX", -3.14, 3.14, 0.01)}
-          {row(cardIndex, "Rot Y", "rotY", -3.14, 3.14, 0.01)}
-          {row(cardIndex, "Rot Z", "rotZ", -3.14, 3.14, 0.01)}
-
-          <div
-            style={{
-              marginTop: 10,
-              marginBottom: 6,
-              opacity: 0.6,
-              fontSize: 11,
-              borderTop: "1px dashed rgba(255,255,255,0.15)",
-              paddingTop: 8,
-            }}
-          >
-            {cardIndex === 1
-              ? "Ring position (front has no frame — this nudges the ring itself, additive on top of X/Y/Z offset above)"
-              : "Ring position (inside card — frame stays put)"}
-          </div>
-          {ringRow(cardIndex, "Ring X", "x", -1.5, 1.5, 0.01)}
-          {ringRow(cardIndex, "Ring Y", "y", -1.5, 1.5, 0.01)}
-          {ringRow(cardIndex, "Ring Z", "z", -1.5, 1.5, 0.01)}
-        </div>
-      ))}
-
-      <div style={{ marginTop: 4, marginBottom: 4, opacity: 0.55 }}>
-        Copy into RingHero.jsx once happy:
-      </div>
-      <pre
-        style={{
-          background: "rgba(255,255,255,0.06)",
-          padding: "8px 10px",
-          borderRadius: 6,
-          fontSize: 10,
-          whiteSpace: "pre-wrap",
-          margin: 0,
-        }}
-      >
-        {codeSnippet}
-      </pre>
-    </div>
-  );
-}
-
-/**
- * BeatCoordPanel
- * -------------------------------------------------------------------------
- * Live camera-position / ring-rotation / floor-height tuning that works
- * across ALL 5 beats, not just the on-body one. Pick a beat (jumps the
- * scroll there and prefills sliders from that beat's current BEATS[]
- * values), flip "Live override" on, and drag — RingHero applies these on
- * top of the scroll-tweened values every frame (see poseOverrideRef in
- * RingHero.jsx). Read the code snippet at the bottom and paste the
- * numbers back into the matching BEATS[i] entry once you're happy;
- * sliders never mutate BEATS directly.
- * -------------------------------------------------------------------------
- */
-function BeatCoordPanel({
-  values,
-  savedBeats,
-  onSelectBeat,
-  onChange,
-  onToggleLive,
-  onSave,
-  onClear,
-  onHide,
-}) {
-  const row = (label, key, min, max, step) => (
-    <label style={{ display: "block", marginBottom: 8 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 2,
-        }}
-      >
-        <span>{label}</span>
-        <span style={{ opacity: 0.6 }}>{values[key]}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={values[key]}
-        onChange={(e) => onChange({ [key]: Number(e.target.value) })}
-        style={{ width: "100%" }}
-      />
-    </label>
-  );
-
-  const beatLabels = [
-    "1 · idle",
-    "2 · floor",
-    "3 · on-body",
-    "4 · cards",
-    "5 · spin",
-  ];
-
-  const codeSnippet = `camPos: { x: ${values.camX}, y: ${values.camY}, z: ${values.camZ} },
-ringRot: { x: ${values.rotX}, y: ${values.rotY} },
-ringPosOffset: { x: ${values.posX}, y: ${values.posY}, z: ${values.posZ} },
-ringScale: ${values.scale},
-// floor rest Y (beat 2 only): ${values.floorRestY}`;
-
-  return (
-    <div
-      data-lenis-prevent
-      style={{
-        position: "fixed",
-        top: 84,
-        right: 590,
-        zIndex: 51,
-        background: "rgba(20,20,22,0.92)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 10,
-        padding: "14px 16px",
-        color: "#fff",
-        fontSize: 12,
-        fontFamily: "monospace",
-        width: 280,
-        maxHeight: "85vh",
-        overflowY: "auto",
-        backdropFilter: "blur(6px)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.8 }}>
-          BEAT COORDINATES
-        </span>
-        <button
-          onClick={onHide}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            opacity: 0.6,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div style={{ opacity: 0.55, marginBottom: 10, lineHeight: 1.4 }}>
-        Pick a beat to jump there + prefill sliders (full ring control now —
-        position, rotation, and scale — in every beat, not just on-body). Flip
-        "Live override" to preview, then "Save keyframe" to make it stick on
-        scroll. A dot marks beats with a saved keyframe.
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 4,
-          marginBottom: 10,
-        }}
-      >
-        {beatLabels.map((label, i) => (
-          <button
-            key={i}
-            onClick={() => onSelectBeat(i)}
-            style={{
-              position: "relative",
-              background:
-                values.beatIndex === i
-                  ? "rgba(77,163,255,0.35)"
-                  : "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 6,
-              padding: "4px 8px",
-              color: "#fff",
-              fontSize: 10,
-              fontFamily: "monospace",
-              cursor: "pointer",
-            }}
-          >
-            {label}
-            {savedBeats?.has(i) && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -3,
-                  right: -3,
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "#4dff8e",
-                  border: "1px solid rgba(0,0,0,0.4)",
-                }}
-              />
-            )}
-          </button>
-        ))}
-      </div>
-
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={values.live}
-          onChange={(e) => onToggleLive(e.target.checked)}
-        />
-        Live override (preview in any beat)
-      </label>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          marginBottom: 12,
-        }}
-      >
-        <button
-          onClick={onSave}
-          style={{
-            flex: 1,
-            background: "rgba(77,255,142,0.18)",
-            border: "1px solid rgba(77,255,142,0.4)",
-            borderRadius: 6,
-            padding: "6px 8px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: "pointer",
-          }}
-        >
-          Save keyframe
-        </button>
-        <button
-          onClick={onClear}
-          disabled={!savedBeats?.has(values.beatIndex)}
-          style={{
-            flex: 1,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 6,
-            padding: "6px 8px",
-            color: "#fff",
-            fontSize: 11,
-            fontFamily: "monospace",
-            cursor: savedBeats?.has(values.beatIndex) ? "pointer" : "default",
-            opacity: savedBeats?.has(values.beatIndex) ? 1 : 0.4,
-          }}
-        >
-          Clear keyframe
-        </button>
-      </div>
-
-      <div style={{ opacity: 0.7, marginBottom: 4 }}>Camera position</div>
-      {row("Cam X", "camX", -3, 3, 0.01)}
-      {row("Cam Y", "camY", -2, 2, 0.01)}
-      {row("Cam Z", "camZ", 1, 8, 0.01)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Ring rotation (radians)
-      </div>
-      {row("Rot X", "rotX", -3.14, 3.14, 0.01)}
-      {row("Rot Y", "rotY", -6.3, 6.3, 0.01)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Ring position offset
-      </div>
-      {row("Pos X", "posX", -2, 2, 0.01)}
-      {row("Pos Y", "posY", -2, 2, 0.01)}
-      {row("Pos Z", "posZ", -2, 2, 0.01)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Ring scale
-      </div>
-      {row("Scale", "scale", 0.2, 2.5, 0.01)}
-
-      <div style={{ opacity: 0.7, marginBottom: 4, marginTop: 10 }}>
-        Floor rest height (beat 2 only)
-      </div>
-      {row("Floor Y", "floorRestY", -2, 1, 0.01)}
-
-      <div style={{ marginTop: 12, marginBottom: 4, opacity: 0.55 }}>
-        Copy into the selected beat's BEATS[i] entry once happy:
-      </div>
-      <pre
-        style={{
-          background: "rgba(255,255,255,0.06)",
-          padding: "8px 10px",
-          borderRadius: 6,
-          fontSize: 10,
-          whiteSpace: "pre-wrap",
-          margin: 0,
-        }}
-      >
-        {codeSnippet}
-      </pre>
-    </div>
-  );
-}
+// BeatCoordPanel was replaced by the advanced TimelineEditor component at the bottom of the viewport.
 
 function MaterialDevPanel({
   metalPresetKey,
@@ -1635,6 +1257,12 @@ function MaterialDevPanel({
   setGemHdrConfig,
   postFxEnabled,
   setPostFxEnabled,
+  layoutConfig,
+  setLayoutConfig,
+  cardTimingConfig,
+  setCardTimingConfig,
+  defaultCardTimingConfig,
+  onSaveCardTiming,
 }) {
   const gemCount = meshDebugList.filter((m) => m.type === "gem").length;
   const metalCount = meshDebugList.filter((m) => m.type === "metal").length;
@@ -1789,6 +1417,506 @@ function MaterialDevPanel({
         />
         Post-processing (Bloom / SMAA / Vignette)
       </label>
+
+      {/* Card Layout Controls */}
+      <div
+        style={{
+          marginTop: 16,
+          borderTop: "1px solid rgba(255,255,255,0.15)",
+          paddingTop: 14,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            marginBottom: 8,
+            fontSize: 11,
+            color: "#4DA3FF",
+          }}
+        >
+          CARD LAYOUT CONTROLS
+        </div>
+
+        {/* Content Card Position & Size */}
+        <div style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: 10,
+              opacity: 0.7,
+              marginBottom: 6,
+            }}
+          >
+            Content Card (Left)
+          </div>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Left: {layoutConfig.contentLeft}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={layoutConfig.contentLeft}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  contentLeft: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Top: {layoutConfig.contentTop}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={layoutConfig.contentTop}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  contentTop: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Width: {layoutConfig.contentWidth}px
+            </span>
+            <input
+              type="range"
+              min="200"
+              max="1000"
+              step="10"
+              value={layoutConfig.contentWidth}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  contentWidth: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Height: {layoutConfig.contentHeight}px
+            </span>
+            <input
+              type="range"
+              min="200"
+              max="800"
+              step="10"
+              value={layoutConfig.contentHeight}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  contentHeight: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>Anchor:</span>
+            <select
+              value={layoutConfig.heightAnchor}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  heightAnchor: e.target.value,
+                }))
+              }
+              style={{
+                width: 120,
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: 4,
+                color: "#fff",
+                fontSize: 10,
+                padding: "2px 4px",
+                cursor: "pointer",
+                outline: "none",
+              }}
+            >
+              <option value="center">Center (Symmetric)</option>
+              <option value="top">Lock Top (Grow Down)</option>
+              <option value="bottom">Lock Bottom (Grow Up)</option>
+            </select>
+          </label>
+        </div>
+
+        {/* Title Card Position & Size */}
+        <div style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: 10,
+              opacity: 0.7,
+              marginBottom: 6,
+            }}
+          >
+            Title Card (Right)
+          </div>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Left: {layoutConfig.titleLeft}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={layoutConfig.titleLeft}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  titleLeft: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>Top: {layoutConfig.titleTop}%</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={layoutConfig.titleTop}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  titleTop: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Width: {layoutConfig.titleWidth}px
+            </span>
+            <input
+              type="range"
+              min="150"
+              max="800"
+              step="10"
+              value={layoutConfig.titleWidth}
+              onChange={(e) =>
+                setLayoutConfig((prev) => ({
+                  ...prev,
+                  titleWidth: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+        </div>
+
+        {/* Card Timing Controls — global frame scale (0–211) */}
+        {cardTimingConfig && setCardTimingConfig && (
+          <div style={{ marginBottom: 12 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 10,
+                opacity: 0.7,
+                marginBottom: 6,
+                color: "#f0c060",
+              }}
+            >
+              ⏱ Card Timing (global frames 0–211)
+            </div>
+            {/* Beat 2 (global frames 11–61) */}
+            <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 4 }}>
+              Beat 2 Card
+            </div>
+            {[
+              ["Entry Start", "beat2EntryStart", 0, 211, 1],
+              ["Entry End", "beat2EntryEnd", 0, 211, 1],
+              ["Exit Start", "beat2ExitStart", 0, 211, 1],
+              ["Exit End", "beat2ExitEnd", 0, 211, 1],
+            ].map(([label, key, min, max, step]) => (
+              <label
+                key={key}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ fontSize: 10 }}>
+                  {label}: {cardTimingConfig[key]}
+                </span>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={cardTimingConfig[key]}
+                  onChange={(e) =>
+                    setCardTimingConfig((prev) => ({
+                      ...prev,
+                      [key]: Number(e.target.value),
+                    }))
+                  }
+                  style={{ width: 120, height: 4 }}
+                />
+              </label>
+            ))}
+            {/* Beat 3 (global frames 61–111) */}
+            <div
+              style={{
+                fontSize: 9,
+                opacity: 0.5,
+                marginBottom: 4,
+                marginTop: 6,
+              }}
+            >
+              Beat 3 Card
+            </div>
+            {[
+              ["Entry Start", "beat3EntryStart", 0, 211, 1],
+              ["Entry End", "beat3EntryEnd", 0, 211, 1],
+              ["Exit Start", "beat3ExitStart", 0, 211, 1],
+              ["Exit End", "beat3ExitEnd", 0, 211, 1],
+            ].map(([label, key, min, max, step]) => (
+              <label
+                key={key}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ fontSize: 10 }}>
+                  {label}: {cardTimingConfig[key]}
+                </span>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={cardTimingConfig[key]}
+                  onChange={(e) =>
+                    setCardTimingConfig((prev) => ({
+                      ...prev,
+                      [key]: Number(e.target.value),
+                    }))
+                  }
+                  style={{ width: 120, height: 4 }}
+                />
+              </label>
+            ))}
+
+            {/* Beat 4 (global frames 111–161) */}
+            <div
+              style={{
+                fontSize: 9,
+                opacity: 0.5,
+                marginBottom: 4,
+                marginTop: 6,
+              }}
+            >
+              Beat 4 Card
+            </div>
+            {[
+              ["Entry Start", "beat4EntryStart", 0, 211, 1],
+              ["Entry End", "beat4EntryEnd", 0, 211, 1],
+              ["Exit Start", "beat4ExitStart", 0, 211, 1],
+              ["Exit End", "beat4ExitEnd", 0, 211, 1],
+            ].map(([label, key, min, max, step]) => (
+              <label
+                key={key}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ fontSize: 10 }}>
+                  {label}: {cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
+                </span>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
+                  onChange={(e) =>
+                    setCardTimingConfig((prev) => ({
+                      ...prev,
+                      [key]: Number(e.target.value),
+                    }))
+                  }
+                  style={{ width: 120, height: 4 }}
+                />
+              </label>
+            ))}
+
+            {/* Save / Reset buttons */}
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <button
+                onClick={onSaveCardTiming}
+                style={{
+                  flex: 1,
+                  padding: "4px 10px",
+                  fontSize: 10,
+                  background: "rgba(90, 200, 120, 0.2)",
+                  border: "1px solid rgba(90, 200, 120, 0.4)",
+                  borderRadius: 4,
+                  color: "#8ef0a8",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                💾 Save Card Timing
+              </button>
+              <button
+                onClick={() => setCardTimingConfig(defaultCardTimingConfig)}
+                style={{
+                  flex: 1,
+                  padding: "4px 10px",
+                  fontSize: 10,
+                  background: "rgba(240, 100, 60, 0.2)",
+                  border: "1px solid rgba(240, 100, 60, 0.4)",
+                  borderRadius: 4,
+                  color: "#f0c060",
+                  cursor: "pointer",
+                }}
+              >
+                Reset Timing
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Copy / Save CSS helpers */}
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() => {
+              const css = buildCardCss(layoutConfig);
+              navigator.clipboard
+                .writeText(css)
+                .then(() => alert("CSS copied to clipboard!"));
+            }}
+            style={{
+              flex: 1,
+              background: "rgba(77, 163, 255, 0.2)",
+              border: "1px solid rgba(77, 163, 255, 0.4)",
+              borderRadius: 6,
+              color: "#fff",
+              padding: "6px 8px",
+              fontSize: 10,
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginTop: 4,
+            }}
+          >
+            📋 COPY CSS
+          </button>
+          <button
+            onClick={() => {
+              const css = buildCardCss(layoutConfig);
+              // Blob + temporary <a download> is the standard way to trigger
+              // a client-side file save without any backend — the browser
+              // handles the actual "Save As" / downloads-folder behavior.
+              const blob = new Blob([css], { type: "text/css" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = "hero2-cards.css";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+            }}
+            style={{
+              flex: 1,
+              background: "rgba(90, 200, 120, 0.2)",
+              border: "1px solid rgba(90, 200, 120, 0.4)",
+              borderRadius: 6,
+              color: "#8ef0a8",
+              padding: "6px 8px",
+              fontSize: 10,
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginTop: 4,
+            }}
+          >
+            💾 SAVE CSS
+          </button>
+        </div>
+      </div>
 
       <div
         style={{ marginTop: 10, fontSize: 10, opacity: 0.5, lineHeight: 1.4 }}

@@ -98,7 +98,7 @@
 }
 
 .hero2-section {
-  min-height: 100vh;
+  min-height: 200vh;
   display: flex;
   align-items: center;
   padding: 0 48px;
@@ -153,4 +153,220 @@
   .hero2-section {
     padding: 0 24px;
   }
+}
+
+/* Glassmorphism content overlays */
+.glassy-content-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.glassy-content-overlay > * {
+  pointer-events: auto;
+}
+
+.glassy-beat-layout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: translateY(800px);
+  pointer-events: none;
+}
+
+/* Content card wrapper on the left — extends to bottom of screen */
+.beat-content-left {
+  position: absolute;
+  left: 9.5%;
+  width: 940px;
+  top: calc(15.5% - 190px);
+  bottom: 20px;
+}
+
+/* Title card on the right, aligned next to the top of content card */
+.beat-title-right {
+  position: absolute;
+  left: 59.5%;
+  top: 15.5%;
+  width: 360px;
+}
+
+/* Glass card defaults */
+.glassy-card {
+  background: rgba(14, 14, 18, 0.45);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.glassy-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Title card specific style */
+.glassy-title-card {
+  padding: 24px 32px;
+  text-align: left;
+}
+
+.glassy-title-card h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #4da3ff;
+  text-shadow: 0 0 10px rgba(77, 163, 255, 0.4);
+}
+
+.glassy-title-card h2 {
+  margin: 8px 0 0;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* Content card wrapper specific style */
+.glassy-content-card {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  /* height comes entirely from inline style (top → bottom: 20px) */
+}
+
+.glassy-slide-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0; /* flex child must shrink to parent */
+  overflow: hidden;
+}
+
+.glassy-slide-track {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* auto-height: grows to fit all slides stacked vertically */
+  height: auto;
+  will-change: transform;
+}
+
+.glassy-slide {
+  flex-shrink: 0;
+  width: 100%;
+  /* Fixed slide height — the card is taller, so you see
+     one full slide + ~40% of the next slide peeking below */
+  height: 52vh;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  padding-bottom: 24px; /* distinct gap between slides */
+}
+
+/* Slide inner content styles */
+.glassy-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.glassy-grid-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  height: 100%;
+}
+
+.glassy-grid-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glassy-grid-item:hover img {
+  transform: scale(1.06);
+}
+
+.glassy-item-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 12, 0.95) 0%,
+    rgba(10, 10, 12, 0) 100%
+  );
+  padding: 24px 16px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+}
+
+.glassy-video-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #000;
+}
+
+.glassy-video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Beat 4 Emerging & Fullscreen Overlay Box */
+.beat4-box-overlay {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 60vw;
+  height: 35vh;
+  transform: translate(-50%, -50%) translateY(100vh); /* Starts below screen */
+  opacity: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  z-index: 5;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 30px 100px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  will-change: transform, width, height, border-radius, opacity;
+  pointer-events: none;
+}
+
+.beat4-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
