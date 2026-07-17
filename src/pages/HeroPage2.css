@@ -181,21 +181,26 @@
   pointer-events: none;
 }
 
-/* Content card wrapper on the left — extends to bottom of screen */
+/* Content card wrapper on the left — extends to bottom of screen.
+   Width is viewport-relative (940px at a 1920px reference width =
+   48.958vw), clamped so it doesn't shrink illegibly on small screens
+   or balloon on ultrawide monitors. At 1920px wide this renders at
+   exactly 940px, matching the original fixed-px design. */
 .beat-content-left {
   position: absolute;
   left: 9.5%;
-  width: 940px;
+  width: clamp(320px, 48.958vw, 940px);
   top: calc(15.5% - 190px);
   bottom: 20px;
 }
 
-/* Title card on the right, aligned next to the top of content card */
+/* Title card on the right, aligned next to the top of content card.
+   360px at 1920px reference = 18.75vw. */
 .beat-title-right {
   position: absolute;
   left: 59.5%;
   top: 15.5%;
-  width: 360px;
+  width: clamp(200px, 18.75vw, 360px);
 }
 
 /* Glass card defaults */
@@ -358,7 +363,7 @@
   z-index: 5;
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
+  box-shadow:
     0 30px 100px rgba(0, 0, 0, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   will-change: transform, width, height, border-radius, opacity;

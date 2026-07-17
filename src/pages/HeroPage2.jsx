@@ -308,6 +308,42 @@ export default function HeroPage2() {
     heightAnchor: "top", // "center" | "top" | "bottom"
   });
 
+  // Beat 3's own swapped-position config — independent of layoutConfig
+  // above (which still drives Beat 2, and Beat 3's own pre-swap/default
+  // position). This only controls where the content/title cards end up
+  // AFTER the Beat 3 swap animation completes. Persisted separately so
+  // tuning Beat 3 never touches Beat 2.
+  const DEFAULT_BEAT3_LAYOUT_CONFIG = {
+    contentLeft: 59.5,
+    contentTop: 15.5,
+    titleLeft: 9.5,
+    titleTop: 15.5,
+  };
+  const [beat3LayoutConfig, setBeat3LayoutConfig] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("hero2Beat3LayoutConfig");
+      if (saved) {
+        return { ...DEFAULT_BEAT3_LAYOUT_CONFIG, ...JSON.parse(saved) };
+      }
+    } catch (err) {
+      console.warn("Could not read saved Beat 3 layout config:", err);
+    }
+    return DEFAULT_BEAT3_LAYOUT_CONFIG;
+  });
+
+  function saveBeat3LayoutConfig() {
+    try {
+      window.localStorage.setItem(
+        "hero2Beat3LayoutConfig",
+        JSON.stringify(beat3LayoutConfig),
+      );
+      alert("Beat 3 layout saved!");
+    } catch (err) {
+      console.error("Failed to save Beat 3 layout config:", err);
+      alert("Could not save Beat 3 layout (see console).");
+    }
+  }
+
   // Card timing config — controls when each Beat's card enters/exits, now
   // expressed on the GLOBAL frame scale (0–211) instead of a per-beat
   // 0–50 scale. Beat 2 spans global frames 11–61, Beat 3 spans 61–111,
@@ -602,6 +638,11 @@ export default function HeroPage2() {
         beat3Opacity > 0.05 ? "auto" : "none";
     }
 
+    // NOTE: Beat 3's content/title cards no longer need a runtime swap —
+    // they're rendered with their own static beat3LayoutConfig position
+    // directly in JSX (see the Beat 3 Layout block below), so there's
+    // nothing to reposition here at all.
+
     if (frame >= b3ee && frame <= b3xe) {
       const activeRange = Math.max(0.001, b3xs - b3ee);
       const trackProgress = Math.min(
@@ -850,11 +891,21 @@ export default function HeroPage2() {
           />
         </div>
 
-        {/* Beat 3 Layout */}
+        {/* Beat 3 Layout — content/title cards use their OWN static
+            beat3LayoutConfig position (already the "swapped" layout),
+            instead of sharing layoutConfig with Beat 2 and being
+            repositioned at runtime. This avoids any visible swap since
+            the cards are simply born in their final spot. */}
         <div ref={beat3OverlayRef} className="glassy-beat-layout">
           <ContentGlassyCard
             className="beat-content-left"
-            style={getContentCardStyle()}
+            style={{
+              position: "absolute",
+              left: `${beat3LayoutConfig.contentLeft}%`,
+              top: `${beat3LayoutConfig.contentTop}%`,
+              width: `${layoutConfig.contentWidth}px`,
+              bottom: "20px",
+            }}
           >
             <div className="glassy-slide-container">
               <div ref={beat3SlideTrackRef} className="glassy-slide-track">
@@ -900,8 +951,8 @@ export default function HeroPage2() {
           <TitleGlassyCard
             className="beat-title-right"
             style={{
-              left: `${layoutConfig.titleLeft}%`,
-              top: `${layoutConfig.titleTop}%`,
+              left: `${beat3LayoutConfig.titleLeft}%`,
+              top: `${beat3LayoutConfig.titleTop}%`,
               width: `${layoutConfig.titleWidth}px`,
             }}
             subtitle="Precision"
@@ -1076,6 +1127,9 @@ export default function HeroPage2() {
               setPostFxEnabled={setPostFxEnabled}
               layoutConfig={layoutConfig}
               setLayoutConfig={setLayoutConfig}
+              beat3LayoutConfig={beat3LayoutConfig}
+              setBeat3LayoutConfig={setBeat3LayoutConfig}
+              onSaveBeat3Layout={saveBeat3LayoutConfig}
               cardTimingConfig={cardTimingConfig}
               setCardTimingConfig={setCardTimingConfig}
               defaultCardTimingConfig={DEFAULT_CARD_TIMING_CONFIG}
@@ -1259,6 +1313,9 @@ function MaterialDevPanel({
   setPostFxEnabled,
   layoutConfig,
   setLayoutConfig,
+  beat3LayoutConfig,
+  setBeat3LayoutConfig,
+  onSaveBeat3Layout,
   cardTimingConfig,
   setCardTimingConfig,
   defaultCardTimingConfig,
@@ -1679,6 +1736,160 @@ function MaterialDevPanel({
           </label>
         </div>
 
+        {/* Beat 3 Swapped Position Controls — independent from the
+            Content/Title controls above, which drive Beat 2 (and Beat 3's
+            pre-swap starting position). These control where Beat 3's cards
+            land AFTER the swap animation. */}
+        <div
+          style={{
+            marginBottom: 12,
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+            paddingTop: 10,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: 10,
+              opacity: 0.7,
+              marginBottom: 6,
+              color: "#8fd694",
+            }}
+          >
+            Beat 3 — Swapped Positions
+          </div>
+
+          <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 4 }}>
+            Content Card (ends up right)
+          </div>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Left: {beat3LayoutConfig.contentLeft}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={beat3LayoutConfig.contentLeft}
+              onChange={(e) =>
+                setBeat3LayoutConfig((prev) => ({
+                  ...prev,
+                  contentLeft: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Top: {beat3LayoutConfig.contentTop}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={beat3LayoutConfig.contentTop}
+              onChange={(e) =>
+                setBeat3LayoutConfig((prev) => ({
+                  ...prev,
+                  contentTop: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+
+          <div style={{ fontSize: 9, opacity: 0.5, margin: "8px 0 4px" }}>
+            Title Card (ends up left)
+          </div>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Left: {beat3LayoutConfig.titleLeft}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={beat3LayoutConfig.titleLeft}
+              onChange={(e) =>
+                setBeat3LayoutConfig((prev) => ({
+                  ...prev,
+                  titleLeft: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+          <label
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>
+              Top: {beat3LayoutConfig.titleTop}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.5"
+              value={beat3LayoutConfig.titleTop}
+              onChange={(e) =>
+                setBeat3LayoutConfig((prev) => ({
+                  ...prev,
+                  titleTop: Number(e.target.value),
+                }))
+              }
+              style={{ width: 120, height: 4 }}
+            />
+          </label>
+
+          <button
+            onClick={onSaveBeat3Layout}
+            style={{
+              marginTop: 6,
+              width: "100%",
+              padding: "6px 10px",
+              fontSize: 10,
+              fontWeight: 600,
+              background: "rgba(143, 214, 148, 0.15)",
+              border: "1px solid rgba(143, 214, 148, 0.4)",
+              borderRadius: 4,
+              color: "#8fd694",
+              cursor: "pointer",
+            }}
+          >
+            Save Beat 3 Layout
+          </button>
+        </div>
+
         {/* Card Timing Controls — global frame scale (0–211) */}
         {cardTimingConfig && setCardTimingConfig && (
           <div style={{ marginBottom: 12 }}>
@@ -1804,7 +2015,8 @@ function MaterialDevPanel({
                 }}
               >
                 <span style={{ fontSize: 10 }}>
-                  {label}: {cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
+                  {label}:{" "}
+                  {cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
                 </span>
                 <input
                   type="range"
