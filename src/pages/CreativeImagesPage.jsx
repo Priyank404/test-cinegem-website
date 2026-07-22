@@ -51,6 +51,7 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
     return () => ctx.revert()
   }, [images])
 
+<<<<<<< HEAD
   // Build rows — 5-pattern cycle
   const rows = []
   let i = 0, rowIndex = 0
@@ -59,6 +60,29 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
     rows.push({ pattern: rowIndex % 5, imgs: images.slice(i, i + Math.min(take, images.length - i)), startIdx: i })
     i += take
     rowIndex++
+=======
+  // Build rows — 5-pattern cycle. We cycle through the available images
+  // (repeating from the start if needed) so that every row is always fully
+  // populated — this is what was previously causing blank gaps in the
+  // layout whenever the Drive folder had fewer images than a full cycle
+  // needed (2+1+2+3+2 = 10 images per 5-row cycle).
+  const rows = []
+  if (images.length > 0) {
+    let i = 0, rowIndex = 0
+    // Total slots across a small number of cycles — enough rows to fill a
+    // reasonable scroll length without looping forever.
+    const totalSlots = Math.max(images.length, 10)
+    while (i < totalSlots) {
+      const take = [2, 1, 2, 3, 2][rowIndex % 5]
+      const imgs = []
+      for (let k = 0; k < take; k++) {
+        imgs.push(images[(i + k) % images.length])
+      }
+      rows.push({ pattern: rowIndex % 5, imgs, startIdx: i % images.length })
+      i += take
+      rowIndex++
+    }
+>>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
   }
 
   const delay = (idx) => idx * 0.12

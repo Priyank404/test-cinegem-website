@@ -25,6 +25,7 @@ function driveStreamUrl(id) {
   return `https://drive.google.com/uc?export=download&id=${id}`
 }
 
+<<<<<<< HEAD
 // Thumbnail: videos get a Drive-generated poster; images get a resized thumb
 function driveThumbnail(id, mimeType) {
   if (VIDEO_MIMES.has(mimeType)) {
@@ -32,6 +33,14 @@ function driveThumbnail(id, mimeType) {
     return `https://drive.google.com/thumbnail?id=${id}&sz=w600`
   }
   return `https://drive.google.com/thumbnail?id=${id}&sz=w600`
+=======
+// Thumbnail: videos get a Drive-generated poster; images get a resized thumb.
+// We use the lh3.googleusercontent.com CDN endpoint as the primary source —
+// it's substantially more reliable than drive.google.com/thumbnail, which
+// frequently returns 403/429 and leaves a broken/blank image in the layout.
+function driveThumbnail(id) {
+  return `https://lh3.googleusercontent.com/d/${id}=w1200`
+>>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
 }
 
 /**
@@ -82,7 +91,13 @@ export function useDriveImages(pageKey) {
 
         const mapped = (data.files || []).map((file) => {
           const isVideo = VIDEO_MIMES.has(file.mimeType)
+<<<<<<< HEAD
           const thumb   = driveThumbnail(file.id, file.mimeType)
+=======
+          const thumb   = isVideo
+                            ? `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`
+                            : driveThumbnail(file.id)
+>>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
           const name    = file.name.replace(/\.[^/.]+$/, '')
 
           return {
@@ -92,12 +107,20 @@ export function useDriveImages(pageKey) {
             // `src` is what ParallaxImage / <video> receives
             src:      isVideo
                         ? driveStreamUrl(file.id)
+<<<<<<< HEAD
                         : `https://drive.google.com/thumbnail?id=${file.id}&sz=w1200`,
+=======
+                        : driveThumbnail(file.id),
+>>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
             thumb,
             // `full` shown in lightbox
             full:     isVideo
                         ? driveStreamUrl(file.id)
+<<<<<<< HEAD
                         : `https://drive.google.com/thumbnail?id=${file.id}&sz=w1600`,
+=======
+                        : `https://lh3.googleusercontent.com/d/${file.id}=w1600`,
+>>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
             alt:      name,
             label:    name,
             driveUrl: `https://drive.google.com/file/d/${file.id}/view`,
