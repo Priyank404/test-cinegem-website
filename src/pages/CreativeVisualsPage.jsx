@@ -217,10 +217,6 @@ function MasonryGrid({ items, onOpen }) {
      - continuous drift: once settled in, each tile gently floats in
        place on its own randomized loop, giving the grid an "in orbit"
        feel rather than sitting perfectly still
-     - hover: the tile scales down slightly and a soft gold/charcoal
-       color-shift overlay fades in (scaleOnHover + colorShiftOnHover);
-       the drift pauses for the duration of the hover so it doesn't
-       fight the hover-scale tween on the same element
    Only the animation behavior is borrowed from that component; sizing
    stays driven by each file's real aspect ratio (not a fixed height
    prop) and clicking still opens the shared lightbox (not a new tab),
@@ -234,7 +230,6 @@ function OrbitTile({ item, onOpen, staggerIndex }) {
   const [inView, setInView] = useState(false);
   const videoRef = useRef(null);
   const wrapperRef = useRef(null);
-  const overlayRef = useRef(null);
   const hasAnimated = useRef(false);
   const floatTween = useRef(null);
 
@@ -343,36 +338,6 @@ function OrbitTile({ item, onOpen, staggerIndex }) {
     };
   }, [loaded, inView, staggerIndex]);
 
-  // Hover scale + color-shift, matching the reference Masonry component's
-  // scaleOnHover / colorShiftOnHover. Runs on the same wrapper the entrance
-  // animation targets, using gsap.to (not the fromTo above) so it doesn't
-  // fight the load-in transform — by the time a hover is possible the
-  // entrance animation has long since finished and left the wrapper at
-  // its resting opacity/y/blur, so this only ever adds a scale on top.
-  const handleMouseEnter = () => {
-    // Pause the drift so hovering settles the tile into a still, precise
-    // scale-down rather than fighting the in-progress float on the same
-    // x/y properties (which would otherwise cause a visible jitter/snap).
-    floatTween.current?.pause();
-    if (wrapperRef.current) {
-      gsap.to(wrapperRef.current, { scale: 0.95, duration: 0.3, ease: "power2.out" });
-    }
-    if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 0.28, duration: 0.3 });
-    }
-  };
-  const handleMouseLeave = () => {
-    if (wrapperRef.current) {
-      gsap.to(wrapperRef.current, { scale: 1, duration: 0.3, ease: "power2.out" });
-    }
-    if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 0, duration: 0.3 });
-    }
-    // Resume the drift once the scale settles back, so tiles pick the
-    // float back up rather than staying frozen after a hover.
-    floatTween.current?.resume();
-  };
-
   // If the file 404s or otherwise fails to load, collapse the tile
   // entirely instead of leaving a blank placeholder box in the column.
   if (failed) return null;
@@ -382,8 +347,6 @@ function OrbitTile({ item, onOpen, staggerIndex }) {
       ref={wrapperRef}
       className="relative w-full overflow-hidden bg-[#EDEAE3]"
       style={{ opacity: 0 }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       <button
         type="button"
@@ -414,16 +377,6 @@ function OrbitTile({ item, onOpen, staggerIndex }) {
             onError={() => setFailed(true)}
           />
         )}
-
-        {/* Color-shift hover overlay, faded in/out via GSAP above — kept as
-            a separate absolutely-positioned layer (rather than a filter on
-            the media itself) so it never interferes with the entrance
-            animation's own opacity/blur transform on the wrapper. */}
-        <div
-          ref={overlayRef}
-          className="pointer-events-none absolute inset-0 opacity-0"
-          style={{ background: "linear-gradient(45deg, rgba(212,175,55,0.45), rgba(18,18,18,0.35))" }}
-        />
 
         {item.type === "video" && (
           <span className="absolute top-3 right-3 font-[Manrope] text-[9px] tracking-[0.15em] font-semibold uppercase px-2.5 py-1 bg-[#121212]/70 text-[#FAF9F6] backdrop-blur-sm">
