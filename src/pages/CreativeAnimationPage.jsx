@@ -46,11 +46,18 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
   }, [images])
 
   const rows = []
-  let i = 0, rowIndex = 0
-  while (i < images.length) {
-    const take = [2, 1, 2, 3, 2][rowIndex % 5]
-    rows.push({ pattern: rowIndex % 5, imgs: images.slice(i, i + Math.min(take, images.length - i)), startIdx: i })
-    i += take; rowIndex++
+  if (images.length > 0) {
+    let i = 0, rowIndex = 0
+    const totalSlots = Math.max(images.length, 10)
+    while (i < totalSlots) {
+      const take = [2, 1, 2, 3, 2][rowIndex % 5]
+      const imgs = []
+      for (let k = 0; k < take; k++) {
+        imgs.push(images[(i + k) % images.length])
+      }
+      rows.push({ pattern: rowIndex % 5, imgs, startIdx: i % images.length })
+      i += take; rowIndex++
+    }
   }
 
   const delay = (idx) => idx * 0.12

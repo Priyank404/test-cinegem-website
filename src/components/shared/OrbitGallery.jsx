@@ -57,27 +57,37 @@ export function OrbitGallery({ images = [], className = '', onImageClick }) {
     return () => ctx.revert()
   }, [images])
 
-  // Split images into groups of 5 for the row pattern cycle
+  // Split images into groups for the row pattern cycle, cycling through
+  // the available images (repeating from the start) so every row is always
+  // fully populated instead of leaving blank cells when there aren't
+  // enough images to complete the last row(s) of a cycle.
   const rows = []
-  let i = 0
-  let rowIndex = 0
-  while (i < images.length) {
-    const pattern = rowIndex % 5
-    let take = 0
-    if (pattern === 0) take = 2      // Row A: big | small
-    else if (pattern === 1) take = 1 // Row B: solo wide
-    else if (pattern === 2) take = 2 // Row C: small | big
-    else if (pattern === 3) take = 3 // Row D: trio
-    else if (pattern === 4) take = 2 // Row E: big | small+small (treated as 2+)
-    rows.push({ pattern, imgs: images.slice(i, i + Math.min(take, images.length - i)), startIdx: i })
-    i += take
-    rowIndex++
+  if (images.length > 0) {
+    let i = 0
+    let rowIndex = 0
+    const totalSlots = Math.max(images.length, 10)
+    while (i < totalSlots) {
+      const pattern = rowIndex % 5
+      let take = 0
+      if (pattern === 0) take = 2      // Row A: big | small
+      else if (pattern === 1) take = 1 // Row B: solo wide
+      else if (pattern === 2) take = 2 // Row C: small | big
+      else if (pattern === 3) take = 3 // Row D: trio
+      else if (pattern === 4) take = 2 // Row E: big | small+small (treated as 2+)
+      const imgs = []
+      for (let k = 0; k < take; k++) {
+        imgs.push(images[(i + k) % images.length])
+      }
+      rows.push({ pattern, imgs, startIdx: i % images.length })
+      i += take
+      rowIndex++
+    }
   }
 
   return (
     <section
       ref={containerRef}
-      className={`flex flex-col gap-10 md:gap-16 ${className}`}
+      className={`flex flex-col gap-3 md:gap-4 ${className}`}
     >
       {rows.map((row, ri) => (
         <OrbitRow key={ri} row={row} rowIndex={ri} onImageClick={onImageClick} />
@@ -106,11 +116,11 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 0) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-4 md:gap-8">
-        <div className="w-[60%] flex-shrink-0">
+      <div className="orbit-row flex items-start justify-center gap-4 md:gap-8">
+        <div className="w-[45%] flex-shrink-0">
           {a && wrap(a, 0, { parallaxAmount: 8 })}
         </div>
-        <div className="flex-1" style={{ marginTop: 'clamp(30px, 8vw, 80px)' }}>
+        <div className="w-[30%]" style={{ marginTop: 'clamp(6px, 1.5vw, 14px)' }}>
           {b && wrap(b, 1, { parallaxAmount: 12 })}
         </div>
       </div>
@@ -122,7 +132,7 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
     const [a] = imgs
     return (
       <div className="orbit-row flex justify-center">
-        <div className="w-[85%] md:w-[68%]">
+        <div className="w-[65%] md:w-[48%]">
           {a && wrap(a, 0, { parallaxAmount: 7, scrubSpeed: 1.2 })}
         </div>
       </div>
@@ -133,11 +143,11 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 2) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-4 md:gap-8">
-        <div className="flex-1" style={{ marginTop: 'clamp(-40px, -4vw, -15px)' }}>
+      <div className="orbit-row flex items-start justify-center gap-4 md:gap-8">
+        <div className="w-[30%]" style={{ marginTop: 'clamp(-8px, -0.8vw, -3px)' }}>
           {a && wrap(a, 0, { parallaxAmount: 12 })}
         </div>
-        <div className="w-[60%] flex-shrink-0">
+        <div className="w-[45%] flex-shrink-0">
           {b && wrap(b, 1, { parallaxAmount: 8 })}
         </div>
       </div>
@@ -147,15 +157,15 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   /* ── Row D: trio — 3 equal columns, staggered y offsets ──────────── */
   if (pattern === 3) {
     const [a, b, c] = imgs
-    const offsets = [0, 100, 40] // y-offset per column in px
+    const offsets = [0, 30, 12] // y-offset per column in px
     const items   = [a, b, c]
     return (
       <>
         <style>{`
           @media (max-width: 767px) {
             .orbit-trio-col-0 { margin-top: 0px !important; }
-            .orbit-trio-col-1 { margin-top: 35px !important; }
-            .orbit-trio-col-2 { margin-top: 15px !important; }
+            .orbit-trio-col-1 { margin-top: 12px !important; }
+            .orbit-trio-col-2 { margin-top: 6px !important; }
           }
         `}</style>
         <div className="orbit-row grid grid-cols-3 gap-3 md:gap-7">
@@ -177,11 +187,11 @@ function OrbitRow({ row, rowIndex, onImageClick }) {
   if (pattern === 4) {
     const [a, b] = imgs
     return (
-      <div className="orbit-row flex items-start gap-4 md:gap-8">
-        <div className="w-[55%] flex-shrink-0">
+      <div className="orbit-row flex items-start justify-center gap-4 md:gap-8">
+        <div className="w-[40%] flex-shrink-0">
           {a && wrap(a, 0, { parallaxAmount: 9 })}
         </div>
-        <div className="flex-1 flex flex-col gap-4 md:gap-8" style={{ marginTop: 'clamp(40px, 12vw, 120px)' }}>
+        <div className="w-[28%] flex flex-col gap-4 md:gap-8" style={{ marginTop: 'clamp(6px, 2vw, 16px)' }}>
           {b && wrap(b, 1, { parallaxAmount: 11 })}
         </div>
       </div>
