@@ -189,7 +189,7 @@
 .beat-content-left {
   position: absolute;
   left: 9.5%;
-  width: clamp(320px, 48.958vw, 940px);
+  width: max(320px, 48.958vw);
   top: calc(15.5% - 190px);
   bottom: 20px;
 }
@@ -200,7 +200,7 @@
   position: absolute;
   left: 59.5%;
   top: 15.5%;
-  width: clamp(200px, 18.75vw, 360px);
+  width: max(200px, 18.75vw);
 }
 
 /* Glass card defaults */
@@ -209,7 +209,7 @@
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: max(12px, 0.833vw);
   box-shadow:
     0 30px 100px rgba(0, 0, 0, 0.65),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -228,13 +228,13 @@
 
 /* Title card specific style */
 .glassy-title-card {
-  padding: 24px 32px;
+  padding: max(16px, 1.25vw) max(20px, 1.667vw);
   text-align: left;
 }
 
 .glassy-title-card h3 {
   margin: 0;
-  font-size: 11px;
+  font-size: max(10px, 0.573vw);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -243,8 +243,8 @@
 }
 
 .glassy-title-card h2 {
-  margin: 8px 0 0;
-  font-size: 26px;
+  margin: max(6px, 0.417vw) 0 0;
+  font-size: max(18px, 1.354vw);
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.01em;
@@ -254,7 +254,7 @@
 .glassy-content-card {
   position: relative;
   overflow: hidden;
-  padding: 16px;
+  padding: max(12px, 0.833vw);
   display: flex;
   flex-direction: column;
   /* height comes entirely from inline style (top → bottom: 20px) */
@@ -286,21 +286,21 @@
   display: flex;
   flex-direction: column;
   pointer-events: auto;
-  padding-bottom: 24px; /* distinct gap between slides */
+  padding-bottom: max(16px, 1.25vw); /* distinct gap between slides */
 }
 
 /* Slide inner content styles */
 .glassy-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: max(12px, 0.833vw);
   width: 100%;
   height: 100%;
 }
 
 .glassy-grid-item {
   position: relative;
-  border-radius: 12px;
+  border-radius: max(8px, 0.625vw);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.06);
   height: 100%;
@@ -327,8 +327,8 @@
     rgba(10, 10, 12, 0.95) 0%,
     rgba(10, 10, 12, 0) 100%
   );
-  padding: 24px 16px 12px;
-  font-size: 11px;
+  padding: max(16px, 1.25vw) max(12px, 0.833vw) max(8px, 0.625vw);
+  font-size: max(10px, 0.573vw);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.02em;
@@ -337,7 +337,7 @@
 .glassy-video-container {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: max(8px, 0.625vw);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: #000;

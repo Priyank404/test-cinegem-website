@@ -243,6 +243,20 @@ export default function HeroPage2() {
   const [postFxEnabled, setPostFxEnabled] = useState(true);
   const [panelVisible, setPanelVisible] = useState(true);
 
+  // Tracks the live window width so the dev panel can display the
+  // ACTUAL resolved px value of the clamp()'d card widths at the
+  // current viewport — not just the static 1920px-reference number
+  // stored in layoutConfig. Updates on resize so the readout stays
+  // live if you resize the browser while the panel is open.
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1920,
+  );
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Beat coordinate panel — works across ALL beats.
   // poseApiRef holds the jumpToBeat/setCamOverride/etc functions RingHero
   // hands back once its scroll timeline is set up (see onPoseOverrideReady
@@ -314,14 +328,14 @@ export default function HeroPage2() {
   // AFTER the Beat 3 swap animation completes. Persisted separately so
   // tuning Beat 3 never touches Beat 2.
   const DEFAULT_BEAT3_LAYOUT_CONFIG = {
-    contentLeft: 59.5,
+    contentLeft: 9.5,
     contentTop: 15.5,
     titleLeft: 9.5,
     titleTop: 15.5,
   };
   const [beat3LayoutConfig, setBeat3LayoutConfig] = useState(() => {
     try {
-      const saved = window.localStorage.getItem("hero2Beat3LayoutConfig");
+      const saved = window.localStorage.getItem("hero2Beat3LayoutConfigV2");
       if (saved) {
         return { ...DEFAULT_BEAT3_LAYOUT_CONFIG, ...JSON.parse(saved) };
       }
@@ -334,7 +348,7 @@ export default function HeroPage2() {
   function saveBeat3LayoutConfig() {
     try {
       window.localStorage.setItem(
-        "hero2Beat3LayoutConfig",
+        "hero2Beat3LayoutConfigV2",
         JSON.stringify(beat3LayoutConfig),
       );
       alert("Beat 3 layout saved!");
@@ -357,19 +371,25 @@ export default function HeroPage2() {
     beat3EntryEnd: 85,
     beat3ExitStart: 101,
     beat3ExitEnd: 111,
-    beat4EntryStart: 111,
-    beat4EntryEnd: 131,
-    beat4ExitStart: 141,
-    beat4ExitEnd: 161,
+    // Beat 4 card starts sliding up from the bottom at frame 117, finishes
+    // expanding to fullscreen at frame 145, then vanishes by frame 170.
+    beat4EntryStart: 117,
+    beat4EntryEnd: 145,
+    beat4ExitStart: 155,
+    beat4ExitEnd: 170,
   };
   const [cardTimingConfig, setCardTimingConfig] = useState(() => {
     try {
       const saved = window.localStorage.getItem("hero2CardTimingConfig");
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Force the new 20-frame duration configuration for Beat 4
-        parsed.beat4EntryEnd = 131;
-        parsed.beat4ExitStart = 141;
+        // Force the card to start entering at frame 117, finish expanding
+        // to fullscreen at frame 145, and fully vanish by frame 170,
+        // overriding any stale values a user might have saved previously.
+        parsed.beat4EntryStart = 117;
+        parsed.beat4EntryEnd = 145;
+        parsed.beat4ExitStart = 155;
+        parsed.beat4ExitEnd = 170;
         return { ...DEFAULT_CARD_TIMING_CONFIG, ...parsed };
       }
     } catch (err) {
@@ -798,13 +818,70 @@ export default function HeroPage2() {
     return () => window.removeEventListener("scroll", handleWindowScroll);
   }, [coordValues.live]);
 
+  // Converts a stored px width (tuned against a 1920px reference design)
+  // into a fluid clamp() string: min px floor, vw-scaled preferred value,
+  // max px ceiling (the original tuned value, so it matches exactly at
+  // 1920px). Used anywhere layoutConfig's *Width numbers get turned into
+  // an inline style, since inline styles override the CSS clamp() rules
+  // in HeroPage2.css and were silently making the cards fixed-width again.
+  const REFERENCE_VW = 1920;
+  function pxToClampVw(px, minPx) {
+    const vw = (px / REFERENCE_VW) * 100;
+    return `max(${minPx}px, ${vw.toFixed(3)}vw)`;
+  }
+
+  // Mirrors pxToClampVw's math but returns the actual resolved number in
+  // px for a given viewport width, instead of a CSS string — this is
+  // what the dev panel shows so the readout reflects reality (dynamic)
+  // instead of just echoing back the static reference value.
+  function resolvedClampPx(px, minPx, vpWidth) {
+    const vw = (px / REFERENCE_VW) * 100;
+    const preferred = (vw / 100) * vpWidth;
+    return Math.round(Math.max(minPx, preferred));
+  }
+
+  // Anchors the title card's LEFT edge relative to the content card's
+  // ACTUAL edge (via CSS calc()), instead of two independent left%
+  // values drifting apart. Without this, both cards' widths cap out at
+  // their clamp() max on large screens while their left% positions keep
+  // spreading — on an ultrawide monitor the gap between them can balloon
+  // to 700px+. calc() re-evaluates on resize automatically, so this
+  // stays correct at any viewport width with zero JS involved at
+  // runtime.
+  //
+  // direction:
+  //   "right" — content sits LEFT of title (Beat 2's normal layout).
+  //             title.left = content.left% + content.width + gap
+  //   "left"  — content sits RIGHT of title (Beat 3's swapped layout).
+  //             title.left = content.left% - title.width - gap
+  //             (title card ends up positioned to content's left)
+  //
+  // The gap itself is a small clamp(): never below 40px (your floor),
+  // gently scales up on very large screens (matching how the 3D ring
+  // stays "corner pinned" regardless of screen size), capped so it
+  // never runs away either.
+  function getTitleLeftCalc(
+    contentLeftStyle,
+    contentWidthPx,
+    titleWidthPx,
+    direction = "right",
+  ) {
+    const gapClamp = "max(40px, 2vw)";
+    if (direction === "left") {
+      const titleWidthClamp = pxToClampVw(titleWidthPx, 200);
+      return `calc(${contentLeftStyle} - ${titleWidthClamp} - ${gapClamp})`;
+    }
+    const contentWidthClamp = pxToClampVw(contentWidthPx, 320);
+    return `calc(${contentLeftStyle} + ${contentWidthClamp} + ${gapClamp})`;
+  }
+
   const getContentCardStyle = () => {
     const { contentLeft, contentTop, contentWidth } = layoutConfig;
     return {
       position: "absolute",
       left: `${contentLeft}%`,
       top: `${contentTop}%`,
-      width: `${contentWidth}px`,
+      width: pxToClampVw(contentWidth, 320),
       bottom: "20px", // always stretches to 20px from screen bottom
     };
   };
@@ -882,9 +959,14 @@ export default function HeroPage2() {
           <TitleGlassyCard
             className="beat-title-right"
             style={{
-              left: `${layoutConfig.titleLeft}%`,
+              left: getTitleLeftCalc(
+                `${layoutConfig.contentLeft}%`,
+                layoutConfig.contentWidth,
+                layoutConfig.titleWidth,
+                "right",
+              ),
               top: `${layoutConfig.titleTop}%`,
-              width: `${layoutConfig.titleWidth}px`,
+              width: pxToClampVw(layoutConfig.titleWidth, 200),
             }}
             subtitle="Details"
             title="Grounded in the details"
@@ -901,9 +983,9 @@ export default function HeroPage2() {
             className="beat-content-left"
             style={{
               position: "absolute",
-              left: `${beat3LayoutConfig.contentLeft}%`,
+              left: `calc(100% - ${layoutConfig.contentLeft}% - ${pxToClampVw(layoutConfig.contentWidth, 320)})`,
               top: `${beat3LayoutConfig.contentTop}%`,
-              width: `${layoutConfig.contentWidth}px`,
+              width: pxToClampVw(layoutConfig.contentWidth, 320),
               bottom: "20px",
             }}
           >
@@ -951,9 +1033,9 @@ export default function HeroPage2() {
           <TitleGlassyCard
             className="beat-title-right"
             style={{
-              left: `${beat3LayoutConfig.titleLeft}%`,
+              left: `calc(100% - (${layoutConfig.contentLeft}% + ${pxToClampVw(layoutConfig.contentWidth, 320)} + max(40px, 2vw) + ${pxToClampVw(layoutConfig.titleWidth, 200)}))`,
               top: `${beat3LayoutConfig.titleTop}%`,
-              width: `${layoutConfig.titleWidth}px`,
+              width: pxToClampVw(layoutConfig.titleWidth, 200),
             }}
             subtitle="Precision"
             title="Seen from every angle"
@@ -1130,6 +1212,8 @@ export default function HeroPage2() {
               beat3LayoutConfig={beat3LayoutConfig}
               setBeat3LayoutConfig={setBeat3LayoutConfig}
               onSaveBeat3Layout={saveBeat3LayoutConfig}
+              viewportWidth={viewportWidth}
+              resolvedClampPx={resolvedClampPx}
               cardTimingConfig={cardTimingConfig}
               setCardTimingConfig={setCardTimingConfig}
               defaultCardTimingConfig={DEFAULT_CARD_TIMING_CONFIG}
@@ -1161,72 +1245,33 @@ export default function HeroPage2() {
       <div id="scroll-content" className="hero2-scroll-content">
         {/* Beat 1 — idle ring */}
         <section className="hero2-section">
-          <div className="hero2-section-inner">
-            <h1>
-              Crafted in
-              <br />
-              3D. Rendered
-              <br />
-              in real time.
-            </h1>
-            <p>
-              A portfolio built the same way the jewelry it showcases is made —
-              precisely, and with light doing most of the work.
-            </p>
-          </div>
+          <div className="hero2-section-inner"></div>
         </section>
 
         {/* Beat 2 — ring parks in the bottom-right corner (cinematic
             camera arc + push-in zoom, see BEATS[1] in RingHero.jsx) */}
         <section id="work" className="hero2-section">
-          <div className="hero2-section-inner align-right">
-            <h2>Grounded in the details</h2>
-            <p>
-              From render automation pipelines to real-time WebGL viewers — the
-              same eye for material and light, just running in a browser instead
-              of a render queue.
-            </p>
-          </div>
+          <div className="hero2-section-inner align-right"></div>
         </section>
 
         {/* Beat 3 — pose beat (see BEATS[2] in RingHero.jsx) */}
         <section id="details" className="hero2-section">
-          <div className="hero2-section-inner align-right">
-            <h2>Seen from every angle</h2>
-            <p>
-              The same ring, the same light — reframed to show off a different
-              facet of the piece.
-            </p>
-          </div>
+          <div className="hero2-section-inner align-right"></div>
         </section>
 
         {/* Beat 4 — pose beat (see BEATS[3] in RingHero.jsx) */}
         <section id="views" className="hero2-section">
-          <div className="hero2-section-inner">
-            <h2>Every angle, considered</h2>
-            <p>
-              Top, front, and side — the same render, the same materials, broken
-              out the way a product page needs them.
-            </p>
-          </div>
+          <div className="hero2-section-inner"></div>
         </section>
 
         {/* Beat 5 — ring returns to center (idle hero pose, like Beat 1) */}
         <section id="center" className="hero2-section">
-          <div className="hero2-section-inner">
-            <h2>Back to the beginning</h2>
-            <p>
-              The same ring, the same light — seen again from the top, exactly
-              as it was. Familiar, but now you've seen everything in between.
-            </p>
-          </div>
+          <div className="hero2-section-inner"></div>
         </section>
 
         {/* Beat 6 — standing spin, closing beat */}
         <section id="contact" className="hero2-section hero2-section-cta">
           <div className="hero2-section-inner">
-            <h2>Let's build something</h2>
-            <p>Available for freelance and full-time roles.</p>
             <a href="mailto:you@example.com" className="hero2-cta-btn large">
               Say hello →
             </a>
@@ -1316,6 +1361,8 @@ function MaterialDevPanel({
   beat3LayoutConfig,
   setBeat3LayoutConfig,
   onSaveBeat3Layout,
+  viewportWidth,
+  resolvedClampPx,
   cardTimingConfig,
   setCardTimingConfig,
   defaultCardTimingConfig,
@@ -1567,7 +1614,9 @@ function MaterialDevPanel({
             }}
           >
             <span style={{ fontSize: 10 }}>
-              Width: {layoutConfig.contentWidth}px
+              Width: {layoutConfig.contentWidth}px ref → currently{" "}
+              {resolvedClampPx(layoutConfig.contentWidth, 320, viewportWidth)}
+              px
             </span>
             <input
               type="range"
@@ -1717,7 +1766,8 @@ function MaterialDevPanel({
             }}
           >
             <span style={{ fontSize: 10 }}>
-              Width: {layoutConfig.titleWidth}px
+              Width: {layoutConfig.titleWidth}px ref → currently{" "}
+              {resolvedClampPx(layoutConfig.titleWidth, 200, viewportWidth)}px
             </span>
             <input
               type="range"
@@ -1759,35 +1809,21 @@ function MaterialDevPanel({
             Beat 3 — Swapped Positions
           </div>
 
+          <div
+            style={{
+              fontSize: 9,
+              opacity: 0.5,
+              marginBottom: 8,
+              color: "#8ecbff",
+            }}
+          >
+            * Horizontal positions are automatically mirrored from Beat 2 for
+            responsive alignment.
+          </div>
+
           <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 4 }}>
             Content Card (ends up right)
           </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Left: {beat3LayoutConfig.contentLeft}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={beat3LayoutConfig.contentLeft}
-              onChange={(e) =>
-                setBeat3LayoutConfig((prev) => ({
-                  ...prev,
-                  contentLeft: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
           <label
             style={{
               display: "flex",
@@ -1818,32 +1854,6 @@ function MaterialDevPanel({
           <div style={{ fontSize: 9, opacity: 0.5, margin: "8px 0 4px" }}>
             Title Card (ends up left)
           </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Left: {beat3LayoutConfig.titleLeft}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={beat3LayoutConfig.titleLeft}
-              onChange={(e) =>
-                setBeat3LayoutConfig((prev) => ({
-                  ...prev,
-                  titleLeft: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
           <label
             style={{
               display: "flex",
@@ -2254,3 +2264,4 @@ const selectStyle = {
 const inputStyle = {
   ...selectStyle,
 };
+215 
