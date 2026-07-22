@@ -226,10 +226,18 @@ const BeatBackground = forwardRef(function BeatBackground(_props, ref) {
     // the first time it becomes visible (either as "from" or "to").
     const built = new Array(BEAT_SCENES.length).fill(null);
     function getScene(index) {
-      if (!built[index]) {
-        built[index] = BEAT_SCENES[index].init(THREE);
+      // Defensive clamp: BEAT_SCENES has one entry per beat, but the
+      // blend info driving `index` comes from RingHero's BEATS array,
+      // which can have more/fewer entries than BEAT_SCENES (e.g. an
+      // extra closing beat with no background scene of its own) — an
+      // out-of-range index here would throw on `.init`, so clamp into
+      // BEAT_SCENES' own valid range and just reuse its last scene for
+      // anything beyond that.
+      const safeIndex = Math.max(0, Math.min(index, BEAT_SCENES.length - 1));
+      if (!built[safeIndex]) {
+        built[safeIndex] = BEAT_SCENES[safeIndex].init(THREE);
       }
-      return built[index];
+      return built[safeIndex];
     }
 
     function resize() {

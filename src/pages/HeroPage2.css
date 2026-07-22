@@ -92,9 +92,150 @@
   margin-top: 24px;
 }
 
+/* "Explore 3D Viewer" text link — appears during the tail of Beat 5 once
+   the ring's auto-rotate kicks in, fixed centered near the bottom of the
+   viewport. A plain underlined text link (not a button), toggled visible
+   only within its own frame range by HeroPage2. */
+.hero2-explore-link {
+  position: fixed;
+  left: 50%;
+  bottom: 64px;
+  z-index: 8;
+  transform: translate(-50%, 10px);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.hero2-explore-link.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.hero2-explore-link:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
+   and the onScrollDebugUpdate block in HeroPage2.jsx. transform is
+   written directly per scroll tick (starts at translateY(100%) via the
+   inline style prop), so no transition here — a CSS transition would
+   fight the 1:1 scroll-scrubbed value and lag behind the scrollbar. */
+.hero2-footer-reveal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  background: #0a0a0c;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 32px 48px 20px;
+  pointer-events: none; /* re-enabled via footerT in the scroll handler */
+}
+
+.hero2-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero2-footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 32px;
+  padding-bottom: 24px;
+}
+
+.hero2-footer-brand {
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.hero2-footer-brand p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.hero2-footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 120px;
+}
+
+.hero2-footer-col-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 4px;
+}
+
+.hero2-footer-col a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.hero2-footer-col a:hover {
+  color: #fff;
+}
+
+.hero2-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero2-footer-copyright,
+.hero2-footer-credit {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .hero2-footer-reveal {
+    padding: 24px 24px 16px;
+  }
+  .hero2-footer-top {
+    gap: 24px;
+  }
+}
+
 .hero2-scroll-content {
   position: relative;
   z-index: 2;
+  /* This wrapper sits at the same z-index as (and later in the DOM
+     than) RingHero's canvas, so on a z-index tie it wins the hit-test
+     over the canvas for any point not covered by actual content below —
+     confirmed via the [RingHero][diag] pointerdown log, which showed
+     DIV.hero2-scroll-content catching drags meant for the canvas.
+     pointer-events:none here lets clicks/drags pass through straight to
+     the canvas; each .hero2-section-inner below re-enables pointer-events
+     on the actual cards/links/buttons so those keep working normally. */
+  pointer-events: none;
 }
 
 .hero2-section {
@@ -102,10 +243,19 @@
   display: flex;
   align-items: center;
   padding: 0 48px;
+  /* Each section is a full-viewport-width/height block sitting at the
+     same z-index as (and later in the DOM than) RingHero's canvas, so
+     it was winning every click/drag before the canvas ever saw it —
+     that's what silently broke Beat 5's interactive drag-to-rotate.
+     pointer-events:none here lets clicks/drags pass through the empty
+     scroll padding straight down to the canvas; re-enabled below on the
+     actual content so links/cards/etc still work as before. */
+  pointer-events: none;
 }
 
 .hero2-section-inner {
   max-width: 560px;
+  pointer-events: auto;
 }
 
 .hero2-section-inner.align-right {

@@ -27,7 +27,7 @@
  * -------------------------------------------------------------------------
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
@@ -63,6 +63,17 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
+// ── Debug: interactive drag-to-rotate diagnostics ───────────────────────
+// Set to false to silence. Logs (a) every time the interactive window
+// opens/closes with the localFrame that triggered it, and (b) every
+// mousedown/touchstart anywhere on the page while that window SHOULD be
+// open, including what element actually received the event and what
+// document.elementFromPoint() finds there — this is the fastest way to
+// tell "event never fired" (canvas pointerEvents stuck at none, or the
+// interactive window never actually opened) apart from "event fired on
+// the wrong element" (something is covering the canvas).
+const RINGHERO_DEBUG_INTERACTION = true;
+
 // Scroll "beats" — camera + rotation. Material intensities live per-material
 // below and are tweened separately so gem and metal can react differently.
 //
@@ -90,92 +101,92 @@ export const BEATS = [
     frame: 0,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
-    camPos: { x: 0.00, y: 0.20, z: 4.20, lookAtY: 0.00 },
-    ringRot: { x: 1.20, y: -6.30, z: 0.00 },
-    metalEnvIntensity: 4.00,
-    gemEnvIntensity: 1.20,
-    cornerPark: 0.00,
-    ringPosOffset: { x: 0.00, y: 0.00, z: 0.00 },
-    ringScale: 1.00
+    camPos: { x: 0.0, y: 0.2, z: 4.2, lookAtY: 0.0 },
+    ringRot: { x: 1.2, y: -6.3, z: 0.0 },
+    metalEnvIntensity: 4.0,
+    gemEnvIntensity: 1.2,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 1.0,
   },
   {
     // Keyframe at frame 8.5 (Beat 2 Start - corner park)
     frame: 8.5,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
-    camPos: { x: 0.00, y: 0.06, z: 3.48, lookAtY: 0.00 },
-    ringRot: { x: 0.30, y: -0.11, z: 0.87 },
-    metalEnvIntensity: 8.00,
-    gemEnvIntensity: 2.00,
-    cornerPark: 1.00,
+    camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
+    ringRot: { x: 0.3, y: -0.11, z: 0.87 },
+    metalEnvIntensity: 8.0,
+    gemEnvIntensity: 2.0,
+    cornerPark: 1.0,
     ringPosOffset: { x: 1.34, y: -0.14, z: 0.42 },
-    ringScale: 0.83
+    ringScale: 0.83,
   },
   {
     // Keyframe at frame 18.5 (Beat 2 End - steady corner park)
     frame: 18.5,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
-    camPos: { x: 0.00, y: 0.06, z: 3.48, lookAtY: 0.00 },
-    ringRot: { x: 0.30, y: -0.11, z: 0.87 },
-    metalEnvIntensity: 8.00,
-    gemEnvIntensity: 2.00,
-    cornerPark: 1.00,
+    camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
+    ringRot: { x: 0.3, y: -0.11, z: 0.87 },
+    metalEnvIntensity: 8.0,
+    gemEnvIntensity: 2.0,
+    cornerPark: 1.0,
     ringPosOffset: { x: 1.34, y: -0.14, z: 0.42 },
-    ringScale: 0.83
+    ringScale: 0.83,
   },
   {
     // Keyframe at frame 20 (Beat 3 Start - pose angle)
     frame: 20,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
-    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.00 },
-    ringRot: { x: 1.80, y: 0.77, z: -1.88 },
-    metalEnvIntensity: 6.00,
-    gemEnvIntensity: 1.60,
-    cornerPark: 0.00,
+    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
+    ringRot: { x: 1.8, y: 0.77, z: -1.88 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
     ringPosOffset: { x: -1.86, y: -0.75, z: 0.71 },
-    ringScale: 1.33
+    ringScale: 1.33,
   },
   {
     // Keyframe at frame 30 (Beat 3 End - steady pose angle)
     frame: 30,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
-    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.00 },
-    ringRot: { x: 1.80, y: 0.77, z: -1.88 },
-    metalEnvIntensity: 6.00,
-    gemEnvIntensity: 1.60,
-    cornerPark: 0.00,
+    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
+    ringRot: { x: 1.8, y: 0.77, z: -1.88 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
     ringPosOffset: { x: -1.86, y: -0.75, z: 0.71 },
-    ringScale: 1.33
+    ringScale: 1.33,
   },
   {
     // Keyframe at frame 40 (Beat 4 - alternative pose)
     frame: 40,
     bgTop: "#0c0c0e",
     bgBottom: "#000000",
-    camPos: { x: 0.15, y: -0.05, z: 3.00, lookAtY: 0.00 },
-    ringRot: { x: 0.35, y: 0.20, z: 0.00 },
-    metalEnvIntensity: 6.00,
-    gemEnvIntensity: 1.60,
-    cornerPark: 0.00,
-    ringPosOffset: { x: 0.00, y: 0.00, z: 0.00 },
-    ringScale: 1.00
+    camPos: { x: 0.15, y: -0.05, z: 3.0, lookAtY: 0.0 },
+    ringRot: { x: 0.35, y: 0.2, z: 0.0 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 1.0,
   },
   {
     // Keyframe at frame 50 (Beat 5 - final spin)
     frame: 50,
     bgTop: "#101014",
     bgBottom: "#000000",
-    camPos: { x: 0.00, y: 0.00, z: 3.40, lookAtY: 0.00 },
-    ringRot: { x: 0.12, y: 6.28, z: 0.00 },
-    metalEnvIntensity: 5.00,
-    gemEnvIntensity: 1.40,
-    cornerPark: 0.00,
-    ringPosOffset: { x: 0.00, y: 0.00, z: 0.00 },
-    ringScale: 1.00
-  }
+    camPos: { x: 0.0, y: 0.0, z: 3.4, lookAtY: 0.0 },
+    ringRot: { x: 0.12, y: 6.28, z: 0.0 },
+    metalEnvIntensity: 5.0,
+    gemEnvIntensity: 1.4,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 1.0,
+  },
 ];
 
 export default function RingHero({
@@ -240,9 +251,70 @@ export default function RingHero({
   // ScrollTrigger tracks internally) — purely a read-out, doesn't affect
   // anything. See ScrollDebugHud.jsx for a ready-made on-screen display.
   onScrollDebugUpdate = null,
+
+  // Auto-rotate is active only while the scroll-tweened local frame (0–50
+  // scale, same as BEATS[].frame) is within [autoRotateStartFrame,
+  // autoRotateEndFrame] — i.e. only during its own beat. Scrolling back up
+  // past autoRotateStartFrame, or forward past autoRotateEndFrame, turns
+  // it back off. Set autoRotateStartFrame to null/undefined to disable
+  // entirely (default — fully backward compatible).
+  autoRotateStartFrame = null,
+  autoRotateEndFrame = null,
+  // Radians/second of the auto-rotate spin while active.
+  autoRotateSpeed = 0.6,
+
+  // Interactive drag-to-rotate — active only while the scroll-tweened
+  // local frame is within [interactiveRotateStartFrame,
+  // interactiveRotateEndFrame] (same range-gating as auto-rotate above).
+  // While active: canvas pointer events are turned on (normally "none" so
+  // scroll passes through) and dragging horizontally spins the ring
+  // around Y, dragging vertically tilts it around X (clamped) — same
+  // math as the standalone 3D viewer's orbit drag, but with NO panning
+  // and NO way to move the ring's on-screen position, only its
+  // rotation. Auto-rotate (if also active in this range) pauses while
+  // the user is actively dragging and resumes once they release.
+  interactiveRotateStartFrame = null,
+  interactiveRotateEndFrame = null,
+  // Drag pixels -> radians. Matches the viewer's onMouseMove feel
+  // (theta -= dx * 0.008) for horizontal; vertical uses the same
+  // constant for a consistent 1:1 drag feel in both axes.
+  interactiveDragSensitivity = 0.008,
+  // Clamp on the manual X tilt so drag can't flip the ring upside down —
+  // this is an offset ON TOP OF the beat's own scroll-tweened effRotX,
+  // not an absolute angle, so it's kept fairly tight (±0.9 rad ≈ ±51°).
+  interactiveTiltClamp = 0.9,
 }) {
   const canvasRef = useRef(null);
   const bgOverlayRef = useRef(null);
+  // True only while the scroll-tweened frame is inside the auto-rotate
+  // range — re-evaluated every scroll tick below, NOT a one-way latch.
+  const autoRotateActiveRef = useRef(false);
+  // Accumulated auto-rotate angle, added on top of the scroll-tweened
+  // rotState.y once latched, so the spin continues smoothly from wherever
+  // scroll left off instead of snapping to a fixed angle.
+  const autoRotateAngleRef = useRef(0);
+  // True only while the scroll-tweened frame is inside the interactive
+  // drag-to-rotate range — same range-check pattern as auto-rotate.
+  const interactiveActiveRef = useRef(false);
+  // Manual rotation offset accumulated from drag input, added on top of
+  // the scroll-tweened / auto-rotate rotation. { y: spin, x: tilt }.
+  const manualRotRef = useRef({ x: 0, y: 0 });
+  // Pointer-drag bookkeeping for the interactive rotate handlers below —
+  // mirrors the standalone 3D viewer's dragRef shape (dragging/prevX/
+  // prevY), minus anything pan-related since this ring can only be
+  // spun/zoomed, never moved.
+  const dragStateRef = useRef({ dragging: false, prevX: 0, prevY: 0 });
+  // "Drag to explore" hint overlay — fades in the moment the interactive
+  // window opens, fades out the instant the user actually drags. Once
+  // dismissed it stays dismissed (dismissedOnceRef) so scrolling back and
+  // forth within the same visit doesn't nag the user a second time.
+  const [showDragHint, setShowDragHint] = useState(false);
+  const dismissedOnceRef = useRef(false);
+  // ── Debug-only diagnostics for the interactive drag window ────────────
+  // Keeps the last computed localFrame / range values around so the
+  // window-level diagnostic listener below (RINGHERO_DEBUG_INTERACTION)
+  // can report them even though it fires outside the scroll callback.
+  const debugFrameStateRef = useRef({ localFrame: 0, inRange: false });
   // Holds the active list of beats (starts with the static exported BEATS array,
   // but can be hot-reloaded dynamically from the parent component)
   const beatsRef = useRef(BEATS);
@@ -287,8 +359,6 @@ export default function RingHero({
   // frame number (0..100). A saved keyframe overrides that frame's pose
   // for scroll playback (not just live preview).
   const beatKeyframesRef = useRef({});
-
-
 
   // Keep the ref current and re-apply immediately (this is what actually
   // makes the dev-panel sliders move the render — previously these props
@@ -363,6 +433,23 @@ export default function RingHero({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    // pointerEvents starts "none" (scroll/clicks pass through to the page,
+    // same as before) and is only ever flipped to "auto" by the
+    // interactive-rotate range-check further down — set imperatively here
+    // (not via the JSX style prop) so a React re-render elsewhere in this
+    // component (e.g. the dev-panel state updates) can never stomp it
+    // back to "none" while a drag-to-rotate window is active.
+    if (canvas) canvas.style.pointerEvents = "none";
+    // StrictMode runs this effect mount -> cleanup -> mount once in dev.
+    // interactiveActiveRef (a ref) survives that remount untouched, but
+    // the line above unconditionally forces the DOM back to "none" — if
+    // the ref was already true from before the remount, the transition
+    // check in the ScrollTrigger onUpdate below (`inInteractiveRange !==
+    // interactiveActiveRef.current`) would never fire again for as long
+    // as scroll stayed inside the same range, permanently stranding the
+    // canvas at pointerEvents:"none" even while the ref said "active".
+    // Reset it here too so mount always starts from a truly clean state.
+    interactiveActiveRef.current = false;
     let renderer, scene, camera, ring;
     let metalMaterial;
     let gemMaterials = []; // one instance per gem mesh — see note above
@@ -544,6 +631,115 @@ export default function RingHero({
       // the getBoundingClientRect()-relative math above.
       window.addEventListener("pointermove", onPointerMove);
       window.addEventListener("click", onActivationClick);
+    }
+
+    // ── Interactive drag-to-rotate (Beat 5 "explore" window) ────────────
+    // Only ever attached to the canvas itself (not window), and the
+    // canvas only receives pointer events while interactiveActiveRef is
+    // true (pointerEvents is flipped to "auto"/"none" in the
+    // ScrollTrigger onUpdate above) — so outside that frame range these
+    // listeners simply never fire, and scroll/clicks pass through to the
+    // page exactly as before. No panning, no zoom, no way to move the
+    // ring's position — horizontal drag spins it (Y), vertical drag
+    // tilts it (X, clamped), same feel as the standalone viewer's orbit
+    // drag with the pan/zoom stripped out.
+    function onInteractiveDown(clientX, clientY) {
+      if (!interactiveActiveRef.current) return;
+      dragStateRef.current = { dragging: true, prevX: clientX, prevY: clientY };
+      if (canvas) canvas.style.cursor = "grabbing";
+      if (RINGHERO_DEBUG_INTERACTION) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[RingHero] drag START at (${clientX}, ${clientY}) — reached the canvas fine.`,
+        );
+      }
+      if (!dismissedOnceRef.current) {
+        dismissedOnceRef.current = true;
+        setShowDragHint(false);
+      }
+    }
+    function onInteractiveMove(clientX, clientY) {
+      if (!interactiveActiveRef.current || !dragStateRef.current.dragging)
+        return;
+      const dx = clientX - dragStateRef.current.prevX;
+      const dy = clientY - dragStateRef.current.prevY;
+      dragStateRef.current.prevX = clientX;
+      dragStateRef.current.prevY = clientY;
+      manualRotRef.current.y += dx * interactiveDragSensitivity;
+      manualRotRef.current.x = Math.max(
+        -interactiveTiltClamp,
+        Math.min(
+          interactiveTiltClamp,
+          manualRotRef.current.x + dy * interactiveDragSensitivity,
+        ),
+      );
+    }
+    function onInteractiveUp() {
+      dragStateRef.current.dragging = false;
+      if (canvas && interactiveActiveRef.current) {
+        canvas.style.cursor = "grab";
+      }
+    }
+    function onCanvasMouseDown(e) {
+      onInteractiveDown(e.clientX, e.clientY);
+    }
+    function onCanvasMouseMove(e) {
+      onInteractiveMove(e.clientX, e.clientY);
+    }
+    function onCanvasTouchStart(e) {
+      if (!interactiveActiveRef.current) return;
+      if (e.touches.length === 1) {
+        onInteractiveDown(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }
+    function onCanvasTouchMove(e) {
+      if (!interactiveActiveRef.current) return;
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        onInteractiveMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }
+    canvas.addEventListener("mousedown", onCanvasMouseDown);
+    window.addEventListener("mousemove", onCanvasMouseMove);
+    window.addEventListener("mouseup", onInteractiveUp);
+    canvas.addEventListener("touchstart", onCanvasTouchStart, {
+      passive: true,
+    });
+    canvas.addEventListener("touchmove", onCanvasTouchMove, {
+      passive: false,
+    });
+    canvas.addEventListener("touchend", onInteractiveUp);
+
+    // ── Debug-only: always-on diagnostic pointerdown listener ───────────
+    // Unlike onCanvasMouseDown (bound to the canvas, only fires if the
+    // canvas itself receives the event), this listens on window so it
+    // ALWAYS fires — including when something is covering the canvas and
+    // stealing the click before it gets there. Compare the two logs:
+    //   - if THIS fires but "[RingHero] drag START" never does, something
+    //     else (e.target below) is intercepting the press
+    //   - if THIS never fires at all, the press isn't landing in the
+    //     canvas's screen area, or debugFrameStateRef never went in-range
+    //     (scroll never reached the interactive frame window)
+    let debugPointerDown = null;
+    if (RINGHERO_DEBUG_INTERACTION) {
+      debugPointerDown = (e) => {
+        const { localFrame, inRange } = debugFrameStateRef.current;
+        const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+        // eslint-disable-next-line no-console
+        console.log(
+          `[RingHero][diag] pointerdown at (${e.clientX}, ${e.clientY}) — localFrame=${localFrame.toFixed(1)} inRange=${inRange} interactiveActiveRef=${interactiveActiveRef.current} canvas.pointerEvents="${canvas.style.pointerEvents}" e.target=${e.target?.tagName}${e.target?.className ? "." + e.target.className : ""} elementFromPoint=${elAtPoint?.tagName}${elAtPoint?.className ? "." + elAtPoint.className : ""}`,
+        );
+        if (elAtPoint && elAtPoint !== canvas) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[RingHero][diag] Something other than the canvas is on top at that point — that element is stealing the drag. Give it pointer-events:none or lower its z-index.",
+            elAtPoint,
+          );
+        }
+      };
+      window.addEventListener("pointerdown", debugPointerDown, {
+        capture: true,
+      });
     }
 
     function updateCursorDof(dt) {
@@ -739,13 +935,15 @@ export default function RingHero({
 
     function getBaseValuesForFrame(frame) {
       // Find the default beats from the active beats array
-      const defaultBeats = beatsRef.current.map((beat, index) => ({
-        frame: beat.frame !== undefined ? beat.frame : (index * 20),
-        beat
-      })).sort((a, b) => a.frame - b.frame);
+      const defaultBeats = beatsRef.current
+        .map((beat, index) => ({
+          frame: beat.frame !== undefined ? beat.frame : index * 20,
+          beat,
+        }))
+        .sort((a, b) => a.frame - b.frame);
 
       // If frame exactly matches a default, return it
-      const exact = defaultBeats.find(b => b.frame === frame);
+      const exact = defaultBeats.find((b) => b.frame === frame);
       if (exact) return exact.beat;
 
       // Find the bounding default frames
@@ -775,7 +973,8 @@ export default function RingHero({
         const r = Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * factor);
         const g = Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * factor);
         const b = Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * factor);
-        const toHex = (n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+        const toHex = (n) =>
+          Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
       };
 
@@ -785,7 +984,7 @@ export default function RingHero({
         x: lerpNum(v1.x, v2.x, factor),
         y: lerpNum(v1.y, v2.y, factor),
         z: lerpNum(v1.z, v2.z, factor),
-        lookAtY: lerpNum(v1.lookAtY ?? 0, v2.lookAtY ?? 0, factor)
+        lookAtY: lerpNum(v1.lookAtY ?? 0, v2.lookAtY ?? 0, factor),
       });
 
       return {
@@ -796,12 +995,28 @@ export default function RingHero({
         ringPosOffset: lerpVec3(
           lower.beat.ringPosOffset ?? { x: 0, y: 0, z: 0 },
           upper.beat.ringPosOffset ?? { x: 0, y: 0, z: 0 },
-          t
+          t,
         ),
-        ringScale: lerpNum(lower.beat.ringScale ?? 1, upper.beat.ringScale ?? 1, t),
-        metalEnvIntensity: lerpNum(lower.beat.metalEnvIntensity, upper.beat.metalEnvIntensity, t),
-        gemEnvIntensity: lerpNum(lower.beat.gemEnvIntensity, upper.beat.gemEnvIntensity, t),
-        cornerPark: lerpNum(lower.beat.cornerPark ?? 0, upper.beat.cornerPark ?? 0, t),
+        ringScale: lerpNum(
+          lower.beat.ringScale ?? 1,
+          upper.beat.ringScale ?? 1,
+          t,
+        ),
+        metalEnvIntensity: lerpNum(
+          lower.beat.metalEnvIntensity,
+          upper.beat.metalEnvIntensity,
+          t,
+        ),
+        gemEnvIntensity: lerpNum(
+          lower.beat.gemEnvIntensity,
+          upper.beat.gemEnvIntensity,
+          t,
+        ),
+        cornerPark: lerpNum(
+          lower.beat.cornerPark ?? 0,
+          upper.beat.cornerPark ?? 0,
+          t,
+        ),
       };
     }
 
@@ -812,13 +1027,19 @@ export default function RingHero({
         ...base,
         camPos: kf?.camPos ?? base.camPos,
         ringRot: kf?.ringRot ?? base.ringRot,
-        ringPosOffset: kf?.ringPosOffset ?? base.ringPosOffset ?? { x: 0, y: 0, z: 0 },
+        ringPosOffset: kf?.ringPosOffset ??
+          base.ringPosOffset ?? { x: 0, y: 0, z: 0 },
         ringScale: kf?.ringScale ?? base.ringScale ?? 1,
       };
     }
 
     function setupScrollTimeline() {
-      console.log("[RingHero] setupScrollTimeline called! Beats count:", beatsRef.current.length, "Keyframes in memory:", Object.keys(beatKeyframesRef.current));
+      console.log(
+        "[RingHero] setupScrollTimeline called! Beats count:",
+        beatsRef.current.length,
+        "Keyframes in memory:",
+        Object.keys(beatKeyframesRef.current),
+      );
       // Rebuild support: kill any previously-built scroll trigger/ticker
       ScrollTrigger.getAll().forEach((st) => st.kill());
       if (currentTickerFn) {
@@ -828,8 +1049,12 @@ export default function RingHero({
 
       // Collect all keyframe frames
       const userFrames = Object.keys(beatKeyframesRef.current).map(Number);
-      const defaultFrames = beatsRef.current.map((beat, index) => beat.frame !== undefined ? beat.frame : (index * 20));
-      const allFrames = Array.from(new Set([...defaultFrames, ...userFrames])).sort((a, b) => a - b);
+      const defaultFrames = beatsRef.current.map((beat, index) =>
+        beat.frame !== undefined ? beat.frame : index * 20,
+      );
+      const allFrames = Array.from(
+        new Set([...defaultFrames, ...userFrames]),
+      ).sort((a, b) => a - b);
 
       // Reset state objects back to frame 0 targets so GSAP captures the correct start values!
       const baselineTarget = resolveTargetForFrame(0);
@@ -865,11 +1090,67 @@ export default function RingHero({
           end: "bottom bottom",
           scrub: 1.2,
           onUpdate: (self) => {
-            if (!onScrollDebugUpdate) return;
             const progress = self.progress;
             const beatPosition = progress * (beatsRef.current.length - 1);
             const beatIndex = Math.floor(beatPosition);
             const beatFraction = beatPosition - beatIndex;
+
+            // Local frame (0–50 scale, matching BEATS[].frame) for the
+            // CURRENT scroll position — auto-rotate and interactive drag
+            // are only active while this is within their own frame
+            // ranges, independent of whether onScrollDebugUpdate is
+            // wired up.
+            const localFrame = progress * 50;
+            if (autoRotateStartFrame != null) {
+              const inRange =
+                localFrame >= autoRotateStartFrame &&
+                (autoRotateEndFrame == null ||
+                  localFrame <= autoRotateEndFrame);
+              autoRotateActiveRef.current = inRange;
+            }
+            if (interactiveRotateStartFrame != null) {
+              const inInteractiveRange =
+                localFrame >= interactiveRotateStartFrame &&
+                (interactiveRotateEndFrame == null ||
+                  localFrame <= interactiveRotateEndFrame);
+              debugFrameStateRef.current = {
+                localFrame,
+                inRange: inInteractiveRange,
+              };
+              const rangeChanged =
+                inInteractiveRange !== interactiveActiveRef.current;
+              interactiveActiveRef.current = inInteractiveRange;
+              // Applied EVERY tick (not just on rangeChanged) so a stale
+              // ref can never leave the DOM stuck out of sync with the
+              // actual current range — see the mount-reset comment above
+              // for exactly how that happened before.
+              if (canvas) {
+                canvas.style.pointerEvents = inInteractiveRange
+                  ? "auto"
+                  : "none";
+                // "grab" affordance — same idea as the standalone
+                // viewer's EditorPage canvas (cursor: "grab" when idle,
+                // "grabbing" while actively dragging, set in
+                // onInteractiveDown/onInteractiveUp below).
+                canvas.style.cursor = inInteractiveRange ? "grab" : "";
+              }
+              if (rangeChanged) {
+                if (RINGHERO_DEBUG_INTERACTION) {
+                  // eslint-disable-next-line no-console
+                  console.log(
+                    `[RingHero] interactive window ${inInteractiveRange ? "OPENED" : "CLOSED"} — localFrame=${localFrame.toFixed(1)} range=[${interactiveRotateStartFrame}, ${interactiveRotateEndFrame}] canvas.pointerEvents="${canvas?.style.pointerEvents}"`,
+                  );
+                }
+                if (!inInteractiveRange) {
+                  dragStateRef.current.dragging = false;
+                }
+                setShowDragHint(
+                  inInteractiveRange && !dismissedOnceRef.current,
+                );
+              }
+            }
+
+            if (!onScrollDebugUpdate) return;
 
             onScrollDebugUpdate({
               progress,
@@ -905,7 +1186,10 @@ export default function RingHero({
             const st = tl.scrollTrigger;
             if (!st) return;
             const targetY = st.start + (st.end - st.start) * progress;
-            window.scrollTo({ top: targetY, behavior: smooth ? "smooth" : "auto" });
+            window.scrollTo({
+              top: targetY,
+              behavior: smooth ? "smooth" : "auto",
+            });
           },
           setCamOverride: (partial) => {
             poseOverrideRef.current.camPos = partial
@@ -933,7 +1217,7 @@ export default function RingHero({
           },
           reloadRingModel: (newBeats) => {
             console.log("[RingHero] API reloadRingModel called!");
-            
+
             // 1. If there's an existing ring model in the scene, remove and dispose it
             if (ring) {
               scene.remove(ring);
@@ -946,74 +1230,82 @@ export default function RingHero({
             }
 
             // 2. Load the GLB model again
-            gltfLoader.load(glbUrl, (gltf) => {
-              if (disposed) return;
-              
-              // 3. Process the new GLTF scene
-              ring = gltf.scene;
+            gltfLoader.load(
+              glbUrl,
+              (gltf) => {
+                if (disposed) return;
 
-              const effectiveGemPreset = gemMaterialTypeOverride
-                ? { ...gemPreset, materialType: gemMaterialTypeOverride }
-                : gemPreset;
+                // 3. Process the new GLTF scene
+                ring = gltf.scene;
 
-              const { gemMeshes, metalMeshes, debugList } = classifyRingMeshes(ring);
+                const effectiveGemPreset = gemMaterialTypeOverride
+                  ? { ...gemPreset, materialType: gemMaterialTypeOverride }
+                  : gemPreset;
 
-              gemMaterials = gemMeshes.map((child) => {
-                const mat = buildGemMaterial(effectiveGemPreset, gemEnvMap);
-                if ("envMapIntensity" in mat) {
-                  mat.envMapIntensity =
-                    (beatsRef.current[0].gemEnvIntensity *
-                      calculateDiamondEnvMapIntensityRaw({})) /
-                    5.0;
+                const { gemMeshes, metalMeshes, debugList } =
+                  classifyRingMeshes(ring);
+
+                gemMaterials = gemMeshes.map((child) => {
+                  const mat = buildGemMaterial(effectiveGemPreset, gemEnvMap);
+                  if ("envMapIntensity" in mat) {
+                    mat.envMapIntensity =
+                      (beatsRef.current[0].gemEnvIntensity *
+                        calculateDiamondEnvMapIntensityRaw({})) /
+                      5.0;
+                  }
+                  child.material = mat;
+                  if (mat.isRoughRefractionMaterial) {
+                    attachBvhToGemMaterial(child, mat);
+                  }
+                  child.castShadow = false;
+                  child.receiveShadow = false;
+                  return mat;
+                });
+                gemMaterialsRef.current = gemMaterials;
+
+                metalMeshes.forEach((child) => {
+                  child.material = metalMaterial;
+                  child.castShadow = false;
+                  child.receiveShadow = false;
+                });
+
+                if (import.meta.env.DEV) {
+                  console.table(debugList);
                 }
-                child.material = mat;
-                if (mat.isRoughRefractionMaterial) {
-                  attachBvhToGemMaterial(child, mat);
+                onMeshesClassified?.(debugList);
+
+                const box = new THREE.Box3().setFromObject(ring);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 1.4 / maxDim;
+                ring.scale.setScalar(scale);
+                ring.position.sub(center.multiplyScalar(scale));
+
+                scene.add(ring);
+
+                ringHeroTransform.position.copy(ring.position);
+                ringHeroTransform.rotation.copy(ring.rotation);
+                ringHeroTransform.scale = ring.scale.x;
+                ringHeroTransform.diameter = Math.max(size.x, size.z) * scale;
+
+                applyHdrConfigToLiveMaterials();
+
+                // 4. Update the beats array and rebuild the GSAP timeline
+                if (newBeats) {
+                  beatsRef.current = newBeats;
                 }
-                child.castShadow = false;
-                child.receiveShadow = false;
-                return mat;
-              });
-              gemMaterialsRef.current = gemMaterials;
+                setupScrollTimeline();
 
-              metalMeshes.forEach((child) => {
-                child.material = metalMaterial;
-                child.castShadow = false;
-                child.receiveShadow = false;
-              });
-
-              if (import.meta.env.DEV) {
-                console.table(debugList);
-              }
-              onMeshesClassified?.(debugList);
-
-              const box = new THREE.Box3().setFromObject(ring);
-              const size = box.getSize(new THREE.Vector3());
-              const center = box.getCenter(new THREE.Vector3());
-              const maxDim = Math.max(size.x, size.y, size.z);
-              const scale = 1.4 / maxDim;
-              ring.scale.setScalar(scale);
-              ring.position.sub(center.multiplyScalar(scale));
-
-              scene.add(ring);
-
-              ringHeroTransform.position.copy(ring.position);
-              ringHeroTransform.rotation.copy(ring.rotation);
-              ringHeroTransform.scale = ring.scale.x;
-              ringHeroTransform.diameter = Math.max(size.x, size.z) * scale;
-
-              applyHdrConfigToLiveMaterials();
-
-              // 4. Update the beats array and rebuild the GSAP timeline
-              if (newBeats) {
-                beatsRef.current = newBeats;
-              }
-              setupScrollTimeline();
-              
-              console.log("[RingHero] reloadRingModel finished! Ring reloaded successfully.");
-            }, undefined, (err) => {
-              console.error("[RingHero] failed to reload GLB:", err);
-            });
+                console.log(
+                  "[RingHero] reloadRingModel finished! Ring reloaded successfully.",
+                );
+              },
+              undefined,
+              (err) => {
+                console.error("[RingHero] failed to reload GLB:", err);
+              },
+            );
           },
           getCurrentPose: () => ({
             camPos: { ...camState },
@@ -1041,10 +1333,16 @@ export default function RingHero({
           getKeyframeSnapshot: () => ({ ...beatKeyframesRef.current }),
           getBaseValuesForFrame: (frame) => getBaseValuesForFrame(frame),
           getFullTimeline: () => {
-            const userFramesList = Object.keys(beatKeyframesRef.current).map(Number);
-            const defaultFrames = beatsRef.current.map((beat, index) => beat.frame !== undefined ? beat.frame : (index * 20));
-            const allFramesList = Array.from(new Set([...defaultFrames, ...userFramesList])).sort((a, b) => a - b);
-            return allFramesList.map(f => {
+            const userFramesList = Object.keys(beatKeyframesRef.current).map(
+              Number,
+            );
+            const defaultFrames = beatsRef.current.map((beat, index) =>
+              beat.frame !== undefined ? beat.frame : index * 20,
+            );
+            const allFramesList = Array.from(
+              new Set([...defaultFrames, ...userFramesList]),
+            ).sort((a, b) => a - b);
+            return allFramesList.map((f) => {
               const target = resolveTargetForFrame(f);
               return {
                 frame: f,
@@ -1084,79 +1382,119 @@ export default function RingHero({
         const prevTarget = resolveTargetForFrame(prevFrame);
         const currTarget = resolveTargetForFrame(currFrame);
 
-        tl.fromTo(camState, {
-          x: prevTarget.camPos.x,
-          y: prevTarget.camPos.y,
-          z: prevTarget.camPos.z,
-          lookAtY: prevTarget.camPos.lookAtY ?? 0,
-        }, {
-          x: currTarget.camPos.x,
-          y: currTarget.camPos.y,
-          z: currTarget.camPos.z,
-          lookAtY: currTarget.camPos.lookAtY ?? 0,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(rotState, {
-          x: prevTarget.ringRot.x,
-          y: prevTarget.ringRot.y,
-          z: prevTarget.ringRot.z,
-        }, {
-          x: currTarget.ringRot.x,
-          y: currTarget.ringRot.y,
-          z: currTarget.ringRot.z,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(ringPosOffsetState, {
-          x: prevTarget.ringPosOffset.x,
-          y: prevTarget.ringPosOffset.y,
-          z: prevTarget.ringPosOffset.z,
-        }, {
-          x: currTarget.ringPosOffset.x,
-          y: currTarget.ringPosOffset.y,
-          z: currTarget.ringPosOffset.z,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(ringScaleState, {
-          value: prevTarget.ringScale,
-        }, {
-          value: currTarget.ringScale,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(metalEnvState, {
-          value: prevTarget.metalEnvIntensity,
-        }, {
-          value: currTarget.metalEnvIntensity,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(gemEnvState, {
-          value: prevTarget.gemEnvIntensity,
-        }, {
-          value: currTarget.gemEnvIntensity,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(cornerParkState, {
-          value: prevTarget.cornerPark ?? 0,
-        }, {
-          value: currTarget.cornerPark ?? 0,
-          duration: duration,
-          ease: "power1.inOut",
-        }, prevFrame)
-        .fromTo(bgState, {
-          top: prevTarget.bgTop,
-          bottom: prevTarget.bgBottom,
-        }, {
-          top: currTarget.bgTop,
-          bottom: currTarget.bgBottom,
-          duration: duration,
-          ease: "power1.inOut",
-          onUpdate: applyBackground,
-        }, prevFrame);
+        tl.fromTo(
+          camState,
+          {
+            x: prevTarget.camPos.x,
+            y: prevTarget.camPos.y,
+            z: prevTarget.camPos.z,
+            lookAtY: prevTarget.camPos.lookAtY ?? 0,
+          },
+          {
+            x: currTarget.camPos.x,
+            y: currTarget.camPos.y,
+            z: currTarget.camPos.z,
+            lookAtY: currTarget.camPos.lookAtY ?? 0,
+            duration: duration,
+            ease: "power1.inOut",
+          },
+          prevFrame,
+        )
+          .fromTo(
+            rotState,
+            {
+              x: prevTarget.ringRot.x,
+              y: prevTarget.ringRot.y,
+              z: prevTarget.ringRot.z,
+            },
+            {
+              x: currTarget.ringRot.x,
+              y: currTarget.ringRot.y,
+              z: currTarget.ringRot.z,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            ringPosOffsetState,
+            {
+              x: prevTarget.ringPosOffset.x,
+              y: prevTarget.ringPosOffset.y,
+              z: prevTarget.ringPosOffset.z,
+            },
+            {
+              x: currTarget.ringPosOffset.x,
+              y: currTarget.ringPosOffset.y,
+              z: currTarget.ringPosOffset.z,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            ringScaleState,
+            {
+              value: prevTarget.ringScale,
+            },
+            {
+              value: currTarget.ringScale,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            metalEnvState,
+            {
+              value: prevTarget.metalEnvIntensity,
+            },
+            {
+              value: currTarget.metalEnvIntensity,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            gemEnvState,
+            {
+              value: prevTarget.gemEnvIntensity,
+            },
+            {
+              value: currTarget.gemEnvIntensity,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            cornerParkState,
+            {
+              value: prevTarget.cornerPark ?? 0,
+            },
+            {
+              value: currTarget.cornerPark ?? 0,
+              duration: duration,
+              ease: "power1.inOut",
+            },
+            prevFrame,
+          )
+          .fromTo(
+            bgState,
+            {
+              top: prevTarget.bgTop,
+              bottom: prevTarget.bgBottom,
+            },
+            {
+              top: currTarget.bgTop,
+              bottom: currTarget.bgBottom,
+              duration: duration,
+              ease: "power1.inOut",
+              onUpdate: applyBackground,
+            },
+            prevFrame,
+          );
       }
 
       function applyBackground() {
@@ -1259,7 +1597,53 @@ export default function RingHero({
           // this is what makes the beat coordinate panel actually affect
           // the ring in every beat, including what used to be the
           // on-body reveal beat.
-          ring.rotation.set(effRotX, effRotY, effRotZ);
+          //
+          // Auto-rotate: active only while autoRotateActiveRef is true
+          // (i.e. the scroll-tweened frame is inside its own beat's frame
+          // range — see the ScrollTrigger onUpdate above), spinning the
+          // ring around Y every tick on top of whatever the scroll-tweened
+          // rotation is. Turns back off the moment scroll leaves that
+          // range, same as any other beat-scoped animation in this file.
+          // Paused (not reset) while the user is actively dragging, so
+          // grabbing the ring doesn't fight the auto-spin, and it resumes
+          // smoothly from the same angle on release.
+          let spinY = effRotY;
+          if (
+            autoRotateActiveRef.current &&
+            !(interactiveActiveRef.current && dragStateRef.current.dragging)
+          ) {
+            autoRotateAngleRef.current += autoRotateSpeed * dt;
+          } else if (!autoRotateActiveRef.current) {
+            // Ease the accumulated auto-rotate angle back to 0 the moment
+            // scroll leaves the auto-rotate beat's range (same decay curve
+            // as manualRotRef below). Without this, whatever angle had
+            // built up while the 360 beat was active stayed permanently
+            // baked into spinY — and therefore into every other beat's
+            // rotation — for the rest of the session, which is why
+            // scrolling back up out of Beat 6 looked like it "disturbed"
+            // every other beat's pose.
+            const decay = 1 - Math.exp(-8 * dt);
+            autoRotateAngleRef.current -= autoRotateAngleRef.current * decay;
+          }
+          spinY = effRotY + autoRotateAngleRef.current;
+
+          // Interactive drag-to-rotate: adds the user's manual spin/tilt
+          // offset on top of everything else, but ONLY while the
+          // interactive window is open. The instant it closes (scrolling
+          // out of Beat 6), this eases manualRotRef back to {x:0, y:0}
+          // over ~0.3s — otherwise whatever offset the user last dragged
+          // to would silently stay applied forever, in every other beat,
+          // permanently drifting the ring away from its designed
+          // rotation. Eased rather than snapped so it doesn't visibly
+          // pop right at the beat boundary.
+          if (!interactiveActiveRef.current) {
+            const decay = 1 - Math.exp(-8 * dt);
+            manualRotRef.current.x -= manualRotRef.current.x * decay;
+            manualRotRef.current.y -= manualRotRef.current.y * decay;
+          }
+          const finalRotY = spinY + manualRotRef.current.y;
+          const finalRotX = effRotX + manualRotRef.current.x;
+          ring.rotation.set(finalRotX, finalRotY, effRotZ);
 
           // Corner-park blend — same cp/arc values computed above for
           // the camera, reused here so the ring's own path bows through
@@ -1302,7 +1686,9 @@ export default function RingHero({
             // entirely) to 1.25, still bigger than hero scale but kept
             // on-screen.
             const parkScale = THREE.MathUtils.lerp(1, 1.25, cp);
-            ring.scale.setScalar(ringHeroTransform.scale * effScale * parkScale);
+            ring.scale.setScalar(
+              ringHeroTransform.scale * effScale * parkScale,
+            );
           } else {
             ring.position.set(heroX, heroY, heroZ);
             ring.scale.setScalar(ringHeroTransform.scale * effScale);
@@ -1346,6 +1732,17 @@ export default function RingHero({
       if (cursorDofEnabled) {
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("click", onActivationClick);
+      }
+      canvas.removeEventListener("mousedown", onCanvasMouseDown);
+      window.removeEventListener("mousemove", onCanvasMouseMove);
+      window.removeEventListener("mouseup", onInteractiveUp);
+      canvas.removeEventListener("touchstart", onCanvasTouchStart);
+      canvas.removeEventListener("touchmove", onCanvasTouchMove);
+      canvas.removeEventListener("touchend", onInteractiveUp);
+      if (debugPointerDown) {
+        window.removeEventListener("pointerdown", debugPointerDown, {
+          capture: true,
+        });
       }
       ScrollTrigger.getAll().forEach((st) => st.kill());
       if (currentTickerFn) {
@@ -1404,9 +1801,64 @@ export default function RingHero({
           width: "100vw",
           height: "100vh",
           display: "block",
-          pointerEvents: "none",
         }}
       />
+      {/* "Drag to explore" hint — purely visual, pointerEvents:"none" so it
+          never intercepts the drag itself. Fades in when the interactive
+          window opens, fades out on first drag (see dismissedOnceRef). */}
+      <div
+        style={{
+          position: "fixed",
+          left: "50%",
+          bottom: "8%",
+          transform: "translateX(-50%)",
+          zIndex: 3,
+          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 18px",
+          borderRadius: "999px",
+          background: "rgba(10,10,12,0.55)",
+          backdropFilter: "blur(6px)",
+          color: "rgba(255,255,255,0.9)",
+          fontSize: "13px",
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          fontFamily: "inherit",
+          opacity: showDragHint ? 1 : 0,
+          transition: "opacity 0.6s ease",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            animation: showDragHint
+              ? "ringHeroDragHintSway 1.6s ease-in-out infinite"
+              : "none",
+          }}
+        >
+          <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
+          <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
+          <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
+          <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
+        </svg>
+        Drag to rotate
+        <style>{`
+          @keyframes ringHeroDragHintSway {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(3px); }
+          }
+        `}</style>
+      </div>
     </>
   );
 }

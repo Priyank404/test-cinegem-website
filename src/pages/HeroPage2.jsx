@@ -121,6 +121,40 @@ gsap.registerPlugin(ScrollTrigger);
 // ---------------------------------------------------------------------
 const TOTAL_FRAMES = 260;
 
+// Global frame (0–260 scale, same as everything else in this file) at
+// which the ring starts auto-rotating on its own — a continuous 360°
+// spin — and the global frame at which the "Explore 3D Viewer" link
+// fades in. Both turn back OFF once scroll leaves this frame range
+// (scrolls past END, or back up past START), exactly like every other
+// beat-scoped animation in this file — nothing here permanently latches.
+// RingHero's BEATS[] array (and its autoRotateStartFrame/EndFrame props)
+// live on a separate 0–50 LOCAL frame scale, so these are converted
+// below via `(frame / TOTAL_FRAMES) * 50` wherever passed into RingHero —
+// keep these constants in the global scale so they line up with every
+// other frame number in this file (card timing, etc).
+const AUTO_ROTATE_GLOBAL_FRAME = 215;
+const AUTO_ROTATE_GLOBAL_END_FRAME = 260; // end of scroll — Beat 5/6 boundary
+const EXPLORE_LINK_GLOBAL_FRAME = 220;
+const EXPLORE_LINK_GLOBAL_END_FRAME = 260;
+
+// Footer reveal — a fixed-position footer panel that slides up from
+// below the viewport as the user reaches the very end of the scroll,
+// same effect as peachweb.io's bottom-of-page footer. Starts sliding in
+// at global frame 245, fully in place (translateY 0) by frame 260 (the
+// top of TOTAL_FRAMES — the last possible scroll position). Driven by a
+// continuous 0->1 progress value (not a class toggle) so it tracks the
+// scrollbar 1:1 in both directions, exactly like every other
+// scroll-scrubbed effect in this file.
+const FOOTER_REVEAL_GLOBAL_START_FRAME = 245;
+const FOOTER_REVEAL_GLOBAL_END_FRAME = 260;
+// How far (world units, same scale as BEATS[].ringPosOffset.y) the ring
+// lifts upward as the footer slides into place, so the footer panel
+// doesn't cover it. Applied smoothly via poseApiRef's live
+// ringPosOffset override, scaled by the same footerT progress (0 -> 1)
+// that drives the footer's own translateY below. Tune this up/down if
+// the ring still clips behind the footer or lifts too far.
+const FOOTER_RING_LIFT_AMOUNT = 0.25;
+
 const SHOW_DEV_PANEL = true;
 
 // Defaults for a single HDR control group — reused for both metal and gem.
@@ -242,6 +276,10 @@ export default function HeroPage2() {
 
   const [postFxEnabled, setPostFxEnabled] = useState(true);
   const [panelVisible, setPanelVisible] = useState(true);
+  // Independent from panelVisible — hides/shows the bottom "3D Animation
+  // Timeline & Channel Box" bar (TimelineEditor) without touching the
+  // MaterialDevPanel sliders. Defaults to visible, same as panelVisible.
+  const [timelineVisible, setTimelineVisible] = useState(true);
 
   // Tracks the live window width so the dev panel can display the
   // ACTUAL resolved px value of the clamp()'d card widths at the
@@ -293,6 +331,30 @@ export default function HeroPage2() {
   const beat3VideoRef = useRef(null);
 
   const beat4OverlayRef = useRef(null);
+
+  // "Explore 3D Viewer" text link that fades in during the tail of Beat 5
+  // (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME constants above) once the
+  // ring's auto-rotate has kicked in. Visibility is re-evaluated every
+  // scroll tick — it turns back off if the user scrolls out of that
+  // range in either direction, same as every other beat-scoped element
+  // here. Kept as a direct DOM style/class write inside the same
+  // scroll callback as everything else, rather than React state, to
+  // avoid re-rendering on every scroll tick.
+  const exploreLinkRef = useRef(null);
+
+  // Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
+  // above. Written directly every scroll tick (translateY %, not a class
+  // toggle) so it slides in/out in lockstep with the scrollbar rather
+  // than snapping or CSS-transitioning, same rationale as exploreLinkRef.
+  const footerRevealRef = useRef(null);
+
+  // Fixed nav bar — hidden (slid up off-screen) in lockstep with the
+  // footer reveal, using the same footerT progress value, so it moves
+  // up "along with the ring" instead of staying pinned while the ring
+  // and footer animate around it. See the footer-reveal block in
+  // onScrollDebugUpdate below.
+  const navRef = useRef(null);
+
   const [coordValues, setCoordValues] = useState({
     activeFrame: 0,
     live: false,
@@ -1074,6 +1136,15 @@ export default function HeroPage2() {
         gemHdrPower={gemHdrConfig.power}
         gemHdrGamma={gemHdrConfig.gamma}
         postFxEnabled={postFxEnabled}
+        autoRotateStartFrame={(AUTO_ROTATE_GLOBAL_FRAME / TOTAL_FRAMES) * 50}
+        autoRotateEndFrame={(AUTO_ROTATE_GLOBAL_END_FRAME / TOTAL_FRAMES) * 50}
+        autoRotateSpeed={0.6}
+        interactiveRotateStartFrame={
+          (AUTO_ROTATE_GLOBAL_FRAME / TOTAL_FRAMES) * 50
+        }
+        interactiveRotateEndFrame={
+          (AUTO_ROTATE_GLOBAL_END_FRAME / TOTAL_FRAMES) * 50
+        }
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
           refreshSavedBeats();
@@ -1096,6 +1167,66 @@ export default function HeroPage2() {
           // reads it) and apply the beat 2/3 overlay math for this frame.
           lastFrameRef.current = frame;
           applyCardOverlayFrame(frame, cardTimingConfig);
+
+          // "Explore 3D Viewer" link — visible only while the global frame
+          // is within [EXPLORE_LINK_GLOBAL_FRAME, _END_FRAME], i.e. only
+          // during its own beat. Toggled every tick (not a one-way
+          // latch), so it hides again if the user scrolls back up past
+          // EXPLORE_LINK_GLOBAL_FRAME.
+          if (exploreLinkRef.current) {
+            const showExploreLink =
+              frame >= EXPLORE_LINK_GLOBAL_FRAME &&
+              frame <= EXPLORE_LINK_GLOBAL_END_FRAME;
+            exploreLinkRef.current.classList.toggle(
+              "is-visible",
+              showExploreLink,
+            );
+          }
+
+          // Footer reveal — 0 (fully hidden below viewport) -> 1 (fully
+          // in place) as frame goes from FOOTER_REVEAL_GLOBAL_START_FRAME
+          // to _END_FRAME. Clamped so it holds at 0 before frame 245 and
+          // stays at 1 if somehow scrolled past 260 (shouldn't happen,
+          // 260 is TOTAL_FRAMES). Reverses smoothly on scroll-up since
+          // it's driven by the same continuous progress value every
+          // tick, not a one-way reveal.
+          if (footerRevealRef.current) {
+            const footerT = Math.min(
+              1,
+              Math.max(
+                0,
+                (frame - FOOTER_REVEAL_GLOBAL_START_FRAME) /
+                  (FOOTER_REVEAL_GLOBAL_END_FRAME -
+                    FOOTER_REVEAL_GLOBAL_START_FRAME),
+              ),
+            );
+            footerRevealRef.current.style.transform =
+              `translateY(${(1 - footerT) * 100}%)`;
+            footerRevealRef.current.style.pointerEvents =
+              footerT > 0.5 ? "auto" : "none";
+
+            // Lift the ring up in lockstep with the footer's own reveal
+            // progress (0 -> 1), so it stays fully visible above the
+            // footer panel instead of clipping behind it. Uses the same
+            // live pose-override channel the dev panel drives
+            // (setRingPosOffsetOverride), so it composes correctly with
+            // whatever the scroll-tweened Beat 6 pose already is —
+            // released back to null once the footer is fully hidden
+            // again (footerT === 0) so normal scroll-tweened behavior
+            // resumes rather than leaving a stale override applied.
+            poseApiRef.current?.setRingPosOffsetOverride(
+              footerT > 0 ? { y: footerT * FOOTER_RING_LIFT_AMOUNT } : null,
+            );
+
+            // Hide the nav bar in lockstep with the same footerT — slides
+            // fully up off-screen (translateY -100%) by the time the
+            // footer/ring reveal completes, and slides back down smoothly
+            // if the user scrolls back up, exactly like every other
+            // reversible effect here.
+            if (navRef.current) {
+              navRef.current.style.transform = `translateY(-${footerT * 100}%)`;
+            }
+          }
 
           // Debounce React state update so sliders sync to scrolled values when scrolling stops
           clearTimeout(scrollDebounceRef.current);
@@ -1135,7 +1266,78 @@ export default function HeroPage2() {
         }}
       />
 
-      {SHOW_DEV_PANEL && (
+      {/* "Explore 3D Viewer" text link — visible only during the tail of
+          Beat 5 (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME above and the
+          onScrollDebugUpdate callback that toggles is-visible every
+          tick). Fixed so it stays put on screen like the ring canvas
+          behind it, rather than scrolling with the page. */}
+      <a
+        ref={exploreLinkRef}
+        href="/3d-viewer"
+        className="hero2-explore-link"
+        aria-label="Explore 3D Viewer"
+      >
+        Explore 3D Viewer →
+      </a>
+
+      {/* Footer reveal panel — fixed to the bottom of the viewport,
+          starts translated fully offscreen (translateY 100%) and slides
+          up into place as global frame goes 245 -> 260 (see
+          FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME + the
+          onScrollDebugUpdate block above that writes the transform every
+          tick). Sits above the fixed ring canvas (z-index 0/1) and the
+          scroll-content sections (z-index 2) but below the nav. */}
+      <footer
+        ref={footerRevealRef}
+        className="hero2-footer-reveal"
+        style={{ transform: "translateY(100%)" }}
+      >
+        <div className="hero2-footer-inner">
+          <div className="hero2-footer-top">
+            <div className="hero2-footer-brand">
+              <span className="hero2-logo">Your Name</span>
+              <p>
+                3D visualization and digital craft — turning products into
+                cinematic, interactive experiences on the web.
+              </p>
+              <a href="#contact" className="hero2-cta-btn">
+                Get in touch →
+              </a>
+            </div>
+
+            <div className="hero2-footer-col">
+              <span className="hero2-footer-col-title">Sitemap</span>
+              <a href="#work">Work</a>
+              <a href="#about">About</a>
+              <a href="#contact">Contact</a>
+              <a href="/3d-viewer">3D Viewer</a>
+            </div>
+
+            <div className="hero2-footer-col">
+              <span className="hero2-footer-col-title">Connect</span>
+              <a href="#" target="_blank" rel="noopener noreferrer">
+                Instagram
+              </a>
+              <a href="#" target="_blank" rel="noopener noreferrer">
+                Behance
+              </a>
+              <a href="#" target="_blank" rel="noopener noreferrer">
+                LinkedIn
+              </a>
+              <a href="mailto:hello@example.com">Email</a>
+            </div>
+          </div>
+
+          <div className="hero2-footer-bottom">
+            <p className="hero2-footer-copyright">
+              © {new Date().getFullYear()} Your Name. All rights reserved.
+            </p>
+            <p className="hero2-footer-credit">Built with Three.js &amp; React</p>
+          </div>
+        </div>
+      </footer>
+
+      {SHOW_DEV_PANEL && timelineVisible && (
         <TimelineEditor
           ref={timelineRef}
           values={coordValues}
@@ -1190,6 +1392,31 @@ export default function HeroPage2() {
             {panelVisible ? "Hide dev panel" : "Show dev panel"}
           </button>
 
+          {/* Independent toggle for the bottom "3D Animation Timeline &
+              Channel Box" bar — stacked directly below the dev-panel
+              toggle. Always on screen (even while the timeline itself is
+              hidden) so there's always a way back in. */}
+          <button
+            onClick={() => setTimelineVisible((v) => !v)}
+            style={{
+              position: "fixed",
+              top: 124,
+              right: 20,
+              zIndex: 51,
+              background: "rgba(20,20,22,0.9)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8,
+              padding: "8px 12px",
+              color: "#fff",
+              fontSize: 11,
+              fontFamily: "monospace",
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            {timelineVisible ? "Hide timeline" : "Show timeline"}
+          </button>
+
           {panelVisible && (
             <MaterialDevPanel
               metalPresetKey={metalPresetKey}
@@ -1224,7 +1451,7 @@ export default function HeroPage2() {
       )}
 
       {/* Simple fixed nav, sits above the canvas */}
-      <nav className="hero2-nav">
+      <nav ref={navRef} className="hero2-nav">
         <span className="hero2-logo">Your Name</span>
         <div className="hero2-nav-links">
           <a href="#work">Work</a>
@@ -1271,11 +1498,7 @@ export default function HeroPage2() {
 
         {/* Beat 6 — standing spin, closing beat */}
         <section id="contact" className="hero2-section hero2-section-cta">
-          <div className="hero2-section-inner">
-            <a href="mailto:you@example.com" className="hero2-cta-btn large">
-              Say hello →
-            </a>
-          </div>
+          <div className="hero2-section-inner"></div>
         </section>
       </div>
     </div>
@@ -2264,4 +2487,3 @@ const selectStyle = {
 const inputStyle = {
   ...selectStyle,
 };
-215 
