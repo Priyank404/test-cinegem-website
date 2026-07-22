@@ -49,30 +49,19 @@ export default function TrailText({
     delay: open ? delay : 0, // only delay the "in" animation, not the reverse
   });
 
-<<<<<<< HEAD
-  return (
-    <Tag className={className}>
-      {trail.map((style, index) => (
-        <a.div
-=======
   const AnimatedItem = a[ItemTag] || a.div;
 
   return (
     <Tag className={className}>
       {trail.map((style, index) => (
         <AnimatedItem
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
           key={index}
           className={`will-change-transform ${splitBy === "words" ? "inline-block" : ""} ${wordClassName}`}
           style={style}
         >
           {items[index]}
           {splitBy === "words" && index < items.length - 1 ? "\u00A0" : ""}
-<<<<<<< HEAD
-        </a.div>
-=======
         </AnimatedItem>
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
       ))}
     </Tag>
   );

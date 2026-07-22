@@ -55,8 +55,6 @@ export function ParallaxImage({
   const overlayRef = useRef(null)
   const labelRef   = useRef(null)
   const [detectedRatio, setDetectedRatio] = useState(null)
-<<<<<<< HEAD
-=======
   const [imgSrc, setImgSrc] = useState(src)
   const [failed, setFailed] = useState(false)
   const retriedRef = useRef(false)
@@ -99,26 +97,17 @@ export function ParallaxImage({
     }
     setFailed(true)
   }
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
 
   const isVid = isVideo || (src && (src.includes('.mp4') || src.includes('.webm') || src.includes('profile_id=')))
 
   // Dynamically resolve ratio from natural media metadata at runtime if width/height are not provided
   useEffect(() => {
     if (width && height) return
-<<<<<<< HEAD
-    if (!src) return
-
-    if (isVid) {
-      const video = document.createElement('video')
-      video.src = src
-=======
     if (!imgSrc) return
 
     if (isVid) {
       const video = document.createElement('video')
       video.src = imgSrc
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
       video.preload = 'metadata'
       video.onloadedmetadata = () => {
         if (video.videoWidth && video.videoHeight) {
@@ -132,15 +121,9 @@ export function ParallaxImage({
           setDetectedRatio(`${img.naturalWidth}/${img.naturalHeight}`)
         }
       }
-<<<<<<< HEAD
-      img.src = src
-    }
-  }, [src, width, height, isVid])
-=======
       img.src = imgSrc
     }
   }, [imgSrc, width, height, isVid])
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
 
   // Compute ratio string: explicit width/height takes precedence, then dynamic detection, then fallback prop
   const computedRatio =
@@ -251,12 +234,6 @@ export function ParallaxImage({
               filter: grayscale ? 'grayscale(100%)' : undefined,
             }}
           />
-<<<<<<< HEAD
-        ) : (
-          <img
-            ref={imgRef}
-            src={src}
-=======
         ) : failed ? (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#EDE8DE]"
@@ -275,7 +252,6 @@ export function ParallaxImage({
           <img
             ref={imgRef}
             src={imgSrc}
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
             alt={alt}
             className="absolute left-0 w-full object-cover"
             style={{
@@ -285,10 +261,7 @@ export function ParallaxImage({
               filter: grayscale ? 'grayscale(100%)' : undefined,
             }}
             loading="lazy"
-<<<<<<< HEAD
-=======
             onError={handleError}
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
           />
         )}
       </div>

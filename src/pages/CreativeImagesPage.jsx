@@ -51,16 +51,6 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
     return () => ctx.revert()
   }, [images])
 
-<<<<<<< HEAD
-  // Build rows — 5-pattern cycle
-  const rows = []
-  let i = 0, rowIndex = 0
-  while (i < images.length) {
-    const take = [2, 1, 2, 3, 2][rowIndex % 5]
-    rows.push({ pattern: rowIndex % 5, imgs: images.slice(i, i + Math.min(take, images.length - i)), startIdx: i })
-    i += take
-    rowIndex++
-=======
   // Build rows — 5-pattern cycle. We cycle through the available images
   // (repeating from the start if needed) so that every row is always fully
   // populated — this is what was previously causing blank gaps in the
@@ -82,7 +72,6 @@ function LightboxOrbitGallery({ images, className, onImageClick }) {
       i += take
       rowIndex++
     }
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
   }
 
   const delay = (idx) => idx * 0.12
