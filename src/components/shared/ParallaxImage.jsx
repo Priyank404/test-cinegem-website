@@ -55,17 +55,59 @@ export function ParallaxImage({
   const overlayRef = useRef(null)
   const labelRef   = useRef(null)
   const [detectedRatio, setDetectedRatio] = useState(null)
+  const [imgSrc, setImgSrc] = useState(src)
+  const [failed, setFailed] = useState(false)
+  const retriedRef = useRef(false)
+
+  // Reset retry/failure state whenever the source prop changes
+  useEffect(() => {
+    setImgSrc(src)
+    setFailed(false)
+    retriedRef.current = false
+  }, [src])
+
+  // Build an alternate Drive URL to retry with if the thumbnail fails
+  const getRetrySrc = (originalSrc) => {
+    if (!originalSrc) return null
+    // lh3.googleusercontent.com/d/<id>=w1200
+    const lh3Match = originalSrc.match(/lh3\.googleusercontent\.com\/d\/([^=]+)/)
+    if (lh3Match) {
+      return `https://drive.google.com/thumbnail?id=${lh3Match[1]}&sz=w1200`
+    }
+    // drive.google.com/thumbnail?id=... or /uc?...id=...
+    const idMatch = originalSrc.match(/[?&]id=([^&]+)/)
+    if (idMatch) {
+      const id = idMatch[1]
+      if (originalSrc.includes('/thumbnail')) {
+        return `https://lh3.googleusercontent.com/d/${id}=w1200`
+      }
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1200`
+    }
+    return null
+  }
+
+  const handleError = () => {
+    if (!retriedRef.current) {
+      const retrySrc = getRetrySrc(imgSrc)
+      retriedRef.current = true
+      if (retrySrc && retrySrc !== imgSrc) {
+        setImgSrc(retrySrc)
+        return
+      }
+    }
+    setFailed(true)
+  }
 
   const isVid = isVideo || (src && (src.includes('.mp4') || src.includes('.webm') || src.includes('profile_id=')))
 
   // Dynamically resolve ratio from natural media metadata at runtime if width/height are not provided
   useEffect(() => {
     if (width && height) return
-    if (!src) return
+    if (!imgSrc) return
 
     if (isVid) {
       const video = document.createElement('video')
-      video.src = src
+      video.src = imgSrc
       video.preload = 'metadata'
       video.onloadedmetadata = () => {
         if (video.videoWidth && video.videoHeight) {
@@ -79,9 +121,9 @@ export function ParallaxImage({
           setDetectedRatio(`${img.naturalWidth}/${img.naturalHeight}`)
         }
       }
-      img.src = src
+      img.src = imgSrc
     }
-  }, [src, width, height, isVid])
+  }, [imgSrc, width, height, isVid])
 
   // Compute ratio string: explicit width/height takes precedence, then dynamic detection, then fallback prop
   const computedRatio =
@@ -192,10 +234,24 @@ export function ParallaxImage({
               filter: grayscale ? 'grayscale(100%)' : undefined,
             }}
           />
+        ) : failed ? (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#EDE8DE]"
+            style={{ color: '#a9a29b' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="font-[Manrope] text-[10px] tracking-[0.1em] uppercase">
+              {label || 'Image unavailable'}
+            </span>
+          </div>
         ) : (
           <img
             ref={imgRef}
-            src={src}
+            src={imgSrc}
             alt={alt}
             className="absolute left-0 w-full object-cover"
             style={{
@@ -205,6 +261,7 @@ export function ParallaxImage({
               filter: grayscale ? 'grayscale(100%)' : undefined,
             }}
             loading="lazy"
+            onError={handleError}
           />
         )}
       </div>

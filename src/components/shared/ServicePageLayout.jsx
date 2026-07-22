@@ -1,17 +1,245 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FOOTER_LINKS } from '@/constants'
 
-// All service pages — used to build per-page nav links
+// All service pages — used to build the "Service" column and the
+// mobile drawer list.
 const ALL_SERVICES = [
   { label: 'Still Images',           route: '/still'         },
   { label: 'Creative Images',        route: '/creative'      },
   { label: 'On-Body Visualization',  route: '/onbody'        },
   { label: 'Creative Animation',     route: '/creative-anim' },
   { label: '360° Animation',         route: '/360'           },
-   { label: 'Classic E-Commerce',    route: '/classic'       },
+  { label: 'Classic E-Commerce',     route: '/classic'       },
+  { label: 'Creative Visuals',      route: '/creative-visuals' },
 ]
+
+// ─── Single desktop nav trigger ("Menu") ───────────────────────────────────
+// Its dropdown panel is built from `groups` below — currently 3 parts
+// (Service / About / Contact). To add a 4th part later, just push another
+// { heading, items } entry into this array; NavMegaMenu sizes columns and
+// renders headings automatically. Mark an item `external: true` to render
+// it as a real <a target="_blank"> instead of a client-side <Link>.
+const SERVICE_GROUP = {
+  heading: 'Service',
+  items: ALL_SERVICES,
+}
+
+const ABOUT_GROUP = {
+  heading: 'About',
+  items: [
+    { label: 'The Vault', route: '/' },
+  ],
+}
+
+const CONTACT_GROUP = {
+  heading: 'Contact',
+  items: [
+    { label: 'Inquiries', route: '/inquire' },
+    ...FOOTER_LINKS.filter((l) => l.external).map((l) => ({
+      label: l.label,
+      route: l.href,
+      external: true,
+    })),
+  ],
+}
+
+const NAV_MENUS = [
+  {
+    id: 'menu',
+    label: 'Menu',
+    groups: [SERVICE_GROUP, ABOUT_GROUP, CONTACT_GROUP],
+  },
+]
+
+const EASE_SMOOTH = [0.16, 1, 0.3, 1]
+
+const PANEL_VARIANTS = {
+  hidden:  { opacity: 0, y: -8, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1 },
+}
+
+const COLUMN_VARIANTS = {
+  hidden:  { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.04 },
+  },
+}
+
+const ITEM_VARIANTS = {
+  hidden:  { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE_SMOOTH } },
+}
+
+/**
+ * NavMegaMenu
+ * Renders one trigger button per entry in `menus`, sharing a single dropdown
+ * panel. Hover-intent opens a menu; moving the mouse to an *adjacent* trigger
+ * while a panel is already open swaps its content with a cross-fade instead
+ * of closing and reopening. Click/tap toggles for touch devices; click-outside
+ * + Escape dismiss. Columns size to their longest line (no wrapping) and each
+ * link is a full-row hover/click target.
+ *
+ * align: 'left' (default) anchors the panel's left edge under the trigger
+ * row; 'right' anchors its right edge instead — use this when the trigger
+ * sits at the end of the nav so the panel opens inward from the right.
+ */
+function NavMegaMenu({ menus, currentPage, align = 'left' }) {
+  const [activeId, setActiveId] = useState(null)
+  const closeTimer = useRef(null)
+  const rootRef = useRef(null)
+
+  const clearCloseTimer = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+
+  const openMenu = (id) => {
+    clearCloseTimer()
+    setActiveId(id)
+  }
+
+  const scheduleClose = () => {
+    clearCloseTimer()
+    closeTimer.current = setTimeout(() => setActiveId(null), 150)
+  }
+
+  // Click-outside + Escape
+  useEffect(() => {
+    if (!activeId) return
+    const onPointerDown = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setActiveId(null)
+    }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setActiveId(null)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [activeId])
+
+  useEffect(() => () => clearCloseTimer(), [])
+
+  const activeMenu = menus.find((m) => m.id === activeId) ?? null
+
+  return (
+    <div ref={rootRef} className="relative flex items-center gap-2" onMouseLeave={scheduleClose}>
+      {menus.map((menu) => {
+        const isOpen = menu.id === activeId
+        return (
+          <button
+            key={menu.id}
+            type="button"
+            onMouseEnter={() => openMenu(menu.id)}
+            onClick={() => setActiveId((v) => (v === menu.id ? null : menu.id))}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+            className={`flex items-center gap-1.5 font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase px-4 py-2 rounded-full transition-all duration-300 ${
+              isOpen
+                ? 'bg-[#121212]/[0.06] text-[#121212]'
+                : 'text-[#444748] hover:text-[#121212]'
+            }`}
+          >
+            {menu.label}
+            <svg
+              width="10"
+              height="6"
+              viewBox="0 0 10 6"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="transition-transform duration-300"
+              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )
+      })}
+
+      {/* Shared panel — stays mounted while any menu is active; only its
+          inner content cross-fades when activeId switches between triggers. */}
+      <AnimatePresence>
+        {activeMenu && (
+          <motion.div
+            variants={PANEL_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ duration: 0.3, ease: EASE_SMOOTH }}
+            onMouseEnter={clearCloseTimer}
+            onMouseLeave={scheduleClose}
+            className={`absolute top-full mt-3 w-max max-w-[90vw] rounded-lg border border-white/40 bg-[#fbf9f1]/95 backdrop-blur-xl shadow-xl p-8 ${
+              align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'
+            }`}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeMenu.id}
+                variants={COLUMN_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                className="grid gap-x-12"
+                style={{ gridTemplateColumns: `repeat(${activeMenu.groups.length}, max-content)` }}
+              >
+                {activeMenu.groups.map((group) => (
+                  <div key={group.heading}>
+                    {/* Skip the column heading when a menu has only one group —
+                        it would just repeat the trigger label above it. */}
+                    {activeMenu.groups.length > 1 && (
+                      <span className="font-label text-[10px] tracking-[0.2em] uppercase text-[#8a8d85] block mb-4 whitespace-nowrap">
+                        {group.heading}
+                      </span>
+                    )}
+                    <div className="flex flex-col gap-1 -mx-3">
+                      {group.items.map((item) => {
+                        const isItemActive = item.route === currentPage
+                        const itemClassName = `font-[Manrope] text-[13px] font-medium flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 -my-0.5 transition-colors duration-200 hover:bg-[#121212]/[0.05] ${
+                          isItemActive ? 'text-[#C5A059]' : 'text-[#121212]/80 hover:text-[#C5A059]'
+                        }`
+                        return (
+                          <motion.div key={item.route} variants={ITEM_VARIANTS}>
+                            {item.external ? (
+                              <a
+                                href={item.route}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setActiveId(null)}
+                                className={itemClassName}
+                              >
+                                {item.label}
+                              </a>
+                            ) : (
+                              <Link
+                                to={item.route}
+                                onClick={() => setActiveId(null)}
+                                className={itemClassName}
+                              >
+                                {isItemActive && <span className="w-1 h-1 shrink-0 rounded-full bg-[#C5A059]" />}
+                                {item.label}
+                              </Link>
+                            )}
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 /**
  * ServicePageLayout
@@ -21,7 +249,8 @@ const ALL_SERVICES = [
  *   children    – page content
  *   title       – <title> tag text
  *   currentPage – route string of the current page (e.g. '/still')
- *                 Used to exclude the current page from the nav links.
+ *                 Used to mark the matching link active in the nav dropdown
+ *                 and mobile drawer.
  *   fullBleed   – when true, removes <main>'s default top padding,
  *                 side padding, and max-width cap (pt-20 only, to clear
  *                 the fixed 80px header). Used by pages that need full
@@ -30,7 +259,6 @@ const ALL_SERVICES = [
 export function ServicePageLayout({ children, title = 'Cinegem Studio', currentPage = '', fullBleed = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const navigate = useNavigate()
 
   useEffect(() => {
     document.title = `${title} — Cinegem Studio`
@@ -54,9 +282,6 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
     }
   }, [menuOpen])
 
-  // Show all service pages except the one we're currently on
-  const navLinks = ALL_SERVICES.filter((s) => s.route !== currentPage)
-
   return (
     <div
       className="min-h-screen text-[#1b1c17] antialiased selection:bg-[#C5A059] selection:text-white"
@@ -70,57 +295,49 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
             : '-translate-y-full opacity-0 pointer-events-none bg-transparent border-white/20'
         }`}
       >
-        <div className="flex justify-between items-center px-6 md:px-20 max-w-[1440px] mx-auto h-20">
-          {/* Logo → back to vault */}
-          <Link
-            to="/"
-            className="font-[Playfair_Display] text-[32px] leading-[40px] tracking-tighter text-[#121212] hover:text-[#C5A059] transition-colors duration-300"
-          >
-            CINEGEM
-          </Link>
+        <div className="grid grid-cols-3 items-center px-6 md:px-20 max-w-[1440px] mx-auto h-20">
+          {/* Left spacer — keeps the logo mathematically centered */}
+          <div aria-hidden="true" />
 
-          {/* Desktop links — other service pages */}
-          <div className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.route}
-                to={link.route}
-                className="font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase text-[#444748] hover:text-[#121212] transition-colors duration-300"
-              >
-                {link.label}
-              </Link>
-            ))}
+          {/* Logo → back to vault, centered */}
+          <div className="flex justify-center">
+            <Link
+              to="/"
+              className="font-[Playfair_Display] text-[32px] leading-[40px] tracking-tighter text-[#121212] hover:text-[#C5A059] transition-colors duration-300"
+            >
+              CINEGEM
+            </Link>
           </div>
 
-          <button
-            onClick={() => navigate('/inquire')}
-            className="hidden lg:block font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase px-6 py-3 bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059] transition-colors duration-300"
-          >
-            Inquire →
-          </button>
+          {/* Right — single "Menu" trigger (desktop) + hamburger (mobile) */}
+          <div className="flex justify-end items-center">
+            <div className="hidden lg:block">
+              <NavMegaMenu menus={NAV_MENUS} currentPage={currentPage} align="right" />
+            </div>
 
-          {/* Mobile hamburger menu button */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="w-8 h-8 lg:hidden z-50 relative focus:outline-none pointer-events-auto cursor-pointer"
-            aria-label="Toggle Navigation Menu"
-          >
-            <span
-              className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
-                menuOpen ? 'top-[16px] rotate-45' : 'top-[10px]'
-              }`}
-            />
-            <span
-              className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
-                menuOpen ? 'opacity-0 top-[16px]' : 'top-[16px]'
-              }`}
-            />
-            <span
-              className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
-                menuOpen ? 'top-[16px] -rotate-45' : 'top-[22px]'
-              }`}
-            />
-          </button>
+            {/* Mobile hamburger menu button */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-8 h-8 lg:hidden z-50 relative focus:outline-none pointer-events-auto cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              <span
+                className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
+                  menuOpen ? 'top-[16px] rotate-45' : 'top-[10px]'
+                }`}
+              />
+              <span
+                className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
+                  menuOpen ? 'opacity-0 top-[16px]' : 'top-[16px]'
+                }`}
+              />
+              <span
+                className={`absolute left-[4px] h-[1.5px] w-6 bg-[#121212] transition-all duration-300 ${
+                  menuOpen ? 'top-[16px] -rotate-45' : 'top-[22px]'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </nav>
 

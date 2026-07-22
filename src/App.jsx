@@ -9,6 +9,7 @@ import Animation360Page        from '@/pages/Animation360Page'
 import InquirePage             from '@/pages/InquirePage'
 import { CustomCursor }        from '@/components/ui/CustomCursor'
 import ClassicEComVisuals from './pages/ClassicEComVisuals'
+import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
  import HeroPage2 from '@/pages/HeroPage2'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/360"            element={<Animation360Page />} />
         <Route path="/inquire"        element={<InquirePage />} />
         <Route path="/classic"        element={<ClassicEComVisuals />} />
+        <Route path="/creative-visuals" element={<CreativeVisualsPage />} />
       </Routes>
     </>
   )
