@@ -448,23 +448,50 @@
   height: 100%;
 }
 
-.glassy-grid-item {
-  position: relative;
-  border-radius: max(8px, 0.625vw);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  height: 100%;
-}
-
-.glassy-grid-item img {
+/* 5-Column Masonry Collage Layout (Matching reference image) */
+.glassy-grid-masonry {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: max(6px, 0.416vw);
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: max(4px, 0.25vw);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.glassy-grid-item:hover img {
-  transform: scale(1.06);
+.glassy-masonry-column {
+  display: flex;
+  flex-direction: column;
+  gap: max(6px, 0.416vw);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.glassy-grid-item {
+  position: relative;
+  border-radius: max(8px, 0.5vw);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #08080a;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.glassy-grid-item img,
+.glassy-grid-item video {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .glassy-item-label {

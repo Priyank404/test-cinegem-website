@@ -27,6 +27,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -303,7 +304,7 @@ export default function HeroPage2() {
   // BeatBackground's imperative handle — RingHero calls onBeatBlendUpdate
   // every scroll-scrubbed frame, we forward it straight through via ref
   // (no state) so the interactive background layer stays in lockstep
-  // with the ring's own beat position without an extra render cycle.
+  // with the ring's own scroll position without an extra render cycle.
   const beatBackgroundRef = useRef(null);
   const sideRaysRef = useRef(null);
   // TimelineEditor's imperative handle — see onScrollDebugUpdate below.
@@ -348,11 +349,7 @@ export default function HeroPage2() {
   // than snapping or CSS-transitioning, same rationale as exploreLinkRef.
   const footerRevealRef = useRef(null);
 
-  // Fixed nav bar — hidden (slid up off-screen) in lockstep with the
-  // footer reveal, using the same footerT progress value, so it moves
-  // up "along with the ring" instead of staying pinned while the ring
-  // and footer animate around it. See the footer-reveal block in
-  // onScrollDebugUpdate below.
+  // Fixed nav header ref — stays visible during scroll, slides up only during footer reveal
   const navRef = useRef(null);
 
   const [coordValues, setCoordValues] = useState({
@@ -1053,40 +1050,358 @@ export default function HeroPage2() {
           >
             <div className="glassy-slide-container">
               <div ref={beat3SlideTrackRef} className="glassy-slide-track">
-                {/* Slide 1: First 2 images */}
+                {/* Slide 1: 5-column masonry collage layout matching reference design */}
                 <div ref={beat3Slide1Ref} className="glassy-slide">
-                  <div className="glassy-grid-2">
-                    <div className="glassy-grid-item">
-                      <img src="/2.png" alt="Diamond cuts" />
+                  <div className="glassy-grid-masonry">
+                    {/* Column 1 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1 }}>
+                        <img
+                          src="/Creative%20visuals/Beauty.png"
+                          alt="Beauty Model Jewellery"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.4 }}>
+                        <img
+                          src="/Creative%20visuals/Figaro-BR-CH-Y-V1.png"
+                          alt="Figaro Bracelet Chain"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
+                        <img
+                          src="/Creative%20visuals/R1-L2-P1-SB-Y-V4.png"
+                          alt="Pave Band Ring"
+                        />
+                      </div>
                     </div>
-                    <div className="glassy-grid-item">
-                      <img src="/4.png" alt="Prong profiles" />
+
+                    {/* Column 2 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.75 }}>
+                        <video
+                          ref={beat3VideoRef}
+                          src="/Creative%20visuals/A6-R3-HQ.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.25 }}>
+                        <img
+                          src="/Creative%20visuals/NB-1%20LO%20R.png"
+                          alt="Ring Render Low Angle"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 3 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.5 }}>
+                        <img
+                          src="/Creative%20visuals/NP-1-YG-LS2-V2.png"
+                          alt="Yellow Gold Pendant"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
+                        <video
+                          src="/Creative%20visuals/B4%20ANimated.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
+                        <img
+                          src="/Creative%20visuals/R4-L2-Y-V4.png"
+                          alt="Gold Ring Studio"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 4 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
+                        <img
+                          src="/Creative%20visuals/R6-L2-Y-V1.png"
+                          alt="Ring Profile"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.65 }}>
+                        <video
+                          src="/Creative%20visuals/KC-A01-TR1%20.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
+                        <img
+                          src="/Creative%20visuals/RG01_Out2_0000.png"
+                          alt="Ring Outdoor Macro"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.95 }}>
+                        <img
+                          src="/Creative%20visuals/RG01-Y-B-V1.png"
+                          alt="Ring Band View"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 5 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.4 }}>
+                        <img
+                          src="/Creative%20visuals/4%20Ring%20Banner%20T4%20HQ_.jpg"
+                          alt="Ring Collection Banner"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.8 }}>
+                        <video
+                          src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Slide 2: Next 2 images */}
+                {/* Slide 2: 5-column masonry collage with shuffled layout rhythm */}
                 <div ref={beat3Slide2Ref} className="glassy-slide">
-                  <div className="glassy-grid-2">
-                    <div className="glassy-grid-item">
-                      <img src="/1.png" alt="Yellow Gold band" />
+                  <div className="glassy-grid-masonry">
+                    {/* Column 1 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
+                        <img
+                          src="/Creative%20visuals/RG01-Y-B-V2.png"
+                          alt="Ring Detail V2"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
+                        <video
+                          src="/Creative%20visuals/360%20Turntable%20black.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.7 }}>
+                        <img
+                          src="/Creative%20visuals/RG01-Y-B-V3.png"
+                          alt="Ring Detail V3"
+                        />
+                      </div>
                     </div>
-                    <div className="glassy-grid-item">
-                      <img src="/3.png" alt="Pave close up" />
+
+                    {/* Column 2 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
+                        <img
+                          src="/Creative%20visuals/RG01-Y-B-V4.png"
+                          alt="Ring Detail V4"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.2 }}>
+                        <img
+                          src="/Band%20Ring%20With%20Enamel%20Marquise-Y-V1.jpg"
+                          alt="Enamel Marquise Band"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 3 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.4 }}>
+                        <img
+                          src="/Creative%20visuals/Ring%202-Color%20BG-V1-R3.png"
+                          alt="Two-Tone Ring"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
+                        <img
+                          src="/Creative%20visuals/Ring%202-Color%20BG-V1-R6.png"
+                          alt="Two-Tone Ring 2"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
+                        <video
+                          src="/Creative%20visuals/M-Video.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 4 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
+                        <img
+                          src="/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png"
+                          alt="Diamond Ring 14Y"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.7 }}>
+                        <img
+                          src="/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png"
+                          alt="Rose Gold Ring"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
+                        <video
+                          src="/Creative%20visuals/Multishot%20Brown.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
+                        <img src="/1.png" alt="Yellow Gold Band Close-up" />
+                      </div>
+                    </div>
+
+                    {/* Column 5 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.45 }}>
+                        <img src="/2.png" alt="Pave Macro" />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.75 }}>
+                        <video
+                          src="/Creative%20visuals/S4.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Slide 3: Video */}
+                {/* Slide 3: 5-column masonry collage variation */}
                 <div ref={beat3Slide3Ref} className="glassy-slide">
-                  <div className="glassy-video-container">
-                    <video
-                      ref={beat3VideoRef}
-                      src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
-                      loop
-                      muted
-                      playsInline
-                    />
+                  <div className="glassy-grid-masonry">
+                    {/* Column 1 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
+                        <img src="/3.png" alt="Prong Profiles" />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
+                        <img src="/4.png" alt="Diamond Cuts" />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
+                        <video
+                          src="/Creative%20visuals/Webptimized.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 2 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.85 }}>
+                        <video
+                          src="/Creative%20visuals/VIDEO.1.128.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.15 }}>
+                        <img
+                          src="/Creative%20visuals/ring.png"
+                          alt="Classic Ring Render"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 3 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 1.5 }}>
+                        <video
+                          src="/Creative%20visuals/FK-A1-Final-HQ.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
+                        <img
+                          src="/Creative%20visuals/Beauty.png"
+                          alt="Beauty Shot"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
+                        <img
+                          src="/Creative%20visuals/Figaro-BR-CH-Y-V1.png"
+                          alt="Figaro Bracelet"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 4 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
+                        <img
+                          src="/Creative%20visuals/R1-L2-P1-SB-Y-V4.png"
+                          alt="Pave Band"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.75 }}>
+                        <video
+                          src="/Creative%20visuals/A6-R3-HQ.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 1.15 }}>
+                        <img
+                          src="/Creative%20visuals/NP-1-YG-LS2-V2.png"
+                          alt="Pendant Render"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
+                        <img
+                          src="/Creative%20visuals/R4-L2-Y-V4.png"
+                          alt="Gold Ring"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Column 5 */}
+                    <div className="glassy-masonry-column">
+                      <div className="glassy-grid-item" style={{ flex: 0.4 }}>
+                        <img
+                          src="/Creative%20visuals/RG01_Out2_0000.png"
+                          alt="Outdoor Macro"
+                        />
+                      </div>
+                      <div className="glassy-grid-item" style={{ flex: 2.8 }}>
+                        <video
+                          src="/Creative%20visuals/ZBZ-A4-Final-HQ.mp4"
+                          loop
+                          muted
+                          autoPlay
+                          playsInline
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1200,8 +1515,7 @@ export default function HeroPage2() {
                     FOOTER_REVEAL_GLOBAL_START_FRAME),
               ),
             );
-            footerRevealRef.current.style.transform =
-              `translateY(${(1 - footerT) * 100}%)`;
+            footerRevealRef.current.style.transform = `translateY(${(1 - footerT) * 100}%)`;
             footerRevealRef.current.style.pointerEvents =
               footerT > 0.5 ? "auto" : "none";
 
@@ -1295,44 +1609,43 @@ export default function HeroPage2() {
         <div className="hero2-footer-inner">
           <div className="hero2-footer-top">
             <div className="hero2-footer-brand">
-              <span className="hero2-logo">Your Name</span>
+              <span className="hero2-logo">Cinegem Studio</span>
               <p>
-                3D visualization and digital craft — turning products into
-                cinematic, interactive experiences on the web.
+                The Art of Digital Craft. Luxury jewellery rendering, 3D visualization, and cinematic animation.
               </p>
-              <a href="#contact" className="hero2-cta-btn">
-                Get in touch →
-              </a>
+              <Link to="/inquire" className="hero2-cta-btn">
+                Inquire →
+              </Link>
             </div>
 
             <div className="hero2-footer-col">
-              <span className="hero2-footer-col-title">Sitemap</span>
-              <a href="#work">Work</a>
-              <a href="#about">About</a>
-              <a href="#contact">Contact</a>
-              <a href="/3d-viewer">3D Viewer</a>
+              <span className="hero2-footer-col-title">Services</span>
+              <Link to="/classic">Classic E-Commerce</Link>
+              <Link to="/creative-visuals">Creative Visuals</Link>
+              <Link to="/onbody">On-Body Visualization</Link>
+              <Link to="/">The Vault</Link>
             </div>
 
             <div className="hero2-footer-col">
               <span className="hero2-footer-col-title">Connect</span>
-              <a href="#" target="_blank" rel="noopener noreferrer">
+              <Link to="/inquire">Inquiries</Link>
+              <a href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg==" target="_blank" rel="noopener noreferrer">
                 Instagram
               </a>
-              <a href="#" target="_blank" rel="noopener noreferrer">
+              <a href="https://www.behance.net/cinegem-studio/projects" target="_blank" rel="noopener noreferrer">
                 Behance
               </a>
-              <a href="#" target="_blank" rel="noopener noreferrer">
-                LinkedIn
-              </a>
-              <a href="mailto:hello@example.com">Email</a>
+              <a href="mailto:hello@cinegemstudio.com">Email</a>
             </div>
           </div>
 
           <div className="hero2-footer-bottom">
             <p className="hero2-footer-copyright">
-              © {new Date().getFullYear()} Your Name. All rights reserved.
+              © {new Date().getFullYear()} Cinegem Studio. All rights reserved.
             </p>
-            <p className="hero2-footer-credit">Built with Three.js &amp; React</p>
+            <p className="hero2-footer-credit">
+              Built with Three.js &amp; React
+            </p>
           </div>
         </div>
       </footer>
@@ -1450,18 +1763,23 @@ export default function HeroPage2() {
         </>
       )}
 
-      {/* Simple fixed nav, sits above the canvas */}
-      <nav ref={navRef} className="hero2-nav">
-        <span className="hero2-logo">Your Name</span>
-        <div className="hero2-nav-links">
-          <a href="#work">Work</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
-        </div>
-        <a href="#contact" className="hero2-cta-btn">
-          Get in touch →
-        </a>
-      </nav>
+      {/* Dedicated minimal header for Hero2: transparent background with centered Logo image, stuck flush to top edge */}
+      <header
+        ref={navRef}
+        className="fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-0 px-6 bg-transparent pointer-events-none transition-all duration-500"
+      >
+        <Link
+          to="/"
+          className="pointer-events-auto inline-block transition-opacity duration-300 hover:opacity-80 focus:outline-none"
+          aria-label="Cinegem Studio — return to top"
+        >
+          <img
+            src="/Logo.png"
+            alt="Cinegem Studio Logo"
+            className="h-28 sm:h-36 md:h-44 lg:h-52 w-auto object-contain filter drop-shadow block -mt-1 sm:-mt-7 md:-mt-14 lg:-mt-17"
+          />
+        </Link>
+      </header>
 
       {/* Tall scrollable content — its height drives the ScrollTrigger
           timeline inside RingHero. Must match id used in
@@ -2378,7 +2696,8 @@ function MaterialDevPanel({
  * HdrConfigGroup
  * -------------------------------------------------------------------------
  * Rotation (X/Y), scale, power, gamma sliders for one HDR (metal or
- * gem) — same 5 controls, same ranges/units as your viewer's dev panel.
+ * gem) — same 5 controls, same ranges/units as your viewer's dev
+ * controls.
  * -------------------------------------------------------------------------
  */
 function HdrConfigGroup({ label, config, setConfig }) {

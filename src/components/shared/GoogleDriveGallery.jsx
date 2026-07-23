@@ -82,13 +82,9 @@ export function useDriveImages(pageKey) {
 
         const mapped = (data.files || []).map((file) => {
           const isVideo = VIDEO_MIMES.has(file.mimeType)
-<<<<<<< HEAD
-          const thumb   = driveThumbnail(file.id, file.mimeType)
-=======
           const thumb   = isVideo
                             ? `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`
                             : driveThumbnail(file.id)
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
           const name    = file.name.replace(/\.[^/.]+$/, '')
 
           return {
@@ -98,20 +94,12 @@ export function useDriveImages(pageKey) {
             // `src` is what ParallaxImage / <video> receives
             src:      isVideo
                         ? driveStreamUrl(file.id)
-<<<<<<< HEAD
-                        : `https://drive.google.com/thumbnail?id=${file.id}&sz=w1200`,
-=======
                         : driveThumbnail(file.id),
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
             thumb,
             // `full` shown in lightbox
             full:     isVideo
                         ? driveStreamUrl(file.id)
-<<<<<<< HEAD
-                        : `https://drive.google.com/thumbnail?id=${file.id}&sz=w1600`,
-=======
                         : `https://lh3.googleusercontent.com/d/${file.id}=w1600`,
->>>>>>> cfbe75f098b7aaba7e6f069f05833d2d50d13018
             alt:      name,
             label:    name,
             driveUrl: `https://drive.google.com/file/d/${file.id}/view`,
