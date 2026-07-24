@@ -145,6 +145,9 @@ export default function HeroPage2() {
       // 3D scene lags/tracks that (now-smooth) scroll position.
     });
 
+    // Scroll to the top immediately on initialization
+    lenis.scrollTo(0, { immediate: true });
+
     // Drive Lenis from GSAP's OWN ticker instead of a separate, competing
     // requestAnimationFrame loop. Two independent rAF loops (one for
     // Lenis, one for gsap.ticker/currentTickerFn in RingHero.jsx) aren't

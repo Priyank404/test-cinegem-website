@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 
 import HomePage                from '@/pages/HomePage'
 import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
@@ -8,9 +9,80 @@ import ClassicEComVisuals      from './pages/ClassicEComVisuals'
 import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
 import HeroPage2               from '@/pages/HeroPage2'
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+  }, [])
+
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    
+    // Save original styles
+    const originalHtmlScrollBehavior = html.style.scrollBehavior
+    const originalBodyScrollBehavior = body ? body.style.scrollBehavior : ''
+
+    // Force scroll-behavior to auto (instant scroll) to bypass smooth scrolling stylesheet rules
+    html.style.setProperty('scroll-behavior', 'auto', 'important')
+    if (body) {
+      body.style.setProperty('scroll-behavior', 'auto', 'important')
+    }
+
+    const resetScroll = () => {
+      window.scrollTo(0, 0)
+      if (body) {
+        body.scrollTop = 0
+        body.scrollLeft = 0
+      }
+      if (html) {
+        html.scrollTop = 0
+        html.scrollLeft = 0
+      }
+    }
+
+    // Scroll immediately
+    resetScroll()
+
+    // Scroll on next animation frame
+    const rafId = requestAnimationFrame(resetScroll)
+
+    // Scroll after a short delay to handle any async rendering/layout updates
+    const timeoutId = setTimeout(() => {
+      resetScroll()
+      
+      // Restore original scroll behaviors
+      if (html) {
+        html.style.scrollBehavior = originalHtmlScrollBehavior
+      }
+      if (body) {
+        body.style.scrollBehavior = originalBodyScrollBehavior
+      }
+    }, 100)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      clearTimeout(timeoutId)
+      
+      if (html) {
+        html.style.scrollBehavior = originalHtmlScrollBehavior
+      }
+      if (body) {
+        body.style.scrollBehavior = originalBodyScrollBehavior
+      }
+    }
+  }, [pathname])
+
+  return null
+}
+
 export default function App() {
   return (
     <>
+      <ScrollToTop />
       <CustomCursor />
       <Routes>
         <Route path="/"                 element={<HomePage />} />

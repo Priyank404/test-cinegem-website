@@ -17,6 +17,9 @@ export function useLenis() {
       smoothWheel: true,
     })
 
+    // Scroll to the top immediately on initialization
+    lenis.scrollTo(0, { immediate: true })
+
     // Sync Lenis RAF with GSAP's ticker for accurate ScrollTrigger updates
     const onRaf = (time) => {
       lenis.raf(time)
