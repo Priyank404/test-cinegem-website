@@ -217,17 +217,41 @@ function NavMegaMenu({ menus, currentPage, align = 'left' }) {
   )
 }
 
-export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = true }) {
-  const [scrolled, setScrolled] = useState(alwaysVisible)
+export function ServiceHeader({ currentPage = '', navRef }) {
+  const [showHeader, setShowHeader] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const lastScrollY = useRef(0)
 
   useEffect(() => {
-    if (alwaysVisible) return
-    setScrolled(window.scrollY > 50)
-    const onScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [alwaysVisible])
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      // Threshold to clear the hero section (roughly viewport height minus header height)
+      const heroHeight = window.innerHeight - 100
+      
+      if (currentScrollY < heroHeight) {
+        // Inside the hero section -> always hide the header
+        setShowHeader(false)
+      } else if (currentScrollY > lastScrollY.current) {
+        // Scrolling down -> hide header
+        setShowHeader(false)
+      } else {
+        // Scrolling up -> show header
+        setShowHeader(true)
+      }
+      
+      lastScrollY.current = currentScrollY
+    }
+
+    // Run initially in case page loaded scrolled down
+    handleScroll()
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [])
 
   useEffect(() => {
     if (menuOpen) {
@@ -246,7 +270,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = true }
       <nav
         ref={navRef}
         className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${
-          scrolled || menuOpen || alwaysVisible
+          showHeader || menuOpen
             ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
             : '-translate-y-full opacity-0 pointer-events-none bg-transparent border-white/20'
         }`}

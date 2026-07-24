@@ -32,7 +32,7 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
       <VantaFogBackground zIndex={0} />
 
       {/* ── Navigation ─────────────────────────────────────────────────── */}
-      <ServiceHeader currentPage={currentPage} alwaysVisible={true} />
+      <ServiceHeader currentPage={currentPage} />
 
       {/* ── Page content ───────────────────────────────────────────────── */}
       <main className={fullBleed ? 'pt-20' : 'pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto'}>
