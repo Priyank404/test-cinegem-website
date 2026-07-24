@@ -32,73 +32,14 @@ import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import RingHero, { BEATS } from "@/components/three/RingHero";
-import BeatBackground from "@/components/three/BeatBackground";
-import SideRaysBeatLayer from "@/components/effects/SideRaysBeatLayer";
-import SideRays from "@/components/effects/SideRays";
-import LightRays from "@/components/effects/LightRays";
-import CenterRays from "@/components/effects/CenterRays";
-
-// ---------------------------------------------------------------------
-// Beat 2 background-effect switch. Flip BEAT2_EFFECT to try a different
-// rays component in the same slot — everything else (beatIndex, the
-// blend-weight crossfade, z-index) stays identical because it all lives
-// in SideRaysBeatLayer, not here. Add a new key to BEAT2_EFFECT_CONFIGS
-// to try something else later.
-// ---------------------------------------------------------------------
-const BEAT2_EFFECT = "lightRays"; // "sideRays" | "lightRays" | "centerRays"
-
-const BEAT2_EFFECT_CONFIGS = {
-  sideRays: {
-    component: SideRays,
-    props: {
-      speed: 5,
-      rayColor1: "#70c41c",
-      rayColor2: "#10B981",
-      intensity: 3,
-      spread: 3,
-      origin: "top-right",
-      tilt: -60,
-      saturation: 1.5,
-      blend: 0.73,
-      falloff: 0.5,
-      opacity: 1,
-    },
-  },
-  lightRays: {
-    component: LightRays,
-    props: {
-      raysOrigin: "top-center",
-      raysColor: "#6cd068",
-      raysSpeed: 1,
-      lightSpread: 3,
-      rayLength: 3,
-      followMouse: true,
-      mouseInfluence: 0.1,
-      noiseAmount: 0,
-      distortion: 0,
-      pulsating: false,
-      fadeDistance: 1,
-      saturation: 1.8,
-    },
-  },
-  centerRays: {
-    component: CenterRays,
-    props: {
-      raysColor: "#6cd068",
-      raysSpeed: 1,
-      rayCount: 12,
-      lightSpread: 1,
-      rayLength: 1.2,
-      followMouse: true,
-      mouseInfluence: 0.15,
-      noiseAmount: 0,
-      distortion: 0,
-      pulsating: false,
-      fadeDistance: 1,
-      saturation: 1.8,
-    },
-  },
-};
+import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
+import VantaFogControlPanel from "@/components/effects/VantaFogControlPanel";
+import {
+  loadBeatFogPresets,
+  saveBeatFogPresets,
+  resetBeatFogPresets,
+  BEAT_FOG_PRESETS,
+} from "@/components/effects/beatFogPresets";
 import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 import TimelineEditor from "@/components/three/TimelineEditor";
@@ -301,12 +242,16 @@ export default function HeroPage2() {
   // hands back once its scroll timeline is set up (see onPoseOverrideReady
   // below). coordPanelVisible/coordValues drive the panel UI itself.
   const poseApiRef = useRef(null);
-  // BeatBackground's imperative handle — RingHero calls onBeatBlendUpdate
-  // every scroll-scrubbed frame, we forward it straight through via ref
-  // (no state) so the interactive background layer stays in lockstep
-  // with the ring's own scroll position without an extra render cycle.
-  const beatBackgroundRef = useRef(null);
-  const sideRaysRef = useRef(null);
+  // RingHero calls onBeatBlendUpdate every scroll-scrubbed frame; we
+  // forward { fromIndex, toIndex, weight } straight through via ref (no
+  // state) so the interactive background layer stays in lockstep with
+  // the ring's own scroll position without an extra render cycle. Drives
+  // a Vanta FOG instance per beat — this is now the only background
+  // layer (the old particle/shader BeatBackground has been removed).
+  const vantaBeatRef = useRef(null);
+  const [beatFogOptions, setBeatFogOptions] = useState(loadBeatFogPresets);
+  const [fogPanelBeat, setFogPanelBeat] = useState(0);
+  const [showFogPanel, setShowFogPanel] = useState(false);
   // TimelineEditor's imperative handle — see onScrollDebugUpdate below.
   const timelineRef = useRef(null);
   const scrollDebounceRef = useRef(null);
@@ -947,22 +892,59 @@ export default function HeroPage2() {
 
   return (
     <div className="hero2-page">
-      {/* Per-beat interactive Three.js background — sits behind the ring
-          canvas but above the plain gradient (see z-index comments in
-          BeatBackground.jsx / RingHero.jsx). Crossfades using the exact
-          blend weight RingHero reports via onBeatBlendUpdate below, so
-          it never drifts from the ring's own scroll position. */}
-      <BeatBackground ref={beatBackgroundRef} />
-
-      {/* React Bits SideRays, pinned as a fixed layer that only fades in
-          during Beat 2 (index 1) — see SideRaysBeatLayer.jsx for how the
-          crossfade weight is derived from onBeatBlendUpdate below. */}
-      <SideRaysBeatLayer
-        ref={sideRaysRef}
-        beatIndex={1}
-        as={BEAT2_EFFECT_CONFIGS[BEAT2_EFFECT].component}
-        {...BEAT2_EFFECT_CONFIGS[BEAT2_EFFECT].props}
+      {/* Per-beat background — Vanta FOG, one preset per beat
+          (beatFogPresets.js). Crossfades using the exact blend weight
+          RingHero reports via onBeatBlendUpdate below, so it never
+          drifts from the ring's own scroll position. (The old particle/
+          shader BeatBackground layer has been removed — this is now the
+          only background layer.) */}
+      <VantaBeatFogBackground
+        ref={vantaBeatRef}
+        beatOptions={beatFogOptions}
+        zIndex={1}
       />
+
+      {/* Dev-only tuning panel for the per-beat Vanta FOG colors/blur/
+          zoom/speed above. Toggle with the small button; "Save as
+          default" persists the whole 5-beat array to localStorage. Strip
+          this block for production if you don't want it shippable. */}
+      <button
+        onClick={() => setShowFogPanel((v) => !v)}
+        style={{
+          position: "fixed",
+          bottom: 16,
+          left: 16,
+          zIndex: 1000,
+          padding: "6px 12px",
+          fontSize: 11,
+          fontFamily: "monospace",
+          background: "#121212",
+          color: "#FAF9F6",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 6,
+          cursor: "pointer",
+        }}
+      >
+        Fog Panel: {showFogPanel ? "On" : "Off"}
+      </button>
+      {showFogPanel && (
+        <VantaFogControlPanel
+          beatIndex={fogPanelBeat}
+          onBeatIndexChange={setFogPanelBeat}
+          beatCount={beatFogOptions.length}
+          options={beatFogOptions[fogPanelBeat]}
+          onChange={(next) =>
+            setBeatFogOptions((all) =>
+              all.map((o, i) => (i === fogPanelBeat ? next : o)),
+            )
+          }
+          onSaveAsDefault={() => saveBeatFogPresets(beatFogOptions)}
+          onResetToShipped={() => {
+            resetBeatFogPresets();
+            setBeatFogOptions(BEAT_FOG_PRESETS);
+          }}
+        />
+      )}
 
       {/* Live scroll/beat readout integrated inside the Animation Timeline */}
 
@@ -1465,8 +1447,7 @@ export default function HeroPage2() {
           refreshSavedBeats();
         }}
         onBeatBlendUpdate={(blend) => {
-          beatBackgroundRef.current?.setBlend(blend);
-          sideRaysRef.current?.setBlend(blend);
+          vantaBeatRef.current?.setBlend(blend);
         }}
         onScrollDebugUpdate={(info) => {
           if (timelineRef.current) {
@@ -1611,7 +1592,8 @@ export default function HeroPage2() {
             <div className="hero2-footer-brand">
               <span className="hero2-logo">Cinegem Studio</span>
               <p>
-                The Art of Digital Craft. Luxury jewellery rendering, 3D visualization, and cinematic animation.
+                The Art of Digital Craft. Luxury jewellery rendering, 3D
+                visualization, and cinematic animation.
               </p>
               <Link to="/inquire" className="hero2-cta-btn">
                 Inquire →
@@ -1629,10 +1611,18 @@ export default function HeroPage2() {
             <div className="hero2-footer-col">
               <span className="hero2-footer-col-title">Connect</span>
               <Link to="/inquire">Inquiries</Link>
-              <a href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg==" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Instagram
               </a>
-              <a href="https://www.behance.net/cinegem-studio/projects" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://www.behance.net/cinegem-studio/projects"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Behance
               </a>
               <a href="mailto:hello@cinegemstudio.com">Email</a>

@@ -316,8 +316,4 @@ export default function OnBodyVisualizationPage() {
       </div>
     </ServicePageLayout>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> ca5f56b2beb03c621ff592f8f95fd4933ac75cfe

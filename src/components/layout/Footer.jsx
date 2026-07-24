@@ -1,60 +1,136 @@
-import { FOOTER_LINKS } from '@/constants'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function Footer() {
-  const year = new Date().getFullYear()
+  const footerRef = useRef(null)
+  const [footerHeight, setFooterHeight] = useState(0)
+
+  useEffect(() => {
+    if (!footerRef.current) return
+
+    // Update height on mount and resize
+    const updateHeight = () => {
+      if (footerRef.current) {
+        setFooterHeight(footerRef.current.offsetHeight)
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(updateHeight)
+    resizeObserver.observe(footerRef.current)
+
+    // Scroll handler for reveal translation
+    const handleScroll = () => {
+      if (!footerRef.current) return
+      
+      const docHeight = document.documentElement.scrollHeight
+      const winHeight = window.innerHeight
+      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      const scrollRemaining = docHeight - winHeight - scrollTop
+
+      const height = footerRef.current.offsetHeight || 200
+      // Extend the scroll range to 1.3x footer height so the reveal is more gradual
+      const triggerRange = height * 1.3
+      
+      // Calculate progress: 0 (footer hidden) to 1 (footer fully revealed)
+      const progress = Math.min(1, Math.max(0, 1 - (scrollRemaining / triggerRange)))
+      
+      footerRef.current.style.transform = `translateY(${(1 - progress) * 100}%)`
+      footerRef.current.style.pointerEvents = progress > 0.5 ? 'auto' : 'none'
+    }
+
+    // Initial triggers
+    updateHeight()
+    handleScroll()
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [])
 
   return (
-    <footer
-      className="relative z-10 border-t border-outline-variant/30 bg-surface"
-      role="contentinfo"
-    >
-      {/* Gold gradient rule */}
-      <div
-        className="h-px w-full bg-gradient-to-r from-transparent via-champagne-gold/60 to-transparent"
-        aria-hidden="true"
+    <>
+      {/* Spacer that pushes the content up by the height of the footer */}
+      <div 
+        className="hero2-footer-spacer" 
+        style={{ 
+          height: `${footerHeight}px`,
+          width: '100%',
+          pointerEvents: 'none'
+        }} 
       />
 
-      <div className="max-w-container mx-auto px-6 md:px-[--spacing-margin-desktop] py-16 md:py-20">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
+      {/* The actual reveal footer container */}
+      <footer 
+        ref={footerRef}
+        className="hero2-static-footer"
+        style={{ 
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 10,
+          transform: 'translateY(100%)',
+          pointerEvents: 'none',
+          transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
+        <div className="hero2-footer-inner">
+          <div className="hero2-footer-top">
+            <div className="hero2-footer-brand">
+              <span className="hero2-logo">Cinegem Studio</span>
+              <p>
+                The Art of Digital Craft. Luxury jewellery rendering, 3D
+                visualization, and cinematic animation.
+              </p>
+              <Link to="/inquire" className="hero2-cta-btn">
+                Inquire →
+              </Link>
+            </div>
 
-          {/* Brand */}
-          <div className="flex flex-col gap-3">
-            <span className="font-display text-2xl tracking-[-0.04em] text-charcoal-deep">
-              CINEGEM
-            </span>
-            <p className="font-body text-body-md text-on-surface-variant max-w-xs leading-relaxed">
-              The Art of Digital Craft. Luxury rendering for the world's finest maisons.
-            </p>
+            <div className="hero2-footer-col">
+              <span className="hero2-footer-col-title">Services</span>
+              <Link to="/classic">Classic E-Commerce</Link>
+              <Link to="/creative-visuals">Creative Visuals</Link>
+              <Link to="/onbody">On-Body Visualization</Link>
+              <Link to="/">The Vault</Link>
+            </div>
+
+            <div className="hero2-footer-col">
+              <span className="hero2-footer-col-title">Connect</span>
+              <Link to="/inquire">Inquiries</Link>
+              <a
+                href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Instagram
+              </a>
+              <a
+                href="https://www.behance.net/cinegem-studio/projects"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Behance
+              </a>
+              <a href="mailto:hello@cinegemstudio.com">Email</a>
+            </div>
           </div>
 
-          {/* Footer nav */}
-          <nav className="flex flex-wrap gap-8" aria-label="Footer navigation">
-            {FOOTER_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="font-label text-label-caps text-on-surface-variant hover:text-champagne-gold transition-colors duration-300"
-                {...(link.external
-                  ? { target: '_blank', rel: 'noopener noreferrer' }
-                  : {}
-                )}
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+          <div className="hero2-footer-bottom">
+            <p className="hero2-footer-copyright">
+              © {new Date().getFullYear()} Cinegem Studio. All rights reserved.
+            </p>
+            <p className="hero2-footer-credit">
+              Built with Three.js &amp; React
+            </p>
+          </div>
         </div>
-
-        {/* Bottom row */}
-        <div className="mt-12 pt-8 border-t border-outline-variant/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <p className="font-label text-label-caps text-on-surface-variant/60">
-            © {year} Cinegem Studio. All Rights Reserved.
-          </p>
-          <p className="font-label text-label-caps text-on-surface-variant/40">
-            The Sound of Craft™
-          </p>
-        </div>
-      </div>
-    </footer>
+      </footer>
+    </>
   )
 }
