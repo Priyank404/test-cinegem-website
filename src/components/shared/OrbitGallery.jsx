@@ -57,27 +57,37 @@ export function OrbitGallery({ images = [], className = '', onImageClick }) {
     return () => ctx.revert()
   }, [images])
 
-  // Split images into groups of 5 for the row pattern cycle
+  // Split images into groups for the row pattern cycle, cycling through
+  // the available images (repeating from the start) so every row is always
+  // fully populated instead of leaving blank cells when there aren't
+  // enough images to complete the last row(s) of a cycle.
   const rows = []
-  let i = 0
-  let rowIndex = 0
-  while (i < images.length) {
-    const pattern = rowIndex % 5
-    let take = 0
-    if (pattern === 0) take = 2      // Row A: big | small
-    else if (pattern === 1) take = 1 // Row B: solo wide
-    else if (pattern === 2) take = 2 // Row C: small | big
-    else if (pattern === 3) take = 3 // Row D: trio
-    else if (pattern === 4) take = 2 // Row E: big | small+small (treated as 2+)
-    rows.push({ pattern, imgs: images.slice(i, i + Math.min(take, images.length - i)), startIdx: i })
-    i += take
-    rowIndex++
+  if (images.length > 0) {
+    let i = 0
+    let rowIndex = 0
+    const totalSlots = Math.max(images.length, 10)
+    while (i < totalSlots) {
+      const pattern = rowIndex % 5
+      let take = 0
+      if (pattern === 0) take = 2      // Row A: big | small
+      else if (pattern === 1) take = 1 // Row B: solo wide
+      else if (pattern === 2) take = 2 // Row C: small | big
+      else if (pattern === 3) take = 3 // Row D: trio
+      else if (pattern === 4) take = 2 // Row E: big | small+small (treated as 2+)
+      const imgs = []
+      for (let k = 0; k < take; k++) {
+        imgs.push(images[(i + k) % images.length])
+      }
+      rows.push({ pattern, imgs, startIdx: i % images.length })
+      i += take
+      rowIndex++
+    }
   }
 
   return (
     <section
       ref={containerRef}
-      className={`flex flex-col gap-10 md:gap-16 ${className}`}
+      className={`flex flex-col gap-3 md:gap-4 ${className}`}
     >
       {rows.map((row, ri) => (
         <OrbitRow key={ri} row={row} rowIndex={ri} onImageClick={onImageClick} />
