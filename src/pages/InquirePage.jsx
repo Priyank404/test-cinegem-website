@@ -5,6 +5,7 @@ import { gsap } from 'gsap'
 import { BackToVault } from '@/components/shared/BackToVault'
 import { INQUIRE_CONFIG } from '@/constants/inquire'
 import { Footer } from '@/components/layout/Footer'
+import VantaFogBackground from '@/components/effects/VantaFogBackground'
 
 export default function InquirePage() {
   const containerRef = useRef(null)
@@ -126,8 +127,10 @@ export default function InquirePage() {
   return (
     <div
       className="min-h-screen text-[#1b1c17] antialiased selection:bg-[#C5A059] selection:text-white flex flex-col"
-      style={{ background: 'radial-gradient(circle at 50% 0%, #FAF9F6 0%, #E5DACE 100%)' }}
+      style={{ background: '#FAF9F6' }}
     >
+      {/* Vanta Fog Background */}
+      <VantaFogBackground zIndex={0} />
       <div className="grain-overlay" aria-hidden="true" />
       
       <div

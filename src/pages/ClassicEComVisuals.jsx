@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
-import Silk from "@/components/three/Silk";
+
 import HeroSection from "@/components/sections/HeroSection";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -441,7 +441,7 @@ export default function ClassicEComVisuals({
   eyebrow = "Product Showcase",
 }) {
   const containerRef = useRef(null);
-  const [silkOn, setSilkOn] = useState(true);
+
 
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:
@@ -518,28 +518,7 @@ export default function ClassicEComVisuals({
           background instead of just behind the content — i.e. fully
           hidden. z-0 + the content wrapper's z-10 is enough to order
           them correctly without that trap. */}
-      {silkOn && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
 
-          <Silk speed={10} scale={1} color="#633c3c" noiseIntensity={2} rotation={0} />
-
-        </div>
-      )}
-
-      {/* Silk on/off toggle */}
-      <button
-        onClick={() => setSilkOn((v) => !v)}
-        className="
-          fixed bottom-6 right-6 z-50
-          font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase
-          px-4 py-2.5
-          bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059]
-          border border-white/10 shadow-lg
-          transition-colors duration-300
-        "
-      >
-        Silk: {silkOn ? "On" : "Off"}
-      </button>
 
       {/* Cinematic scroll-zoom hero — entirely self-contained (own GSAP
           context/ScrollTrigger, own cleanup) in HeroSection.jsx. Kept

@@ -16,7 +16,7 @@
   import HeroSection from "@/components/sections/HeroSection";
   import { LightboxModal } from "@/components/shared/LightboxModal";
   import { useLightbox } from "@/hooks/useLightbox";
-  import Silk from "@/components/three/Silk";
+
 
   // Tracks the true, scrollbar-safe viewport width (document.documentElement
   // .clientWidth excludes the scrollbar; 100vw does not — that mismatch is
@@ -375,7 +375,7 @@
 
   export default function CreativeVisualsPage() {
     const { activeIndex, openAt, close, prev, next } = useLightbox(mediaItems);
-    const [silkOn, setSilkOn] = useState(true);
+
 
     return (
       <ServicePageLayout title="Creative Visuals" currentPage="/creative-visuals" fullBleed>
@@ -384,26 +384,7 @@
             never intercepts clicks/scroll. z-0 (not a negative z-index) so
             it paints above ServicePageLayout's own root gradient but below
             this page's z-10 content wrapper. */}
-        {silkOn && (
-          <div className="fixed inset-0 z-0 pointer-events-none">
-            <Silk speed={10} scale={1} color="#633c3c" noiseIntensity={2} rotation={0} />
-          </div>
-        )}
 
-        {/* Silk on/off toggle */}
-        <button
-          onClick={() => setSilkOn((v) => !v)}
-          className="
-            fixed bottom-6 right-6 z-50
-            font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase
-            px-4 py-2.5
-            bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059]
-            border border-white/10 shadow-lg
-            transition-colors duration-300
-          "
-        >
-          Silk: {silkOn ? "On" : "Off"}
-        </button>
 
         {/* Nav bar + cinematic hero, same treatment as Classic E-Commerce */}
         <HeroSection
