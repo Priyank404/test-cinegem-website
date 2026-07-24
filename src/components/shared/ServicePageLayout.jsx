@@ -285,7 +285,11 @@ export function ServicePageLayout({ children, title = 'Cinegem Studio', currentP
   return (
     <div
       className="min-h-screen text-[#1b1c17] antialiased selection:bg-[#C5A059] selection:text-white"
-      style={{ background: 'radial-gradient(circle at 50% 0%, #FAF9F6 0%, #E5DACE 100%)' }}
+      style={
+        fullBleed
+          ? { background: '#121212' }
+          : { background: 'radial-gradient(circle at 50% 0%, #FAF9F6 0%, #E5DACE 100%)' }
+      }
     >
       {/* ── Navigation ─────────────────────────────────────────────────── */}
       <nav
