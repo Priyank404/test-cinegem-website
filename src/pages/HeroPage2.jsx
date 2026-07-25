@@ -1636,9 +1636,6 @@ export default function HeroPage2() {
             <p className="hero2-footer-copyright">
               © {new Date().getFullYear()} Cinegem Studio. All rights reserved.
             </p>
-            <p className="hero2-footer-credit">
-              Built with Three.js &amp; React
-            </p>
           </div>
         </div>
       </footer>

@@ -79,7 +79,7 @@ export function normalizeFogOptions(options = {}) {
 }
 
 // Vanta wants colors as 0xRRGGBB numbers, not CSS hex strings.
-function toVantaColor(value) {
+export function toVantaColor(value) {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
     return parseInt(value.replace("#", ""), 16);

@@ -244,7 +244,7 @@ export function ParallaxImage({
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
             </svg>
-            <span className="font-[Manrope] text-[10px] tracking-[0.1em] uppercase">
+            <span className="font-[Poppins] text-[10px] tracking-[0.1em] uppercase font-light">
               {label || 'Image unavailable'}
             </span>
           </div>
@@ -271,7 +271,7 @@ export function ParallaxImage({
         <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
           <span
             ref={labelRef}
-            className="font-[Manrope] text-[11px] md:text-[12px] tracking-[0.18em] font-semibold uppercase text-[#FAF9F6]"
+            className="font-[Poppins] text-[11px] md:text-[12px] tracking-[0.18em] font-light uppercase text-[#FAF9F6]"
             style={{ display: 'block', opacity: 0, transform: 'translateY(14px)' }}
           >
             {label}

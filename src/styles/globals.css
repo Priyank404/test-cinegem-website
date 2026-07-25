@@ -3,6 +3,141 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   Poppins Font Utility Classes
+   ───────────────────────────────────────────────────────────────────────────── */
+.poppins-thin {
+  font-family: "Poppins", sans-serif;
+  font-weight: 100;
+  font-style: normal;
+}
+
+.poppins-extralight {
+  font-family: "Poppins", sans-serif;
+  font-weight: 200;
+  font-style: normal;
+}
+
+.poppins-light {
+  font-family: "Poppins", sans-serif;
+  font-weight: 300;
+  font-style: normal;
+}
+
+.poppins-regular {
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.poppins-medium {
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.poppins-semibold {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.poppins-bold {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.poppins-extrabold {
+  font-family: "Poppins", sans-serif;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.poppins-black {
+  font-family: "Poppins", sans-serif;
+  font-weight: 900;
+  font-style: normal;
+}
+
+.poppins-thin-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 100;
+  font-style: italic;
+}
+
+.poppins-extralight-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 200;
+  font-style: italic;
+}
+
+.poppins-light-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 300;
+  font-style: italic;
+}
+
+.poppins-regular-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.poppins-medium-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.poppins-semibold-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.poppins-bold-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.poppins-extrabold-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 800;
+  font-style: italic;
+}
+
+.poppins-black-italic {
+  font-family: "Poppins", sans-serif;
+  font-weight: 900;
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global Font Rules
+   Headers / Big text = Poppins Semibold 600
+   Small / Body text = Poppins Light 300
+   ───────────────────────────────────────────────────────────────────────────── */
+html, body {
+  font-family: "Poppins", sans-serif !important;
+  font-weight: 300;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-display,
+.font-headline,
+[class*="title"],
+[class*="header"],
+[class*="heading"] {
+  font-family: "Poppins", sans-serif !important;
+  font-weight: 600 !important;
+}
+
+p, span, div, li, a, label, button, input, textarea {
+  font-family: "Poppins", sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    Base reset & CSS variables
    ───────────────────────────────────────────────────────────────────────────── */
 @layer base {
@@ -618,7 +753,7 @@ html.lenis {
 
 .vault-card__label-text {
   display: block;
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 6.5px;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -633,7 +768,7 @@ html.lenis {
   position: absolute;
   top: 10px;
   left: 12px;
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 8px;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -688,7 +823,7 @@ html.lenis {
 
 /* Sound control button */
 .sound-toggle-btn {
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.22em;
@@ -778,7 +913,7 @@ html.lenis {
 
 /* Premium central text behind cards */
 .hero-center-backdrop {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Poppins', sans-serif;
   font-size: clamp(38px, 6vw, 68px);
   font-weight: 400;
   letter-spacing: 0.18em;
@@ -851,7 +986,7 @@ html.lenis {
   font-size: 18px;
   letter-spacing: 0.02em;
   color: #ffffff;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .hero2-static-footer .hero2-cta-btn {
@@ -887,14 +1022,15 @@ html.lenis {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);
   margin-bottom: 4px;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .hero2-static-footer .hero2-footer-col a {
   color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   font-size: 14px;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 300;
   transition: color 0.2s ease;
 }
 
@@ -913,12 +1049,14 @@ html.lenis {
 }
 
 .hero2-static-footer .hero2-footer-copyright,
-.hero2-static-footer .hero2-footer-credit {
+.hero2-static-footer .hero2-footer-credit,
+.hero2-static-footer .hero2-footer-brand p {
   margin: 0;
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
   white-space: nowrap;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 300;
 }
 
 @media (max-width: 640px) {

@@ -28,8 +28,10 @@ export function Footer() {
       const scrollRemaining = docHeight - winHeight - scrollTop
 
       const height = footerRef.current.offsetHeight || 200
-      // Extend the scroll range to 1.3x footer height so the reveal is more gradual
-      const triggerRange = height * 1.3
+      // On mobile view (< 768px), start the footer reveal animation ONLY after
+      // the end of page content (when scrollRemaining is within the footer spacer).
+      const isMobile = window.innerWidth < 768
+      const triggerRange = isMobile ? height * 0.85 : height * 1.3
       
       // Calculate progress: 0 (footer hidden) to 1 (footer fully revealed)
       const progress = Math.min(1, Math.max(0, 1 - (scrollRemaining / triggerRange)))
@@ -124,9 +126,6 @@ export function Footer() {
           <div className="hero2-footer-bottom">
             <p className="hero2-footer-copyright">
               © {new Date().getFullYear()} Cinegem Studio. All rights reserved.
-            </p>
-            <p className="hero2-footer-credit">
-              Built with Three.js &amp; React
             </p>
           </div>
         </div>

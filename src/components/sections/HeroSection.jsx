@@ -152,7 +152,7 @@ export default function HeroSection({
           itemAs="div"
           open={true}
           splitBy="lines"
-          className="font-[Playfair_Display] text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5"
+          className="font-[Poppins] font-semibold text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5"
         >
           {heading}
         </TrailText>
@@ -163,7 +163,7 @@ export default function HeroSection({
           open={true}
           splitBy="words"
           delay={300}
-          className="font-[Manrope] text-white/80 text-sm sm:text-base leading-relaxed max-w-md"
+          className="font-[Poppins] font-light text-white/80 text-sm sm:text-base leading-relaxed max-w-md"
         >
           {paragraph}
         </TrailText>

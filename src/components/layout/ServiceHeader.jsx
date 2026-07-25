@@ -117,7 +117,7 @@ function NavMegaMenu({ menus, currentPage, align = 'left' }) {
             onClick={() => setActiveId((v) => (v === menu.id ? null : menu.id))}
             aria-expanded={isOpen}
             aria-haspopup="true"
-            className={`flex items-center gap-1.5 font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase px-4 py-2 rounded-full transition-all duration-300 ${
+            className={`flex items-center gap-1.5 font-[Poppins] text-[12px] tracking-[0.15em] font-light uppercase px-4 py-2 rounded-full transition-all duration-300 ${
               isOpen
                 ? 'bg-[#121212]/[0.06] text-[#121212]'
                 : 'text-[#444748] hover:text-[#121212]'
@@ -170,14 +170,14 @@ function NavMegaMenu({ menus, currentPage, align = 'left' }) {
                 {activeMenu.groups.map((group) => (
                   <div key={group.heading} className="flex flex-col gap-3 min-w-[120px]">
                     {group.heading && (
-                      <span className="text-[#C5A059] font-[Manrope] text-[10px] tracking-[0.25em] uppercase font-bold block mb-1">
+                      <span className="text-[#C5A059] font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1">
                         {group.heading}
                       </span>
                     )}
                     <div className="flex flex-col gap-1 -mx-3">
                       {group.items.map((item) => {
                         const isItemActive = item.route === currentPage
-                        const itemClassName = `font-[Manrope] text-[13px] font-medium flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 -my-0.5 transition-colors duration-200 hover:bg-[#121212]/[0.05] ${
+                        const itemClassName = `font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 -my-0.5 transition-colors duration-200 hover:bg-[#121212]/[0.05] ${
                           isItemActive ? 'text-[#C5A059]' : 'text-[#121212]/80 hover:text-[#C5A059]'
                         }`
                         return (
@@ -283,7 +283,7 @@ export function ServiceHeader({ currentPage = '', navRef }) {
           <div className="flex justify-center">
             <Link
               to="/"
-              className="font-[Playfair_Display] text-[32px] leading-[40px] tracking-tighter text-[#121212] hover:text-[#C5A059] transition-colors duration-300"
+              className="font-[Poppins] font-semibold text-[32px] leading-[40px] tracking-tighter text-[#121212] hover:text-[#C5A059] transition-colors duration-300"
             >
               CINEGEM
             </Link>
@@ -332,7 +332,7 @@ export function ServiceHeader({ currentPage = '', navRef }) {
             className="fixed inset-0 z-40 bg-[#fbf9f1]/98 backdrop-blur-xl lg:hidden flex flex-col justify-center px-8"
           >
             <div className="flex flex-col gap-6 max-w-sm mx-auto w-full">
-              <span className="text-[#C5A059] font-[Manrope] text-[9px] tracking-[0.3em] uppercase block mb-1 font-semibold">
+              <span className="text-[#C5A059] font-[Poppins] text-[9px] tracking-[0.3em] uppercase block mb-1 font-light">
                 EXPLORE VAULT SERVICES
               </span>
 
@@ -348,8 +348,8 @@ export function ServiceHeader({ currentPage = '', navRef }) {
                     <Link
                       to={link.route}
                       onClick={() => setMenuOpen(false)}
-                      className={`font-[Playfair_Display] text-2xl tracking-wide flex items-center gap-3 transition-colors duration-300 ${
-                        isActive ? 'text-[#C5A059] font-medium' : 'text-[#121212] hover:text-[#C5A059]'
+                      className={`font-[Poppins] font-semibold text-2xl tracking-wide flex items-center gap-3 transition-colors duration-300 ${
+                        isActive ? 'text-[#C5A059]' : 'text-[#121212] hover:text-[#C5A059]'
                       }`}
                     >
                       {isActive && (
@@ -377,7 +377,7 @@ export function ServiceHeader({ currentPage = '', navRef }) {
                 <Link
                   to="/"
                   onClick={() => setMenuOpen(false)}
-                  className="font-[Manrope] text-[10px] tracking-[0.2em] uppercase text-[#444748] hover:text-[#121212]"
+                  className="font-[Poppins] text-[10px] tracking-[0.2em] uppercase text-[#444748] hover:text-[#121212] font-light"
                 >
                   ← BACK TO THE VAULT
                 </Link>

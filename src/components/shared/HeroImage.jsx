@@ -30,7 +30,7 @@ export function HeroImage({ src, alt = "", chips = [], title, subtitle }) {
             {chips.map((chip, i) => (
               <span key={chip} className="flex items-center gap-4">
                 {i > 0 && <div className="w-1 h-1 bg-[#121212] rounded-full" />}
-                <span className="font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase text-[#121212]">
+                <span className="font-[Poppins] text-[12px] tracking-[0.15em] font-light uppercase text-[#121212]">
                   {chip}
                 </span>
               </span>
@@ -42,11 +42,11 @@ export function HeroImage({ src, alt = "", chips = [], title, subtitle }) {
         {title && (
           <div className="absolute bottom-8 left-8 z-20 mix-blend-difference text-white">
             {subtitle && (
-              <p className="font-[Manrope] text-[12px] tracking-[0.15em] font-semibold uppercase mb-2 opacity-80">
+              <p className="font-[Poppins] text-[12px] tracking-[0.15em] font-light uppercase mb-2 opacity-80">
                 {subtitle}
               </p>
             )}
-            <h2 className="font-[Playfair_Display] text-[32px] leading-[40px]">
+            <h2 className="font-[Poppins] font-semibold text-[32px] leading-[40px]">
               {title}
             </h2>
           </div>

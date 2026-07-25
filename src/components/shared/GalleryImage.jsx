@@ -33,7 +33,7 @@ export function GalleryImage({
       />
       {label && (
         <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-8">
-          <span className="font-[Manrope] text-[12px] leading-[16px] tracking-[0.15em] font-semibold uppercase text-[#FAF9F6]">
+          <span className="font-[Poppins] text-[12px] leading-[16px] tracking-[0.15em] font-light uppercase text-[#FAF9F6]">
             {label}
           </span>
         </div>

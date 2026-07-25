@@ -53,7 +53,7 @@ function ImageTile({ img, className = "" }) {
       <span
         className="
           absolute bottom-2 left-2
-          font-[Manrope] text-[9px] tracking-[0.15em] font-semibold uppercase
+          font-[Poppins] text-[9px] tracking-[0.15em] font-light uppercase
           px-2 py-1 bg-white/80 text-[#444748]
         "
       >
@@ -394,7 +394,7 @@ function Section3({ images, videoSrc }) {
   const [hero, img2, img3, img4] = images;
 
   return (
-    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-16 pb-24 md:py-24">
       <div className="w-full max-w-[1800px] mx-auto">
         {/* MOBILE / TABLET (<lg) — same main-preview container/arrows
             as before (ScrollArrow, same styling), just without the

@@ -113,10 +113,10 @@ export function LightboxModal({ images = [], activeIndex, onClose, onPrev, onNex
       }}>
         {/* Counter */}
         <span style={{
-          fontFamily: 'Manrope, sans-serif',
+          fontFamily: 'Poppins, sans-serif',
           fontSize: '11px',
           letterSpacing: '0.18em',
-          fontWeight: 600,
+          fontWeight: 300,
           textTransform: 'uppercase',
           color: 'rgba(250,249,246,0.40)',
         }}>
@@ -283,10 +283,10 @@ export function LightboxModal({ images = [], activeIndex, onClose, onPrev, onNex
           textAlign: 'center',
         }}>
           <span style={{
-            fontFamily: 'Manrope, sans-serif',
+            fontFamily: 'Poppins, sans-serif',
             fontSize: '10px',
             letterSpacing: '0.18em',
-            fontWeight: 600,
+            fontWeight: 300,
             textTransform: 'uppercase',
             color: 'rgba(250,249,246,0.38)',
           }}>

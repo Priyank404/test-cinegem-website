@@ -7,7 +7,7 @@
   position: relative;
   width: 100%;
   color: #fff;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Poppins", sans-serif;
   /* White custom cursor — browsers can't recolor the native OS cursor
      via CSS, only swap the icon, so this is an inline SVG arrow drawn
      in white with a thin dark outline for contrast against the black
@@ -169,6 +169,8 @@
   color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
   line-height: 1.6;
+  font-family: "Poppins", sans-serif;
+  font-weight: 300;
 }
 
 .hero2-footer-col {
@@ -185,12 +187,15 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);
   margin-bottom: 4px;
+  font-family: "Poppins", sans-serif;
 }
 
 .hero2-footer-col a {
   color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 300;
 }
 
 .hero2-footer-col a:hover {
@@ -213,6 +218,8 @@
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
   white-space: nowrap;
+  font-family: "Poppins", sans-serif;
+  font-weight: 300;
 }
 
 @media (max-width: 640px) {

@@ -13,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger)
 /* ── Tag pill ─────────────────────────────────────────────────────────────── */
 function TagPill({ label }) {
   return (
-    <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase px-4 py-2 border border-[#c4c7c7] text-[#444748]">
+    <span className="font-[Poppins] text-[11px] tracking-[0.15em] font-light uppercase px-4 py-2 border border-[#c4c7c7] text-[#444748]">
       {label}
     </span>
   )
@@ -23,10 +23,10 @@ function TagPill({ label }) {
 function StatCard({ value, label }) {
   return (
     <div className="flex flex-col gap-2 py-8 px-6 border-t border-[#c4c7c7]/50">
-      <span className="font-[Playfair_Display] text-[36px] md:text-[48px] leading-none text-[#121212]">
+      <span className="font-[Poppins] font-semibold text-[36px] md:text-[48px] leading-none text-[#121212]">
         {value}
       </span>
-      <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase text-[#444748]">
+      <span className="font-[Poppins] text-[11px] tracking-[0.15em] font-light uppercase text-[#444748]">
         {label}
       </span>
     </div>
@@ -223,7 +223,7 @@ export default function CreativeImagesPage() {
 
           <h1
             ref={headingRef}
-            className="font-[Playfair_Display] text-[40px] md:text-[80px] leading-[44px] md:leading-[86px] tracking-[-0.03em] text-[#121212]"
+            className="font-[Poppins] font-semibold text-[40px] md:text-[80px] leading-[44px] md:leading-[86px] tracking-[-0.03em] text-[#121212]"
             style={{ opacity: 0 }}
           >
             Creative<br />Images.
@@ -231,7 +231,7 @@ export default function CreativeImagesPage() {
 
           <p
             ref={subtextRef}
-            className="font-[Manrope] text-[15px] md:text-[18px] leading-[24px] md:leading-[30px] text-[#555] max-w-md"
+            className="font-[Poppins] font-light text-[15px] md:text-[18px] leading-[24px] md:leading-[30px] text-[#555] max-w-md"
             style={{ opacity: 0 }}
           >
             Editorial-grade CGI compositions that blur the boundary between craft and art —
@@ -273,7 +273,7 @@ export default function CreativeImagesPage() {
             {['Editorial', 'CGI'].map((chip, i) => (
               <span key={chip} className="flex items-center gap-3">
                 {i > 0 && <div className="w-1 h-1 bg-[#121212] rounded-full" />}
-                <span className="font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase text-[#121212]">
+                <span className="font-[Poppins] text-[11px] tracking-[0.15em] font-light uppercase text-[#121212]">
                   {chip}
                 </span>
               </span>
@@ -284,10 +284,10 @@ export default function CreativeImagesPage() {
 
       {/* ── Section title ───────────────────────────────────────────────── */}
       <div className="mb-16 md:mb-24 flex items-end justify-between gap-8">
-        <h2 className="reveal font-[Playfair_Display] text-[28px] md:text-[52px] leading-[34px] md:leading-[60px] tracking-[-0.02em] text-[#121212] max-w-lg">
+        <h2 className="reveal font-[Poppins] font-semibold text-[28px] md:text-[52px] leading-[34px] md:leading-[60px] tracking-[-0.02em] text-[#121212] max-w-lg">
           The Edit
         </h2>
-        <p className="reveal hidden md:block font-[Manrope] text-[13px] leading-[20px] text-[#888] max-w-xs text-right">
+        <p className="reveal hidden md:block font-[Poppins] font-light text-[13px] leading-[20px] text-[#888] max-w-xs text-right">
           Each image is a fully art-directed CGI composite — no studio,
           no photographer. Pure creative vision rendered at 4K and above.
         </p>
@@ -305,16 +305,16 @@ export default function CreativeImagesPage() {
 
       {error && (
         <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
-          <p className="font-[Manrope] text-[13px] text-[#c0392b] font-semibold mb-2">
+          <p className="font-[Poppins] text-[13px] text-[#c0392b] font-light mb-2">
             Could not load images
           </p>
-          <p className="font-[Manrope] text-[12px] text-[#888]">{error}</p>
+          <p className="font-[Poppins] text-[12px] text-[#888] font-light">{error}</p>
         </div>
       )}
 
       {!loading && !error && driveImages.length === 0 && (
         <div className="mb-40 py-16 text-center border border-[#c4c7c7]/40">
-          <p className="font-[Manrope] text-[13px] text-[#888]">
+          <p className="font-[Poppins] text-[13px] text-[#888] font-light">
             No images yet — upload photos to your Google Drive folder and they'll appear here automatically.
           </p>
         </div>

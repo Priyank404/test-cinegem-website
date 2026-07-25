@@ -69,7 +69,7 @@ export function StillImagesGrid({ images = [], className = '' }) {
                 />
                 
                 {/* Clean typographical metadata panel */}
-                <p className="font-[Manrope] text-[10px] md:text-[11px] text-[#747878] tracking-[0.1em] uppercase mt-[10px] m-0">
+                <p className="font-[Poppins] text-[10px] md:text-[11px] text-[#747878] tracking-[0.1em] uppercase mt-[10px] m-0 font-light">
                   {currentPerspective.jp} / {currentPerspective.en}
                 </p>
               </div>

@@ -42,7 +42,8 @@ export function Navigation() {
             animate="visible"
             onClick={(e) => handleNavClick(e, '#vault')}
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 600,
               fontSize: '32px',
               lineHeight: '40px',
               letterSpacing: '-0.04em',

@@ -1,35 +1,10 @@
 /**
  * VantaBeatFogBackground.jsx
  * -------------------------------------------------------------------------
- * Same idea as your existing BeatBackground.jsx (two stacked canvases,
- * crossfaded by opacity, driven by RingHero's onBeatBlendUpdate weight)
- * but rendering Vanta FOG instead of a plain THREE.Scene per beat.
- *
- * Drop this in HeroPage2 EXACTLY where BeatBackground currently sits (or
- * alongside it, on a lower zIndex, if you want to keep both layers), and
- * forward the same setBlend({ fromIndex, toIndex, weight }) calls that
- * RingHero already emits.
- *
- * Give it one FOG options object per beat via `beatOptions` — index 0 is
- * Beat 1, index 1 is Beat 2, etc. Each beat can have totally independent
- * colors/blur/speed/zoom.
- *
- * HeroPage2.jsx usage:
- *
- *   import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
- *   import { BEAT_FOG_PRESETS } from "@/components/effects/beatFogPresets";
- *
- *   const vantaBeatRef = useRef(null);
- *   // ...inside the same onBeatBlendUpdate callback you already pass to
- *   // beatBackgroundRef, also call:
- *   vantaBeatRef.current?.setBlend({ fromIndex, toIndex, weight });
- *
- *   <VantaBeatFogBackground ref={vantaBeatRef} beatOptions={BEAT_FOG_PRESETS} zIndex={1} />
- *
- * NOTE ON COST: this runs up to two live Vanta/THREE WebGL contexts at
- * once (same tradeoff your BeatBackground already makes with two
- * renderers). Fine on desktop; consider dropping to a single non-
- * crossfaded VantaFogBackground on low-end/mobile if you see jank.
+ * Single-canvas Vanta FOG background layer for HeroPage2.
+ * Renders ONLY ONE Vanta Fog WebGL instance and smoothly transitions
+ * colors (and numeric fog parameters) across all 5 beats as the user scrolls,
+ * driven by RingHero's onBeatBlendUpdate callback.
  * -------------------------------------------------------------------------
  */
 
@@ -46,25 +21,56 @@ if (typeof window !== "undefined") {
 import FOG from "vanta/src/vanta.fog";
 
 const vantaFog = typeof FOG === "function" ? FOG : FOG.default;
-import { DEFAULT_FOG_OPTIONS, normalizeFogOptions } from "./VantaFogBackground";
+import {
+  DEFAULT_FOG_OPTIONS,
+  normalizeFogOptions,
+  toVantaColor,
+} from "./VantaFogBackground";
 
+function lerp(a, b, w) {
+  return a + (b - a) * w;
+}
+
+function lerpColor(c1, c2, w) {
+  const num1 = toVantaColor(c1 ?? 0x000000);
+  const num2 = toVantaColor(c2 ?? 0x000000);
+  const col1 = new THREE.Color(num1);
+  const col2 = new THREE.Color(num2);
+  col1.lerp(col2, w);
+  return col1.getHex();
+}
+
+function getInterpolatedFogOptions(fromRaw = {}, toRaw = {}, weight = 0) {
+  const from = { ...DEFAULT_FOG_OPTIONS, ...normalizeFogOptions(fromRaw) };
+  const to = { ...DEFAULT_FOG_OPTIONS, ...normalizeFogOptions(toRaw) };
+  const w = Math.max(0, Math.min(1, weight));
+
+  return {
+    ...from,
+    highlightColor: lerpColor(from.highlightColor, to.highlightColor, w),
+    midtoneColor: lerpColor(from.midtoneColor, to.midtoneColor, w),
+    lowlightColor: lerpColor(from.lowlightColor, to.lowlightColor, w),
+    baseColor: lerpColor(from.baseColor, to.baseColor, w),
+    blurFactor: lerp(from.blurFactor ?? 0.6, to.blurFactor ?? 0.6, w),
+    speed: lerp(from.speed ?? 1.0, to.speed ?? 1.0, w),
+    zoom: lerp(from.zoom ?? 0.6, to.zoom ?? 0.6, w),
+  };
+}
 
 const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
   { beatOptions = [], zIndex = 1 },
   ref,
 ) {
-  const fromContainerRef = useRef(null);
-  const toContainerRef = useRef(null);
-  const fromEffectRef = useRef(null);
-  const toEffectRef = useRef(null);
-  const appliedRef = useRef({ from: -1, to: -1 });
+  const containerRef = useRef(null);
+  const effectRef = useRef(null);
   const blendRef = useRef({ fromIndex: 0, toIndex: 0, weight: 0 });
+  const beatOptionsRef = useRef(beatOptions);
   const rafRef = useRef(0);
+  const lastStateKeyRef = useRef("");
 
+  beatOptionsRef.current = beatOptions;
 
-  // Same imperative shape as BeatBackground's ref API — RingHero's
-  // callback doesn't need to know which background layer(s) it's
-  // feeding, it just calls setBlend() on whichever refs are mounted.
+  // Imperative handle for RingHero's setBlend API
   useImperativeHandle(ref, () => ({
     setBlend(next) {
       blendRef.current = next;
@@ -72,83 +78,65 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
   }));
 
   useEffect(() => {
-    const fromEl = fromContainerRef.current;
-    const toEl = toContainerRef.current;
-    if (!fromEl || !toEl) return;
+    const el = containerRef.current;
+    if (!el) return;
 
-    function optionsForBeat(index) {
-      const safeIndex = Math.max(0, Math.min(index, beatOptions.length - 1));
-      const {
-        hoverEffect,
-        hoverColor,
-        hoverIntensity,
-        hoverRadius,
-        ...vantaOnly
-      } = beatOptions[safeIndex] || {};
-      return {
-        ...DEFAULT_FOG_OPTIONS,
-        ...normalizeFogOptions(vantaOnly),
-      };
-    }
+    // Initial options based on beat 0
+    const initialOpts = getInterpolatedFogOptions(
+      beatOptionsRef.current[0],
+      beatOptionsRef.current[0],
+      0,
+    );
 
-
-
-    function ensureEffect(effectRef, el, index) {
-      const opts = optionsForBeat(index);
-      if (!effectRef.current) {
-        effectRef.current = vantaFog({ el, THREE, ...opts });
-      } else {
-        effectRef.current.setOptions(opts);
-      }
-    }
+    effectRef.current = vantaFog({
+      el,
+      THREE,
+      ...initialOpts,
+    });
 
     function tick() {
       rafRef.current = requestAnimationFrame(tick);
+      if (!effectRef.current) return;
+
       const { fromIndex, toIndex, weight } = blendRef.current;
+      const optsArray = beatOptionsRef.current;
 
-      if (appliedRef.current.from !== fromIndex) {
-        ensureEffect(fromEffectRef, fromEl, fromIndex);
-        appliedRef.current.from = fromIndex;
+      const safeFromIndex = Math.max(0, Math.min(fromIndex, optsArray.length - 1));
+      const safeToIndex = Math.max(0, Math.min(toIndex, optsArray.length - 1));
 
-      }
-      if (appliedRef.current.to !== toIndex) {
-        ensureEffect(toEffectRef, toEl, toIndex);
-        appliedRef.current.to = toIndex;
-      }
+      const stateKey = `${safeFromIndex}_${safeToIndex}_${weight.toFixed(4)}_${optsArray.length}`;
+      if (stateKey === lastStateKeyRef.current) return;
+      lastStateKeyRef.current = stateKey;
 
-      // Same crossfade rule as BeatBackground: "from" fades out as
-      // weight goes 0->1, "to" fades in, and idle (fromIndex===toIndex)
-      // just shows "from" at full opacity with no flicker.
-      fromEl.style.opacity = String(1 - weight);
-      toEl.style.opacity = String(fromIndex === toIndex ? 0 : weight);
+      const fromOpts = optsArray[safeFromIndex] || {};
+      const toOpts = optsArray[safeToIndex] || {};
+
+      const interpolated = getInterpolatedFogOptions(fromOpts, toOpts, weight);
+      effectRef.current.setOptions(interpolated);
     }
+
     tick();
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      fromEffectRef.current?.destroy();
-      toEffectRef.current?.destroy();
-      fromEffectRef.current = null;
-      toEffectRef.current = null;
-      appliedRef.current = { from: -1, to: -1 };
+      effectRef.current?.destroy();
+      effectRef.current = null;
+      lastStateKeyRef.current = "";
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [beatOptions]);
-
-  const layerStyle = {
-    position: "fixed",
-    inset: 0,
-    zIndex,
-    width: "100vw",
-    height: "100vh",
-    pointerEvents: "none",
-  };
+  }, []);
 
   return (
-    <>
-      <div ref={fromContainerRef} style={layerStyle} />
-      <div ref={toContainerRef} style={layerStyle} />
-    </>
+    <div
+      ref={containerRef}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex,
+        width: "100vw",
+        height: "100vh",
+        pointerEvents: "none",
+      }}
+    />
   );
 });
 

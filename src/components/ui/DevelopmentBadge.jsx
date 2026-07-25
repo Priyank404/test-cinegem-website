@@ -22,8 +22,8 @@ export function DevelopmentBadge() {
         
         {/* Main "UNDER DEVELOPMENT" heading */}
         <h2 
-          style={{ fontFamily: "'Playfair Display', serif" }}
-          className="text-xl md:text-3xl font-light tracking-[0.2em] uppercase text-[#FAF9F6] leading-none"
+          style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600 }}
+          className="text-xl md:text-3xl tracking-[0.2em] uppercase text-[#FAF9F6] leading-none"
         >
           We Are Under Development
         </h2>
@@ -33,8 +33,8 @@ export function DevelopmentBadge() {
 
         {/* Cinematic brand subtext */}
         <p 
-          style={{ fontFamily: 'Manrope, sans-serif' }}
-          className="text-[9px] md:text-[10px] font-medium tracking-[0.25em] uppercase text-[#C5A059]"
+          style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 300 }}
+          className="text-[9px] md:text-[10px] tracking-[0.25em] uppercase text-[#C5A059]"
         >
           Cinegem Studio 
         </p>
