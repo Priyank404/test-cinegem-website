@@ -98,17 +98,11 @@
    only within its own frame range by HeroPage2. */
 .hero2-explore-link {
   position: fixed;
-  left: 50%;
-  bottom: 64px;
+  right: max(24px, 6vw);
+  left: auto;
+  top: 50%;
   z-index: 8;
-  transform: translate(-50%, 10px);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  white-space: nowrap;
+  transform: translateY(calc(-50% + 20px));
   opacity: 0;
   pointer-events: none;
   transition:
@@ -119,11 +113,19 @@
 .hero2-explore-link.is-visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, 0);
+  transform: translateY(-50%);
 }
 
-.hero2-explore-link:hover {
-  color: rgba(255, 255, 255, 0.75);
+@media (max-width: 640px) {
+  .hero2-explore-link {
+    right: 5%;
+    left: 5%;
+    top: 50%;
+    transform: translateY(calc(-50% + 20px));
+  }
+  .hero2-explore-link.is-visible {
+    transform: translateY(-50%);
+  }
 }
 
 /* Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME

@@ -52,6 +52,7 @@ import {
   EffectComposer,
   RenderPass,
   EffectPass,
+  Effect,
   SMAAEffect,
   BloomEffect,
   ToneMappingEffect,
@@ -60,6 +61,19 @@ import {
   VignetteEffect,
   DepthOfFieldEffect,
 } from "postprocessing";
+
+class PremultiplyAlphaEffect extends Effect {
+  constructor() {
+    super(
+      "PremultiplyAlphaEffect",
+      /* glsl */ `
+        void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+          outputColor = vec4(inputColor.rgb * inputColor.a, inputColor.a);
+        }
+      `
+    );
+  }
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -219,7 +233,7 @@ export default function RingHero({
   gemHdrScale = 100,
   gemHdrPower = 100,
   gemHdrGamma = 100,
-  postFxEnabled = true,
+  postFxEnabled = false,
   // Cursor-follow depth-of-field — raycasts under the pointer against the
   // ring; whatever the ray hits stays in focus, rest defocuses by
   // distance. Off by default since a hero-scale single ring benefits less
@@ -506,6 +520,7 @@ export default function RingHero({
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     // When post-processing is on, ToneMappingEffect in the composer does
     // ACES instead (double tone-mapping would wash things out) — so only
@@ -516,42 +531,25 @@ export default function RingHero({
     renderer.toneMappingExposure = 1.1;
 
     // Post-processing — vanilla `postprocessing` port of
-    // components/JewelryPostFX.jsx (that one is @react-three/postprocessing,
-    // R3F-only, so it can't be dropped into this vanilla-Three component
-    // directly). Same effect stack: SMAA, mipmap Bloom, ACES Filmic tone
-    // mapping, film grain, vignette. This whole block was previously
-    // completely absent — the postFxEnabled dev-panel checkbox existed in
-    // HeroPage2 but RingHero didn't even accept the prop, let alone build
-    // a composer, so toggling it did nothing.
+    // components/JewelryPostFX.jsx. Uses WebGL2 multisampling (MSAA) for crisp
+    // geometry anti-aliasing without SMAA's transparent-background edge fringe.
     let composer = null;
     let dofEffect = null;
     function buildComposer() {
-      composer = new EffectComposer(renderer);
+      composer = new EffectComposer(renderer, { multisampling: 4 });
       composer.addPass(new RenderPass(scene, camera));
 
-      const effects = [new SMAAEffect()];
+      const effects = [];
 
       if (cursorDofEnabled) {
         // Placeholder focus point/distance — overwritten every frame by
         // the raycast in the ticker below, once the ring has loaded.
-        // bokehScale/focalLength here are much gentler than the original
-        // peachweb-style defaults (bokehScale 3.0, focalLength 0.05) —
-        // those were tuned for a wide scene with real depth spread across
-        // many objects. On a single ring filling most of the frame at a
-        // close camera distance, those same values produced a near-pinhole
-        // in-focus circle with everything else slammed out of focus.
         dofEffect = new DepthOfFieldEffect(camera, {
           focusDistance: 0.02,
           focalLength: dofFocalLength,
           bokehScale: dofBokehScale,
-          // Wider circle-of-confusion resolution reduces the "chunky"
-          // blur look you'd otherwise get at close range on a small object.
           resolutionScale: 1.0,
         });
-        // Start fully neutral (no blur at all) until the user clicks —
-        // see the activation gate below. Setting bokehScale to 0 up front
-        // means the very first rendered frame is already sharp, instead
-        // of flashing blurred-then-sharp on activation.
         dofEffect.bokehScale = 0;
         effects.push(dofEffect);
       }
@@ -559,13 +557,14 @@ export default function RingHero({
       effects.push(
         new BloomEffect({
           mipmapBlur: true,
-          intensity: 0.18,
-          luminanceThreshold: 0.9,
-          luminanceSmoothing: 0.22,
+          intensity: 0.12,
+          luminanceThreshold: 0.95,
+          luminanceSmoothing: 0.1,
         }),
         new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }),
         new NoiseEffect({ premultiply: true }),
         new VignetteEffect({ eskil: false, offset: 0.15, darkness: 0.55 }),
+        new PremultiplyAlphaEffect()
       );
       // Noise effect's opacity/blend intensity is a per-effect blendMode
       // property, not a constructor option, in the vanilla API. Index

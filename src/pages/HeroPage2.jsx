@@ -219,7 +219,7 @@ export default function HeroPage2() {
   const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_HDR_CONFIG);
   const [gemHdrConfig, setGemHdrConfig] = useState(DEFAULT_HDR_CONFIG);
 
-  const [postFxEnabled, setPostFxEnabled] = useState(true);
+  const [postFxEnabled, setPostFxEnabled] = useState(false);
   const [panelVisible, setPanelVisible] = useState(true);
   // Independent from panelVisible — hides/shows the bottom "3D Animation
   // Timeline & Channel Box" bar (TimelineEditor) without touching the
@@ -1012,8 +1012,11 @@ export default function HeroPage2() {
               top: `${layoutConfig.titleTop}%`,
               width: pxToClampVw(layoutConfig.titleWidth, 200),
             }}
-            subtitle="Details"
-            title="Grounded in the details"
+            subtitle="01 — PRODUCT SHOWCASE"
+            title="Classic E-Commerce Visuals"
+            description="High-fidelity 360° product photography, macro detail grids, and studio lighting tailored for luxury jewellery collections."
+            href="/classic"
+            linkText="EXPLORE →"
           />
         </div>
 
@@ -1399,19 +1402,40 @@ export default function HeroPage2() {
               top: `${beat3LayoutConfig.titleTop}%`,
               width: pxToClampVw(layoutConfig.titleWidth, 200),
             }}
-            subtitle="Precision"
-            title="Seen from every angle"
+            subtitle="02 — CREATIVE CINEMATICS"
+            title="Creative Visuals"
+            description="Cinematic animations, dynamic lighting studies, and stylized visual storytelling that elevates your brand identity."
+            href="/creative-visuals"
+            linkText="EXPLORE →"
           />
         </div>
 
-        {/* Beat 4 Layout (Emerging / Fullscreen Box) */}
-        <div ref={beat4OverlayRef} className="beat4-box-overlay">
+        {/* Beat 4 Layout (Emerging / Fullscreen Box for On-Body Visuals) */}
+        <Link
+          to="/onbody"
+          ref={beat4OverlayRef}
+          className="beat4-box-overlay group cursor-pointer block text-decoration-none relative overflow-hidden"
+        >
           <img
             src="/Gemini_Generated_Image_udnfihudnfihudnf.png"
-            alt="Jellyfish underwater"
-            className="beat4-media"
+            alt="On-Body Visualization Showcase"
+            className="beat4-media group-hover:scale-105 transition-transform duration-700"
           />
-        </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
+            <span className="text-[#C5A059] font-label text-[10px] tracking-[0.3em] uppercase font-semibold block mb-2">
+              03 — ON-BODY VISUALIZATION
+            </span>
+            <h2 className="font-[Poppins] font-semibold text-2xl sm:text-4xl md:text-5xl text-[#FCFBFA] mb-2 leading-tight">
+              On-Body Visuals
+            </h2>
+            <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-5 leading-relaxed">
+              Realistic digital human integration and high-contrast skin tone interaction showcasing jewellery scale, fit, and elegance.
+            </p>
+            <div className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit">
+              EXPLORE →
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* Fixed 3D background — canvas + gradient overlay, pinned behind
@@ -1564,19 +1588,29 @@ export default function HeroPage2() {
         }}
       />
 
-      {/* "Explore 3D Viewer" text link — visible only during the tail of
-          Beat 5 (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME above and the
-          onScrollDebugUpdate callback that toggles is-visible every
-          tick). Fixed so it stays put on screen like the ring canvas
-          behind it, rather than scrolling with the page. */}
-      <a
+      {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
+      <div
         ref={exploreLinkRef}
-        href="/3d-viewer"
         className="hero2-explore-link"
-        aria-label="Explore 3D Viewer"
       >
-        Explore 3D Viewer →
-      </a>
+        <Link
+          to="/3d-viewer"
+          className="glassy-card p-6 md:p-8 border border-white/20 bg-black/60 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col gap-3 max-w-md text-decoration-none text-left pointer-events-auto block hover:border-[#C5A059]/60 transition-colors"
+        >
+          <span className="text-[#C5A059] font-label text-[10px] tracking-[0.25em] uppercase font-semibold block">
+            04 — 3D INTERACTIVE ENGINE
+          </span>
+          <h2 className="font-[Poppins] font-semibold text-2xl md:text-3xl text-[#FCFBFA] tracking-tight leading-tight m-0">
+            Interactive 3D Viewer
+          </h2>
+          <p className="font-[Poppins] font-light text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 whitespace-normal">
+            Real-time WebGL customizer with dynamic metal switching, diamond refraction, and interactive raycasting controls. Launching soon.
+          </p>
+          <div className="btn-primary inline-flex items-center gap-2 py-2.5 px-5 text-[11px] font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit mt-1">
+            EXPLORE →
+          </div>
+        </Link>
+      </div>
 
       {/* Footer reveal panel — fixed to the bottom of the viewport,
           starts translated fully offscreen (translateY 100%) and slides

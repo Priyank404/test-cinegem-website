@@ -21,10 +21,10 @@ const section1Images = [
 ];
 
 const section2Images = [
-  { src: "/5.png", alt: "Front view", label: "Front" },
-  { src: "/6.png", alt: "Side view", label: "Side" },
-  { src: "/7.png", alt: "Angle view", label: "Angle" },
-  { src: "/8.png", alt: "Detail view", label: "Detail" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Front view", label: "Front" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Side view", label: "Side" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Angle view", label: "Angle" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Detail view", label: "Detail" },
 ];
 
 const section3Images = [
@@ -435,7 +435,7 @@ function Section3({ images, videoSrc }) {
 
 export default function ClassicEComVisuals({
   videoSrc1 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
-  videoSrc2 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
+  videoSrc2 = "/E-com Visuals/solitaire-high-polish-yellow-marquise-video.mp4",
   videoSrc3 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
   title = "Classic E-Commerce Visuals",
   eyebrow = "Product Showcase",
