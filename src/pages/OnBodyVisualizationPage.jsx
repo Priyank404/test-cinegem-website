@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
+import Silk from "@/components/three/Silk";
 import HeroSection from "@/components/sections/HeroSection";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -22,14 +23,20 @@ const galleryImages = [
   { src: "4.png", alt: "On-body visualization" },
   { src: "5.jpg", alt: "On-body visualization" },
   { src: "6.jpg", alt: "On-body visualization" },
-    { src: "7.jpg", alt: "On-body visualization" },
-      { src: "cinegem jewellery.png", alt: "On-body visualization" },
-
-     { src: "Band Ring With Enamel Marquise-Y-V1.jpg", alt: "On-body visualization" },
-  { src: "G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png", alt: "On-body visualization" },
-      { src: "Gemini_Generated_Image_udnfihudnfihudnf.png", alt: "On-body visualization" },
-
-
+  { src: "7.jpg", alt: "On-body visualization" },
+  { src: "cinegem jewellery.png", alt: "On-body visualization" },
+  {
+    src: "Band Ring With Enamel Marquise-Y-V1.jpg",
+    alt: "On-body visualization",
+  },
+  {
+    src: "G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
+    alt: "On-body visualization",
+  },
+  {
+    src: "Gemini_Generated_Image_udnfihudnfihudnf.png",
+    alt: "On-body visualization",
+  },
 ];
 
 const GAP = 16; // px, both between tiles in a row and between rows
@@ -57,12 +64,16 @@ function useAspectRatios(images) {
       img.onload = () => {
         if (cancelled) return;
         setRatios((prev) =>
-          prev[src] ? prev : { ...prev, [src]: img.naturalWidth / img.naturalHeight }
+          prev[src]
+            ? prev
+            : { ...prev, [src]: img.naturalWidth / img.naturalHeight },
         );
       };
       img.onerror = () => {
         if (cancelled) return;
-        setRatios((prev) => (prev[src] ? prev : { ...prev, [src]: FALLBACK_AR }));
+        setRatios((prev) =>
+          prev[src] ? prev : { ...prev, [src]: FALLBACK_AR },
+        );
       };
       img.src = src;
     });
@@ -82,10 +93,13 @@ function arOf(img, ratios) {
 
 /* ═══════════════════════════════════════════════════════════════════════
    CONTAINER WIDTH
-   The one measurement that isn't intrinsic to an image: how much
-   horizontal space each row actually has to fill. Tracked live via
-   ResizeObserver so the whole gallery re-flows on window resize —
-   no breakpoint classes, no fixed column counts anywhere.
+   Row sizing below is computed entirely in JS from the gallery's own
+   real content width (tracked live via ResizeObserver). Doing the math
+   in JS — instead of leaning on CSS `aspect-ratio` + `flex-grow`
+   together — sidesteps real cross-browser inconsistencies in how that
+   combination resolves on some mobile browsers (this is what was
+   causing single, tall images to render narrower than the full
+   container width).
 ═══════════════════════════════════════════════════════════════════════ */
 
 function useContainerWidth(ref) {
@@ -108,127 +122,188 @@ function useContainerWidth(ref) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   JUSTIFIED ROW LAYOUT
-   Classic Flickr/Google-Photos-style algorithm:
-     1. Pick a target row height.
-     2. Walk the images left to right, summing each one's width AT that
-        target height (width = aspectRatio × targetHeight).
-     3. Once the running total would overflow the container, close the
-        row and scale every image in it — proportionally, by the same
-        factor — so the row's total width lands exactly on the
-        container width. That scaling is what produces the final pixel
-        width AND height for each tile; no aspect ratio is ever
-        distorted, since every image in the row is scaled uniformly.
-     4. The trailing row (if it doesn't fill the container on its own)
-        is left at the target height instead of being stretched, so a
-        couple of leftover images don't get blown up to fill the line.
-
-   There is no fixed column count or fixed column width anywhere — each
-   tile's width falls out purely of its own image's aspect ratio at the
-   current container width, which is exactly "size everything from the
-   image dimensions" rather than a grid with a configured column size.
-═══════════════════════════════════════════════════════════════════════ */
-
-function targetRowHeightFor(containerWidth) {
-  // A gentle, continuous function of available width — taller rows on
-  // wide viewports, shorter on narrow ones — rather than a stepped set
-  // of breakpoint-specific column counts.
-  return Math.max(260, Math.min(660, containerWidth * 0.26));
-}
-
-function layoutJustifiedRows(images, ratios, containerWidth, gap) {
-  if (!containerWidth || !images.length) return [];
-
-  const targetHeight = targetRowHeightFor(containerWidth);
-  const rows = [];
-  let current = [];
-  let widthAtTarget = 0;
-
-  images.forEach((img) => {
-    const ar = arOf(img, ratios);
-    const imgWidthAtTarget = ar * targetHeight;
-    const gapsSoFar = current.length * gap;
-
-    if (current.length && widthAtTarget + imgWidthAtTarget + gapsSoFar > containerWidth) {
-      rows.push({ items: current, widthAtTarget });
-      current = [];
-      widthAtTarget = 0;
-    }
-
-    current.push(img);
-    widthAtTarget += imgWidthAtTarget;
-  });
-
-  if (current.length) rows.push({ items: current, widthAtTarget });
-
-  return rows.map((row, rowIndex) => {
-    const isLastRow = rowIndex === rows.length - 1;
-    const gapTotal = (row.items.length - 1) * gap;
-    const availableWidth = containerWidth - gapTotal;
-    const naturalWidth = row.widthAtTarget;
-
-    // Only stretch a row to fill the full width if it's either not the
-    // last row, or it was already close to full width on its own —
-    // this stops a lone leftover image from being scaled up huge.
-    const shouldStretch = !isLastRow || naturalWidth / containerWidth > 0.65;
-    const scale = shouldStretch ? availableWidth / naturalWidth : 1;
-    const rowHeight = targetHeight * scale;
-
-    return {
-      height: rowHeight,
-      tiles: row.items.map((img) => ({
-        img,
-        width: arOf(img, ratios) * rowHeight,
-        height: rowHeight,
-      })),
-    };
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
    PRIMITIVES
+
+   Row: a horizontal strip of 1–3 images, sized purely in JS.
+
+   Every image's pixel width is computed as:
+       width_i = availableWidth × (AR_i ÷ ΣAR)
+   That formula sums to exactly `availableWidth` by construction, no
+   matter what each image's own aspect ratio is — which is what
+   guarantees every row (including a lone single-image row) is always
+   the FULL container width, on every breakpoint.
+
+   The row's height is that same math's natural result — width ÷ AR is
+   identical for every image in the row by construction, so every
+   tile's box exactly equals that image's real aspect ratio: the image
+   fills its grid container completely on both axes, with zero
+   cropping and zero leftover space, on mobile, tablet, AND desktop.
 ═══════════════════════════════════════════════════════════════════════ */
+
+function layoutRow(items, ratios, containerWidth, gap) {
+  const slots = items.filter(Boolean);
+  if (!slots.length || !containerWidth) return null;
+
+  const ars = slots.map((img) => arOf(img, ratios));
+  const sumAR = ars.reduce((sum, ar) => sum + ar, 0);
+  const gapTotal = (slots.length - 1) * gap;
+  const availableWidth = Math.max(containerWidth - gapTotal, 0);
+
+  const height = availableWidth / sumAR;
+
+  return {
+    height,
+    tiles: slots.map((img, i) => ({
+      img,
+      // Always the image's proportional share of the FULL available
+      // width, so widths always sum to exactly `availableWidth`. No
+      // dead space, ever.
+      width: availableWidth * (ars[i] / sumAR),
+    })),
+  };
+}
 
 function Tile({ img, width, height }) {
   return (
     <div
       className="
-        reveal-right
-        relative overflow-hidden bg-[#FAF9F6] shrink-0
+        reveal-right shrink-0
+        relative overflow-hidden bg-[#FAF9F6]
         border border-[#c4c7c7]/40 gallery-shadow
         hover:-translate-y-1 transition-transform duration-300
       "
       style={{ width, height }}
     >
-      {/* Width and height are computed in JS from the image's own
-          natural aspect ratio (see layoutJustifiedRows above), so
-          object-cover here is just a safety net for sub-pixel
-          rounding — nothing is ever visibly cropped. */}
+      {/* The box's width÷height always matches this image's own real
+          aspect ratio exactly (see layoutRow above), so object-contain
+          and object-cover render identically here — nothing is ever
+          cropped, and the image fills the box completely. */}
       <img
         src={img.src}
         alt={img.alt}
         loading="lazy"
         decoding="async"
-        className="block w-full h-full object-cover object-center"
+        className="block w-full h-full object-contain object-center"
         style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
       />
     </div>
   );
 }
 
+function Row({ items, ratios, containerWidth }) {
+  const row = layoutRow(items, ratios, containerWidth, GAP);
+  if (!row) return null;
+
+  return (
+    <div className="flex" style={{ gap: GAP, height: row.height }}>
+      {row.tiles.map(({ img, width }, i) => (
+        <Tile
+          key={`${img.src}-${i}`}
+          img={img}
+          width={width}
+          height={row.height}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* Splits `images` into groups of `size`, in order, with no wrapping —
+   the last group just gets whatever images are left over. */
+function chunk(images, size) {
+  const chunks = [];
+  for (let i = 0; i < images.length; i += size) {
+    chunks.push(images.slice(i, i + size));
+  }
+  return chunks;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
-   ON-BODY GALLERY
-   Every tile's width and height comes directly from the image's real
-   dimensions plus the current container width — recalculated live on
-   resize. There is no column-count or column-width configuration
-   anywhere.
+   ON-BODY GALLERY — bento layout matched to the reference mock:
+     • Mobile  (< 768px)      — 6 images/block: single, single,
+                                 side-by-side pair, single, single
+     • Tablet  (768–1023px)   — 4 images/block: wide, side-by-side
+                                 pair, wide
+     • Desktop (≥ 1024px)     — 7 images/block: row of 2, row of 3,
+                                 row of 2
+
+   All three read from the same flat `galleryImages` array — only the
+   grouping changes per breakpoint (Tailwind toggles which block is
+   visible, so only one set of DOM nodes is ever painted at a time).
+   containerWidth is measured once here and passed down, since every
+   block shares the same full-width parent. Every row on every
+   breakpoint renders at its exact natural height, so each image fills
+   its grid container completely with no crop and no leftover space.
+   Extra images beyond one block simply start the pattern again from
+   the top.
 ═══════════════════════════════════════════════════════════════════════ */
+
+function MobileBlock({ images, ratios, containerWidth }) {
+  const [a, b, c1, c2, d, e] = images;
+  const rows = [[a], [b], [c1, c2], [d], [e]].filter((r) => r.some(Boolean));
+
+  return (
+    <div className="flex md:hidden flex-col" style={{ gap: GAP }}>
+      {rows.map((items, i) => (
+        <Row
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TabletBlock({ images, ratios, containerWidth }) {
+  const [a, b, c, d] = images;
+  const rows = [[a], [b, c], [d]].filter((r) => r.some(Boolean));
+
+  return (
+    <div className="hidden md:flex lg:hidden flex-col" style={{ gap: GAP }}>
+      {rows.map((items, i) => (
+        <Row
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DesktopBlock({ images, ratios, containerWidth }) {
+  const [a, b, c, d, e, f, g] = images;
+  const rows = [
+    [a, b],
+    [c, d, e],
+    [f, g],
+  ].filter((r) => r.some(Boolean));
+
+  return (
+    <div className="hidden lg:flex flex-col" style={{ gap: GAP }}>
+      {rows.map((items, i) => (
+        <Row
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+        />
+      ))}
+    </div>
+  );
+}
 
 function OnBodyGallery({ images }) {
   const containerRef = useRef(null);
   const ratios = useAspectRatios(images);
   const containerWidth = useContainerWidth(containerRef);
-  const rows = layoutJustifiedRows(images, ratios, containerWidth, GAP);
+
+  const mobileChunks = chunk(images, 6);
+  const tabletChunks = chunk(images, 4);
+  const desktopChunks = chunk(images, 7);
 
   return (
     <section className="w-full px-6 py-16 md:py-24">
@@ -237,12 +312,29 @@ function OnBodyGallery({ images }) {
         className="w-full max-w-[2560px] mx-auto flex flex-col"
         style={{ gap: GAP }}
       >
-        {rows.map((row, i) => (
-          <div key={i} className="flex" style={{ gap: GAP, height: row.height }}>
-            {row.tiles.map(({ img, width, height }, j) => (
-              <Tile key={`${img.src}-${i}-${j}`} img={img} width={width} height={height} />
-            ))}
-          </div>
+        {mobileChunks.map((c, i) => (
+          <MobileBlock
+            key={`m-${i}`}
+            images={c}
+            ratios={ratios}
+            containerWidth={containerWidth}
+          />
+        ))}
+        {tabletChunks.map((c, i) => (
+          <TabletBlock
+            key={`t-${i}`}
+            images={c}
+            ratios={ratios}
+            containerWidth={containerWidth}
+          />
+        ))}
+        {desktopChunks.map((c, i) => (
+          <DesktopBlock
+            key={`d-${i}`}
+            images={c}
+            ratios={ratios}
+            containerWidth={containerWidth}
+          />
         ))}
       </div>
     </section>
@@ -255,6 +347,7 @@ function OnBodyGallery({ images }) {
 
 export default function OnBodyVisualizationPage() {
   const containerRef = useRef(null);
+  const [silkOn, setSilkOn] = useState(true);
 
   // Same reveal-on-scroll behavior as before: cards slide in from the
   // right as the section enters view, reverse out to the right on
@@ -264,8 +357,8 @@ export default function OnBodyVisualizationPage() {
       const sections = gsap.utils.toArray("section", containerRef.current);
 
       sections.forEach((section) => {
-        const cards = gsap
-          .utils.toArray(".reveal-right", section)
+        const cards = gsap.utils
+          .toArray(".reveal-right", section)
           .filter((el) => el.offsetParent !== null);
 
         if (!cards.length) return;
@@ -292,7 +385,7 @@ export default function OnBodyVisualizationPage() {
               start: "top 85%",
               toggleActions: "play none none reverse",
             },
-          }
+          },
         );
       });
 
@@ -304,7 +397,38 @@ export default function OnBodyVisualizationPage() {
   }, []);
 
   return (
-    <ServicePageLayout title="On-Body Visualization" currentPage="/onbody" fullBleed>
+    <ServicePageLayout
+      title="On-Body Visualization"
+      currentPage="/onbody"
+      fullBleed
+    >
+      {/* Fixed, full-viewport Silk background */}
+      {silkOn && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <Silk
+            speed={10}
+            scale={1}
+            color="#633c3c"
+            noiseIntensity={2}
+            rotation={0}
+          />
+        </div>
+      )}
+
+      {/* Silk on/off toggle */}
+      <button
+        onClick={() => setSilkOn((v) => !v)}
+        className="
+          fixed bottom-6 right-6 z-50
+          font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase
+          px-4 py-2.5
+          bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059]
+          border border-white/10 shadow-lg
+          transition-colors duration-300
+        "
+      >
+        Silk: {silkOn ? "On" : "Off"}
+      </button>
       <HeroSection
         backgroundSrc="/onbody-1.png"
         heading={["On-Body", "Visualization"]}
