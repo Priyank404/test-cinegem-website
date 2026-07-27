@@ -203,21 +203,117 @@ export const BEATS = [
   },
 ];
 
+// Helper function to clone a beats timeline array (so mobile timeline inherits directly from main timeline)
+export function cloneBeatsTimeline(sourceBeats = BEATS) {
+  return sourceBeats.map((beat) => ({
+    ...beat,
+    camPos: { ...beat.camPos },
+    ringRot: { ...beat.ringRot },
+    ringPosOffset: beat.ringPosOffset ? { ...beat.ringPosOffset } : { x: 0, y: 0, z: 0 },
+  }));
+}
+
+// Mobile Timeline — inherits from BEATS as first priority baseline, but tuned specifically for mobile viewports
+export const MOBILE_BEATS = [
+  {
+    frame: 0,
+    bgTop: "#0d0d10",
+    bgBottom: "#1a1a1f",
+    camPos: { x: 0.0, y: 0.2, z: 4.2, lookAtY: 0.0 },
+    ringRot: { x: 1.2, y: -6.3, z: 0.0 },
+    metalEnvIntensity: 4.0,
+    gemEnvIntensity: 1.2,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 0.85,
+  },
+  {
+    frame: 8.5,
+    bgTop: "#0d0d10",
+    bgBottom: "#1a1a1f",
+    camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
+    ringRot: { x: 0.3, y: -0.11, z: 0.87 },
+    metalEnvIntensity: 8.0,
+    gemEnvIntensity: 2.0,
+    cornerPark: 1.0,
+    ringPosOffset: { x: 0.72, y: -0.38, z: 0.42 },
+    ringScale: 0.80,
+  },
+  {
+    frame: 18.5,
+    bgTop: "#0d0d10",
+    bgBottom: "#1a1a1f",
+    camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
+    ringRot: { x: 0.3, y: -0.11, z: 0.87 },
+    metalEnvIntensity: 8.0,
+    gemEnvIntensity: 2.0,
+    cornerPark: 1.0,
+    ringPosOffset: { x: 0.72, y: -0.38, z: 0.42 },
+    ringScale: 0.80,
+  },
+  {
+    frame: 20,
+    bgTop: "#241a12",
+    bgBottom: "#3b2417",
+    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
+    ringRot: { x: 1.8, y: 0.77, z: -1.88 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
+    ringPosOffset: { x: -0.75, y: -0.50, z: 0.71 },
+    ringScale: 0.95,
+  },
+  {
+    frame: 30,
+    bgTop: "#241a12",
+    bgBottom: "#3b2417",
+    camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
+    ringRot: { x: 1.8, y: 0.77, z: -1.88 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
+    ringPosOffset: { x: -0.75, y: -0.50, z: 0.71 },
+    ringScale: 0.95,
+  },
+  {
+    frame: 40,
+    bgTop: "#0c0c0e",
+    bgBottom: "#000000",
+    camPos: { x: 0.15, y: -0.05, z: 3.0, lookAtY: 0.0 },
+    ringRot: { x: 0.35, y: 0.2, z: 0.0 },
+    metalEnvIntensity: 6.0,
+    gemEnvIntensity: 1.6,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 0.85,
+  },
+  {
+    frame: 50,
+    bgTop: "#101014",
+    bgBottom: "#000000",
+    camPos: { x: 0.0, y: 0.0, z: 3.4, lookAtY: 0.0 },
+    ringRot: { x: 0.12, y: 6.28, z: 0.0 },
+    metalEnvIntensity: 5.0,
+    gemEnvIntensity: 1.4,
+    cornerPark: 0.0,
+    ringPosOffset: { x: 0.0, y: 0.0, z: 0.0 },
+    ringScale: 0.90,
+  },
+];
+
 export default function RingHero({
   glbUrl = "/models/ring-draco.glb",
-  // NOTE: must point at a file that actually exists in /public/hdr — a
-  // 404 here (e.g. the old "/hdr/studio_small.hdr", which doesn't exist
-  // in this project) returns an HTML error page that RGBELoader then
-  // fails to parse, throwing "Bad File Format: bad initial token" and
-  // aborting the whole load before the ring is ever added to the scene.
   metalHdrUrl = "/hdr/env_metal_001_d01c4504e0.hdr",
-  gemHdrUrl = "/hdr/env_metal_001_d01c4504e0.hdr", // point at a different, higher-contrast HDR for more "fire" if you want
+  gemHdrUrl = "/hdr/env_metal_001_d01c4504e0.hdr",
   metalPreset = metalPresets.yellowGold,
   gemPreset = diamondPreset,
-  gemMaterialTypeOverride = null, // "matte" to force the cheap material regardless of preset
+  gemMaterialTypeOverride = null,
   dracoDecoderPath = "/draco/",
   scrollContainerSelector = "#scroll-content",
-  onMeshesClassified = null, // (debugList) => void — used by the dev panel
+  onMeshesClassified = null,
+  customBeats = null,
+  customMobileBeats = null,
+  activeTimelineMode = "auto", // "auto" | "desktop" | "mobile"
 
   // Dev-panel HDR controls (see hdrControls.js) — these were previously
   // accepted by HeroPage2 but never actually read here, which is why
@@ -932,20 +1028,32 @@ export default function RingHero({
         console.error("RingHero: failed to load assets", err);
       });
 
-    function getBaseValuesForFrame(frame) {
-      // Find the default beats from the active beats array
-      const defaultBeats = beatsRef.current
+    function getActiveBeatsList() {
+      const isMobileViewport =
+        typeof window !== "undefined" &&
+        (window.innerWidth < 768 ||
+          window.innerWidth / window.innerHeight < 1.0);
+      const isMobile =
+        activeTimelineMode === "mobile" ||
+        (activeTimelineMode === "auto" && isMobileViewport);
+      return isMobile ? mobileBeatsRef.current : beatsRef.current;
+    }
+
+    function getBaseValuesForFrame(frame, targetTimeline = "desktop") {
+      const beatsSource =
+        targetTimeline === "mobile"
+          ? mobileBeatsRef.current
+          : beatsRef.current;
+      const defaultBeats = beatsSource
         .map((beat, index) => ({
           frame: beat.frame !== undefined ? beat.frame : index * 20,
           beat,
         }))
         .sort((a, b) => a.frame - b.frame);
 
-      // If frame exactly matches a default, return it
       const exact = defaultBeats.find((b) => b.frame === frame);
       if (exact) return exact.beat;
 
-      // Find the bounding default frames
       let lower = defaultBeats[0];
       let upper = defaultBeats[defaultBeats.length - 1];
       for (let i = 0; i < defaultBeats.length; i++) {
@@ -958,10 +1066,8 @@ export default function RingHero({
 
       if (lower.frame === upper.frame) return lower.beat;
 
-      // Interpolate between lower and upper
       const t = (frame - lower.frame) / (upper.frame - lower.frame);
 
-      // Simple hex color interpolation helper
       const lerpColor = (c1, c2, factor) => {
         const parse = (hex) => {
           const num = parseInt(hex.slice(1), 16);
@@ -1019,43 +1125,42 @@ export default function RingHero({
       };
     }
 
-    function resolveTargetForFrame(frame) {
-      const base = getBaseValuesForFrame(frame);
+    function resolveTargetForFrame(frame, targetTimeline = "desktop") {
+      const base = getBaseValuesForFrame(frame, targetTimeline);
       const kf = beatKeyframesRef.current[frame];
       return {
         ...base,
         camPos: kf?.camPos ?? base.camPos,
         ringRot: kf?.ringRot ?? base.ringRot,
-        ringPosOffset: kf?.ringPosOffset ??
-          base.ringPosOffset ?? { x: 0, y: 0, z: 0 },
+        ringPosOffset:
+          kf?.ringPosOffset ?? base.ringPosOffset ?? { x: 0, y: 0, z: 0 },
         ringScale: kf?.ringScale ?? base.ringScale ?? 1,
       };
     }
 
     function setupScrollTimeline() {
+      const activeBeats = getActiveBeatsList();
       console.log(
-        "[RingHero] setupScrollTimeline called! Beats count:",
-        beatsRef.current.length,
+        "[RingHero] setupScrollTimeline called! Active beats count:",
+        activeBeats.length,
         "Keyframes in memory:",
         Object.keys(beatKeyframesRef.current),
       );
-      // Rebuild support: kill any previously-built scroll trigger/ticker
+
       ScrollTrigger.getAll().forEach((st) => st.kill());
       if (currentTickerFn) {
         gsap.ticker.remove(currentTickerFn);
         currentTickerFn = null;
       }
 
-      // Collect all keyframe frames
       const userFrames = Object.keys(beatKeyframesRef.current).map(Number);
-      const defaultFrames = beatsRef.current.map((beat, index) =>
+      const defaultFrames = activeBeats.map((beat, index) =>
         beat.frame !== undefined ? beat.frame : index * 20,
       );
       const allFrames = Array.from(
         new Set([...defaultFrames, ...userFrames]),
       ).sort((a, b) => a - b);
 
-      // Reset state objects back to frame 0 targets so GSAP captures the correct start values!
       const baselineTarget = resolveTargetForFrame(0);
       if (camState) {
         camState.x = baselineTarget.camPos.x;
@@ -1090,15 +1195,10 @@ export default function RingHero({
           scrub: 1.2,
           onUpdate: (self) => {
             const progress = self.progress;
-            const beatPosition = progress * (beatsRef.current.length - 1);
+            const beatPosition = progress * (activeBeats.length - 1);
             const beatIndex = Math.floor(beatPosition);
             const beatFraction = beatPosition - beatIndex;
 
-            // Local frame (0–50 scale, matching BEATS[].frame) for the
-            // CURRENT scroll position — auto-rotate and interactive drag
-            // are only active while this is within their own frame
-            // ranges, independent of whether onScrollDebugUpdate is
-            // wired up.
             const localFrame = progress * 50;
             if (autoRotateStartFrame != null) {
               const inRange =
@@ -1119,23 +1219,15 @@ export default function RingHero({
               const rangeChanged =
                 inInteractiveRange !== interactiveActiveRef.current;
               interactiveActiveRef.current = inInteractiveRange;
-              // Applied EVERY tick (not just on rangeChanged) so a stale
-              // ref can never leave the DOM stuck out of sync with the
-              // actual current range — see the mount-reset comment above
-              // for exactly how that happened before.
+
               if (canvas) {
                 canvas.style.pointerEvents = inInteractiveRange
                   ? "auto"
                   : "none";
-                // "grab" affordance — same idea as the standalone
-                // viewer's EditorPage canvas (cursor: "grab" when idle,
-                // "grabbing" while actively dragging, set in
-                // onInteractiveDown/onInteractiveUp below).
                 canvas.style.cursor = inInteractiveRange ? "grab" : "";
               }
               if (rangeChanged) {
                 if (RINGHERO_DEBUG_INTERACTION) {
-                  // eslint-disable-next-line no-console
                   console.log(
                     `[RingHero] interactive window ${inInteractiveRange ? "OPENED" : "CLOSED"} — localFrame=${localFrame.toFixed(1)} range=[${interactiveRotateStartFrame}, ${interactiveRotateEndFrame}] canvas.pointerEvents="${canvas?.style.pointerEvents}"`,
                   );
@@ -1155,7 +1247,7 @@ export default function RingHero({
               progress,
               beatIndex,
               beatFraction,
-              beatCount: beatsRef.current.length,
+              beatCount: activeBeats.length,
               scrollY: window.scrollY,
               docHeight: document.documentElement.scrollHeight,
             });
@@ -1163,7 +1255,7 @@ export default function RingHero({
             if (onBeatBlendUpdate) {
               onBeatBlendUpdate({
                 fromIndex: beatIndex,
-                toIndex: Math.min(beatIndex + 1, beatsRef.current.length - 1),
+                toIndex: Math.min(beatIndex + 1, activeBeats.length - 1),
                 weight: beatFraction,
               });
             }
@@ -1171,7 +1263,6 @@ export default function RingHero({
         },
       });
 
-      // Wire up the "beat coordinate" dev panel
       if (onPoseOverrideReady) {
         onPoseOverrideReady({
           jumpToBeat: (frame) => {
@@ -1214,10 +1305,17 @@ export default function RingHero({
           setRingScaleOverride: (value) => {
             poseOverrideRef.current.ringScale = value ?? null;
           },
-          reloadRingModel: (newBeats) => {
-            console.log("[RingHero] API reloadRingModel called!");
+          reloadRingModel: (newBeats, targetTimeline = "desktop") => {
+            console.log(`[RingHero] API reloadRingModel called for ${targetTimeline}!`);
 
-            // 1. If there's an existing ring model in the scene, remove and dispose it
+            if (newBeats) {
+              if (targetTimeline === "mobile") {
+                mobileBeatsRef.current = newBeats;
+              } else {
+                beatsRef.current = newBeats;
+              }
+            }
+
             if (ring) {
               scene.remove(ring);
               ring.traverse((obj) => {
@@ -1228,13 +1326,10 @@ export default function RingHero({
               ring = null;
             }
 
-            // 2. Load the GLB model again
             gltfLoader.load(
               glbUrl,
               (gltf) => {
                 if (disposed) return;
-
-                // 3. Process the new GLTF scene
                 ring = gltf.scene;
 
                 const effectiveGemPreset = gemMaterialTypeOverride
@@ -1248,7 +1343,7 @@ export default function RingHero({
                   const mat = buildGemMaterial(effectiveGemPreset, gemEnvMap);
                   if ("envMapIntensity" in mat) {
                     mat.envMapIntensity =
-                      (beatsRef.current[0].gemEnvIntensity *
+                      (getActiveBeatsList()[0].gemEnvIntensity *
                         calculateDiamondEnvMapIntensityRaw({})) /
                       5.0;
                   }
@@ -1289,22 +1384,18 @@ export default function RingHero({
                 ringHeroTransform.diameter = Math.max(size.x, size.z) * scale;
 
                 applyHdrConfigToLiveMaterials();
-
-                // 4. Update the beats array and rebuild the GSAP timeline
-                if (newBeats) {
-                  beatsRef.current = newBeats;
-                }
                 setupScrollTimeline();
-
-                console.log(
-                  "[RingHero] reloadRingModel finished! Ring reloaded successfully.",
-                );
               },
               undefined,
               (err) => {
                 console.error("[RingHero] failed to reload GLB:", err);
               },
             );
+          },
+          inheritMobileFromMain: () => {
+            mobileBeatsRef.current = cloneBeatsTimeline(beatsRef.current);
+            setupScrollTimeline();
+            return mobileBeatsRef.current;
           },
           getCurrentPose: () => ({
             camPos: { ...camState },
@@ -1330,19 +1421,24 @@ export default function RingHero({
             setupScrollTimeline();
           },
           getKeyframeSnapshot: () => ({ ...beatKeyframesRef.current }),
-          getBaseValuesForFrame: (frame) => getBaseValuesForFrame(frame),
-          getFullTimeline: () => {
+          getBaseValuesForFrame: (frame, targetTimeline = "desktop") =>
+            getBaseValuesForFrame(frame, targetTimeline),
+          getFullTimeline: (targetTimeline = "desktop") => {
+            const beatsSource =
+              targetTimeline === "mobile"
+                ? mobileBeatsRef.current
+                : beatsRef.current;
             const userFramesList = Object.keys(beatKeyframesRef.current).map(
               Number,
             );
-            const defaultFrames = beatsRef.current.map((beat, index) =>
+            const defaultFrames = beatsSource.map((beat, index) =>
               beat.frame !== undefined ? beat.frame : index * 20,
             );
             const allFramesList = Array.from(
               new Set([...defaultFrames, ...userFramesList]),
             ).sort((a, b) => a - b);
             return allFramesList.map((f) => {
-              const target = resolveTargetForFrame(f);
+              const target = resolveTargetForFrame(f, targetTimeline);
               return {
                 frame: f,
                 bgTop: target.bgTop,
@@ -1535,13 +1631,49 @@ export default function RingHero({
         const effPosOffsetZ = ov.ringPosOffset?.z ?? ringPosOffsetState.z;
         const effScale = ov.ringScale ?? ringScaleState.value;
 
-        // Corner-park camera move — an arc (not a straight interpolation)
-        // across the Beat 1 -> Beat 2 transition, so the camera itself
-        // feels like it's "moving through" the shot rather than just
-        // holding still while the ring slides into the corner. Driven
-        // by cornerParkState (0..1, eased across the whole beat).
+        // Mobile & aspect-ratio responsive scale & position math:
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const aspect = w / h;
+        const isMobile = w < 768 || aspect < 1.0;
+        const localFrame = debugFrameStateRef.current?.localFrame ?? 0;
+
         const cpOv = ov.cornerPark;
         const cp = cpOv ?? cornerParkState.value;
+
+        // Calibrated mobile scale and offsets so the ring stays inside viewport without clipping or expanding beyond canvas:
+        let mobileScaleMult = 1.0;
+        let mobileOffsetXMult = 1.0;
+        let mobileOffsetYMult = 1.0;
+
+        if (isMobile) {
+          if (localFrame >= 42) {
+            // Beat 5 (Final spinning beat): centered spin fitted to mobile bounds cleanly
+            const tSpin = Math.min(1, (localFrame - 42) / 5);
+            mobileScaleMult = THREE.MathUtils.lerp(1.0, 0.85, tSpin);
+            mobileOffsetXMult = 1.0;
+            mobileOffsetYMult = 1.0;
+          } else if (cp > 0.001) {
+            // Beat 2 (Corner park): position in lower-right corner without clipping right edge
+            mobileScaleMult = THREE.MathUtils.lerp(1.0, 0.80, cp);
+            mobileOffsetXMult = 0.40;
+            mobileOffsetYMult = 0.75;
+          } else if (localFrame >= 18 && localFrame <= 35) {
+            // Beat 3 (Pose angle)
+            mobileScaleMult = 0.72;
+            mobileOffsetXMult = 0.40;
+            mobileOffsetYMult = 0.70;
+          } else {
+            mobileScaleMult = 0.82;
+            mobileOffsetXMult = 0.60;
+            mobileOffsetYMult = 0.80;
+          }
+        }
+
+        const responsivePosOffsetX = effPosOffsetX * mobileOffsetXMult;
+        const responsivePosOffsetY = effPosOffsetY * mobileOffsetYMult;
+        const responsiveScale = effScale * mobileScaleMult;
+
         const cpz = Math.max(0, cp * 1.6 - 0.6);
         // Arc shape: sin(pi * cp) is 0 at cp=0 and cp=1, peaking at
         // cp=0.5 — used to bow the camera path up/left mid-flight
@@ -1549,13 +1681,10 @@ export default function RingHero({
         // what makes this read as a deliberate camera pan rather than a
         // static shot with a moving subject.
         const arc = Math.sin(Math.PI * Math.min(cp, 1));
-        const camArcX = -0.35 * arc; // swings left mid-move
-        const camArcY = 0.18 * arc; // lifts slightly mid-move
+        const camArcX = -0.35 * arc * (isMobile ? 0.4 : 1.0); // swings left mid-move
+        const camArcY = 0.18 * arc * (isMobile ? 0.6 : 1.0); // lifts slightly mid-move
         // Slow dolly-in that tracks cp directly (not the arc), plus the
-        // fast extra push from cpz right at the end. Kept lighter than
-        // before now that the ring itself parks at a larger, clearly-
-        // visible scale (see parkScale below) — stacking a strong dolly
-        // on top of that would push it too close/large in the corner.
+        // fast extra push from cpz right at the end.
         const camDollyZ = -0.3 * cp - 0.2 * cpz;
 
         if (camera) {
@@ -1564,19 +1693,11 @@ export default function RingHero({
             effCamY + camArcY,
             effCamZ + camDollyZ,
           );
-          // lookAtY lets a beat frame the scene lower/higher on screen
-          // WITHOUT steepening the camera's pitch — raising camPos.y alone
-          // while always looking at world origin (0,0,0) tilts the camera
-          // sharply downward (bad top-down angle on the floor). Panning
-          // the lookAt target down by roughly the same amount as camPos.y
-          // keeps a shallow, natural viewing angle while still pushing the
-          // ring+floor lower in the frame. Defaults to 0 (old behavior)
-          // when a beat doesn't specify one.
           const effLookAtY = ov.camPos?.lookAtY ?? camState.lookAtY ?? 0;
-          // Look-at target drifts slightly toward the corner as the ring
-          // parks there, so the camera settles on the parked ring instead
-          // of continuing to stare at empty world-origin space.
-          camera.lookAt(0.55 * cp, effLookAtY - 0.3 * cp, 0);
+          // Look-at target drifts toward the corner as the ring parks there
+          const lookAtX = isMobile ? 0.28 * cp : 0.55 * cp;
+          const lookAtY = effLookAtY - (isMobile ? 0.2 * cp : 0.3 * cp);
+          camera.lookAt(lookAtX, lookAtY, 0);
         }
 
         if (metalMaterial) {
@@ -1590,22 +1711,6 @@ export default function RingHero({
         });
 
         if (ring) {
-          // Ring pose — driven purely by camPos/ringRot/ringPosOffset/
-          // ringScale (scroll-tweened, or the live dev-panel override
-          // above), the same way in every beat. No hand/floor branching:
-          // this is what makes the beat coordinate panel actually affect
-          // the ring in every beat, including what used to be the
-          // on-body reveal beat.
-          //
-          // Auto-rotate: active only while autoRotateActiveRef is true
-          // (i.e. the scroll-tweened frame is inside its own beat's frame
-          // range — see the ScrollTrigger onUpdate above), spinning the
-          // ring around Y every tick on top of whatever the scroll-tweened
-          // rotation is. Turns back off the moment scroll leaves that
-          // range, same as any other beat-scoped animation in this file.
-          // Paused (not reset) while the user is actively dragging, so
-          // grabbing the ring doesn't fight the auto-spin, and it resumes
-          // smoothly from the same angle on release.
           let spinY = effRotY;
           if (
             autoRotateActiveRef.current &&
@@ -1613,28 +1718,11 @@ export default function RingHero({
           ) {
             autoRotateAngleRef.current += autoRotateSpeed * dt;
           } else if (!autoRotateActiveRef.current) {
-            // Ease the accumulated auto-rotate angle back to 0 the moment
-            // scroll leaves the auto-rotate beat's range (same decay curve
-            // as manualRotRef below). Without this, whatever angle had
-            // built up while the 360 beat was active stayed permanently
-            // baked into spinY — and therefore into every other beat's
-            // rotation — for the rest of the session, which is why
-            // scrolling back up out of Beat 6 looked like it "disturbed"
-            // every other beat's pose.
             const decay = 1 - Math.exp(-8 * dt);
             autoRotateAngleRef.current -= autoRotateAngleRef.current * decay;
           }
           spinY = effRotY + autoRotateAngleRef.current;
 
-          // Interactive drag-to-rotate: adds the user's manual spin/tilt
-          // offset on top of everything else, but ONLY while the
-          // interactive window is open. The instant it closes (scrolling
-          // out of Beat 6), this eases manualRotRef back to {x:0, y:0}
-          // over ~0.3s — otherwise whatever offset the user last dragged
-          // to would silently stay applied forever, in every other beat,
-          // permanently drifting the ring away from its designed
-          // rotation. Eased rather than snapped so it doesn't visibly
-          // pop right at the beat boundary.
           if (!interactiveActiveRef.current) {
             const decay = 1 - Math.exp(-8 * dt);
             manualRotRef.current.x -= manualRotRef.current.x * decay;
@@ -1644,70 +1732,41 @@ export default function RingHero({
           const finalRotX = effRotX + manualRotRef.current.x;
           ring.rotation.set(finalRotX, finalRotY, effRotZ);
 
-          // Corner-park blend — same cp/arc values computed above for
-          // the camera, reused here so the ring's own path bows through
-          // the same mid-flight arc the camera is panning through
-          // (rather than the two moving independently, which reads as
-          // uncoordinated). At cp=0 this is a pure no-op on position/
-          // scale, so every other beat is unaffected.
-          const heroX = ringHeroTransform.position.x + effPosOffsetX;
-          const heroY = ringHeroTransform.position.y + effPosOffsetY;
+          const heroX = ringHeroTransform.position.x + responsivePosOffsetX;
+          const heroY = ringHeroTransform.position.y + responsivePosOffsetY;
           const heroZ = ringHeroTransform.position.z + effPosOffsetZ;
+
           if (cp > 0.0001) {
-            // Bottom-right corner target, in the same world space the
-            // hero pose lives in. Pushed further right/down than before
-            // so it reads as sitting IN the corner (clearly visible,
-            // not a tiny tucked-away accent) — kept modest on Z so the
-            // ring doesn't clip through the camera at close cp values
-            // along the arc.
-            // Pulled back further still, and less "down" than before —
-            // per the red/blue annotation the band needs room to sweep
-            // toward the right edge rather than being crammed low into
-            // the very corner.
-            const cornerX = heroX + 0.7;
-            const cornerY = heroY - 0.6;
+            // Target corner position: on mobile, place ring so diamond head is fully visible on right side matching desktop layout
+            const cornerX = isMobile ? 0.72 : heroX + 0.7;
+            const cornerY = isMobile ? -0.38 : heroY - 0.6;
             const cornerZ = heroZ + 0.25;
-            // Mid-flight bow: nudge the path up and slightly left of a
-            // straight line between hero and corner, using the same
-            // sin(pi*cp) arc shape as the camera, so ring and camera
-            // read as one coordinated move rather than two separate
-            // linear interpolations crossing paths.
-            const bowX = -0.25 * arc;
+
+            const bowX = -0.2 * arc * (isMobile ? 0.4 : 1.0);
             const bowY = 0.15 * arc;
+
             ring.position.set(
               THREE.MathUtils.lerp(heroX, cornerX, cp) + bowX,
               THREE.MathUtils.lerp(heroY, cornerY, cp) + bowY,
               THREE.MathUtils.lerp(heroZ, cornerZ, cp),
             );
-            // Grows past hero scale for a large, cropped close-up in
-            // the corner — dialed back from 1.65 (which combined with
-            // the larger offset above to push the ring off-frame
-            // entirely) to 1.25, still bigger than hero scale but kept
-            // on-screen.
-            const parkScale = THREE.MathUtils.lerp(1, 1.25, cp);
+
+            const parkScale = THREE.MathUtils.lerp(1, isMobile ? 0.95 : 1.25, cp);
             ring.scale.setScalar(
-              ringHeroTransform.scale * effScale * parkScale,
+              ringHeroTransform.scale * responsiveScale * parkScale,
             );
           } else {
             ring.position.set(heroX, heroY, heroZ);
-            ring.scale.setScalar(ringHeroTransform.scale * effScale);
+            ring.scale.setScalar(ringHeroTransform.scale * responsiveScale);
           }
         }
 
         // ── DOF + Render (merged from the old separate rAF loop) ──────────
-        // updateCursorDof writes to dofEffect.bokehScale and dofEffect.target
-        // every frame; calling it here, immediately before render(), ensures
-        // the DOF state is always in sync with the freshly-written camera
-        // and ring pose rather than being one frame behind.
         updateCursorDof(dt);
         if (composer) composer.render();
         else if (renderer && scene && camera) renderer.render(scene, camera);
       };
-      // Run the ticker once synchronously before registering it. Without
-      // this, the ring renders at its raw GLB pose for the first few frames
-      // before gsap.ticker fires — that stale frame is what looks like a
-      // "jump on load". Running once immediately seeds the correct pose
-      // before the next paint.
+      // Run the ticker once synchronously before registering it.
       currentTickerFn();
       gsap.ticker.add(currentTickerFn);
     }
@@ -1715,8 +1774,17 @@ export default function RingHero({
     function handleResize() {
       const w = window.innerWidth;
       const h = window.innerHeight;
+      const aspect = w / h;
       if (camera) {
-        camera.aspect = w / h;
+        camera.aspect = aspect;
+        // Balanced camera FOV calculation:
+        // On desktop (aspect >= 1.2), use 35° FOV.
+        // On mobile (aspect < 1.2), cap vertical FOV at 45° so vertical motion stays strictly inside screen bounds.
+        if (aspect < 1.2) {
+          camera.fov = 45;
+        } else {
+          camera.fov = 35;
+        }
         camera.updateProjectionMatrix();
       }
       renderer?.setSize(w, h);
@@ -1782,23 +1850,29 @@ export default function RingHero({
         ref={bgOverlayRef}
         style={{
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          maxWidth: "100vw",
+          maxHeight: "100vh",
+          overflow: "hidden",
           zIndex: 0,
           background: "linear-gradient(180deg, #0d0d10 0%, #1a1a1f 100%)",
-          // No CSS transition here — GSAP's bgState tween already
-          // interpolates the gradient every frame via applyBackground().
-          // A CSS transition on top creates a second, conflicting
-          // smoothing pass that fights the scroll-driven animation.
         }}
       />
       <canvas
         ref={canvasRef}
         style={{
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          maxWidth: "100vw",
+          maxHeight: "100vh",
+          overflow: "hidden",
           zIndex: 2,
-          width: "100vw",
-          height: "100vh",
           display: "block",
         }}
       />

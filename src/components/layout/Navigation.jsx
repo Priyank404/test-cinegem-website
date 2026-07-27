@@ -35,12 +35,8 @@ export function Navigation() {
 
         {/* Center — CINEGEM */}
         <div className="flex justify-center">
-          <motion.a
-            href="#vault"
-            variants={LOGO_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            onClick={(e) => handleNavClick(e, '#vault')}
+          <Link
+            to="/"
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 600,
@@ -52,7 +48,7 @@ export function Navigation() {
             aria-label="Cinegem Studio — return to top"
           >
             CINEGEM
-          </motion.a>
+          </Link>
         </div>
 
         {/* Right — Inquire */}

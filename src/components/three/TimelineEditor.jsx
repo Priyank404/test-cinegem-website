@@ -14,6 +14,8 @@ const TimelineEditor = forwardRef(function TimelineEditor({
   onReboot,
   onMoveKeyframe,
   totalFrames = 260,
+  timelineTarget = "desktop",
+  onToggleTimelineTarget,
 }, ref) {
   const [collapsed, setCollapsed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -272,22 +274,40 @@ const TimelineEditor = forwardRef(function TimelineEditor({
       return;
     }
     try {
-      const beats = api.getFullTimeline();
+      const beats = api.getFullTimeline(timelineTarget);
       const res = await fetch("/api/save-timeline", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ beats }),
+        body: JSON.stringify({ beats, target: timelineTarget }),
       });
       const data = await res.json();
       if (data.success) {
-        alert("Timeline changes successfully written directly into RingHero.jsx code!");
+        alert(
+          `Successfully saved ${timelineTarget === "mobile" ? "Mobile" : "Main Desktop"} timeline directly into RingHero.jsx code!`,
+        );
       } else {
         alert("Failed to save timeline: " + data.error);
       }
     } catch (err) {
       alert("Error saving timeline to code: " + err.message);
+    }
+  };
+
+  const handleInheritFromMain = () => {
+    const api = poseApiRef?.current;
+    if (!api || !api.inheritMobileFromMain) {
+      alert("Timeline API not ready yet!");
+      return;
+    }
+    if (
+      window.confirm(
+        "Copy all keyframes from Main Desktop Timeline into Mobile Timeline? This will override your current mobile keyframes with the main timeline baseline.",
+      )
+    ) {
+      api.inheritMobileFromMain();
+      alert("Mobile timeline successfully updated to inherit from Main Desktop timeline!");
     }
   };
 
@@ -306,267 +326,582 @@ ringScale: ${values.scale.toFixed(2)},`;
     alert("Keyframe configuration copied to clipboard!");
   };
 
+  const [isMobileScreen, setIsMobileScreen] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [activeMobileTab, setActiveMobileTab] = useState("channels"); // "channels" | "timeline"
+  const [mobileHeightMode, setMobileHeightMode] = useState("expanded"); // "expanded" | "peek"
+  const touchStartYRef = useRef(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleTouchStart = (e) => {
+    if (!isMobileScreen) return;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isMobileScreen) return;
+    const endY = e.changedTouches[0].clientY;
+    const diffY = endY - touchStartYRef.current;
+    if (diffY > 35) {
+      // Swiped DOWN -> slide to peek or collapse
+      if (collapsed) return;
+      if (mobileHeightMode === "expanded") {
+        setMobileHeightMode("peek");
+      } else if (mobileHeightMode === "peek") {
+        setCollapsed(true);
+      }
+    } else if (diffY < -35) {
+      // Swiped UP -> slide to expanded
+      if (collapsed) {
+        setCollapsed(false);
+        setMobileHeightMode("peek");
+      } else if (mobileHeightMode === "peek") {
+        setMobileHeightMode("expanded");
+      }
+    }
+  };
+
+  const calcHeight = collapsed || (isMobileScreen && mobileHeightMode === "peek")
+    ? "32px"
+    : isMobileScreen
+    ? "370px"
+    : "330px";
+
   return (
-    <div
-      data-lenis-prevent
-      style={{
-        position: "fixed",
-        bottom: position === "bottom" ? 0 : "auto",
-        top: position === "top" ? 0 : "auto",
-        left: 0,
-        right: 0,
-        height: collapsed ? "32px" : "330px",
-        background: "rgba(18, 18, 22, 0.96)",
-        borderTop: position === "bottom" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
-        borderBottom: position === "top" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
-        color: "#d1d1d6",
-        fontFamily: "'SF Mono', Monaco, Fira Code, monospace",
-        fontSize: "11px",
-        zIndex: 9999,
-        backdropFilter: "blur(24px)",
-        transition: "height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-        display: "flex",
-        flexDirection: "column",
-        boxShadow: position === "bottom" ? "0 -8px 32px rgba(0, 0, 0, 0.5)" : "0 8px 32px rgba(0, 0, 0, 0.5)",
-      }}
-    >
-      {/* Timeline Toggle Bar */}
-      <div
-        onClick={() => setCollapsed(!collapsed)}
-        style={{
-          height: "32px",
-          minHeight: "32px",
-          background: "rgba(30, 30, 35, 0.6)",
-          borderBottom: collapsed ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 16px",
-          cursor: "pointer",
-          userSelect: "none",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ color: "#E25B1C", fontWeight: "bold" }}>●</span>
-          <span style={{ fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", fontSize: "10px", color: "#eee" }}>
-            3D Animation Timeline & Channel Box
-          </span>
-          <span
-            ref={beatTextRef}
-            style={{
-              background: "rgba(255, 255, 255, 0.06)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontSize: "10px",
-              color: "#a1a1a6",
-              marginLeft: "12px",
-            }}
-          >
-            Frame 0 | Beat 1 (0%)
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    <>
+      {/* Sleek Floating Control Pill for 100% Fullscreen 3D View on Mobile */}
+      {isMobileScreen && mobileHeightMode === "peek" && !collapsed && (
+        <div
+          data-lenis-prevent
+          style={{
+            position: "fixed",
+            bottom: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "6px 14px",
+            borderRadius: "999px",
+            background: "rgba(12, 12, 16, 0.85)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 10px 36px rgba(0, 0, 0, 0.7)",
+            fontFamily: "'SF Mono', Monaco, Fira Code, monospace",
+            userSelect: "none",
+          }}
+        >
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setPosition(position === "bottom" ? "top" : "bottom");
-            }}
+            onClick={() => onJumpToProgress(0, false)}
             style={{
               background: "rgba(255, 255, 255, 0.08)",
               border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: "4px",
-              padding: "2px 8px",
               color: "#fff",
+              borderRadius: "999px",
+              padding: "4px 8px",
               fontSize: "10px",
               cursor: "pointer",
-              fontFamily: "'SF Mono', Monaco, Fira Code, monospace",
             }}
           >
-            {position === "bottom" ? "⇅ Move to Top" : "⇅ Move to Bottom"}
+            ⏮
           </button>
-          <span ref={frameTextRef} style={{ color: "#4DA3FF", fontWeight: "bold" }}>f: 0</span>
-          <span ref={progressTextRef} style={{ color: "#999" }}>0.0%</span>
-          <span style={{ color: "#777", fontSize: "12px" }}>{collapsed ? "▲ Expand" : "▼ Collapse"}</span>
-        </div>
-      </div>
 
-      {!collapsed && (
-        <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
-          {/* LEFT SIDEBAR - Channel Inspector (Parameters) */}
-          <div
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
             style={{
-              width: "360px",
-              borderRight: "1px solid rgba(255, 255, 255, 0.08)",
-              background: "rgba(14, 14, 16, 0.5)",
+              background: isPlaying ? "rgba(226, 91, 28, 0.3)" : "rgba(255, 255, 255, 0.12)",
+              border: isPlaying ? "1px solid #E25B1C" : "1px solid rgba(255, 255, 255, 0.2)",
+              color: isPlaying ? "#ff7b39" : "#fff",
+              borderRadius: "999px",
+              padding: "4px 12px",
+              fontSize: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
               display: "flex",
-              flexDirection: "column",
-              overflowY: "auto",
-              padding: "12px",
+              alignItems: "center",
+              gap: "4px",
             }}
           >
-            <div style={{ fontWeight: "bold", textTransform: "uppercase", fontSize: "10px", color: "#8e8e93", marginBottom: "8px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "4px" }}>
-              Channels & Properties
+            {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+          </button>
+
+          <span ref={progressTextRef} style={{ fontSize: "10px", color: "#4DA3FF", fontWeight: "bold" }}>
+            0%
+          </span>
+
+          <button
+            onClick={onSave}
+            style={{
+              background: "rgba(57, 255, 20, 0.2)",
+              border: "1px solid rgba(57, 255, 20, 0.4)",
+              color: "#5cff6c",
+              borderRadius: "999px",
+              padding: "4px 10px",
+              fontSize: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            ◆ REC
+          </button>
+
+          <button
+            onClick={() => setMobileHeightMode("expanded")}
+            style={{
+              background: "rgba(255, 255, 255, 0.15)",
+              border: "1px solid rgba(255, 255, 255, 0.3)",
+              color: "#fff",
+              borderRadius: "999px",
+              padding: "4px 12px",
+              fontSize: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            🎛️ Sliders ▲
+          </button>
+        </div>
+      )}
+
+      <div
+        data-lenis-prevent
+        style={{
+          position: "fixed",
+          bottom: position === "bottom" ? 0 : "auto",
+          top: position === "top" ? 0 : "auto",
+          left: 0,
+          right: 0,
+          height: calcHeight,
+          maxHeight: collapsed ? "32px" : "75vh",
+          background: "rgba(18, 18, 22, 0.96)",
+          borderTop: position === "bottom" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+          borderBottom: position === "top" ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+          color: "#d1d1d6",
+          fontFamily: "'SF Mono', Monaco, Fira Code, monospace",
+          fontSize: "11px",
+          zIndex: 9999,
+          backdropFilter: "blur(24px)",
+          transition: "height 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
+          display: isMobileScreen && mobileHeightMode === "peek" && !collapsed ? "none" : "flex",
+          flexDirection: "column",
+          boxShadow: position === "bottom" ? "0 -8px 32px rgba(0, 0, 0, 0.5)" : "0 8px 32px rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        {/* Mobile Swipe Drag Handle */}
+        {isMobileScreen && (
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (collapsed) {
+                setCollapsed(false);
+                setMobileHeightMode("peek");
+              } else {
+                setMobileHeightMode(mobileHeightMode === "peek" ? "expanded" : "peek");
+              }
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              paddingTop: "4px",
+              paddingBottom: "2px",
+              cursor: "grab",
+              background: "rgba(255, 255, 255, 0.03)",
+            }}
+          >
+            <div
+              style={{
+                width: "36px",
+                height: "4px",
+                borderRadius: "2px",
+                background: "rgba(255, 255, 255, 0.35)",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Timeline Toggle Bar */}
+        <div
+          onClick={() => setCollapsed(!collapsed)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            minHeight: "32px",
+            background: "rgba(30, 30, 35, 0.6)",
+            borderBottom: collapsed ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: isMobileScreen ? "4px 8px" : "0 16px",
+            gap: "6px",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <span style={{ color: timelineTarget === "mobile" ? "#34c759" : "#E25B1C", fontWeight: "bold" }}>●</span>
+            <span style={{ fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", fontSize: "10px", color: "#eee" }}>
+              {isMobileScreen ? "3D Editor" : `3D Timeline: ${timelineTarget === "mobile" ? "Mobile Timeline" : "Main Desktop Timeline"}`}
+            </span>
+
+            {/* Target Timeline Switcher */}
+            <div style={{ display: "flex", gap: "4px", marginLeft: isMobileScreen ? "2px" : "8px" }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleTimelineTarget?.("desktop");
+                }}
+                style={{
+                  background: timelineTarget === "desktop" ? "rgba(226, 91, 28, 0.3)" : "rgba(255, 255, 255, 0.06)",
+                  border: timelineTarget === "desktop" ? "1px solid #E25B1C" : "1px solid rgba(255, 255, 255, 0.1)",
+                  color: timelineTarget === "desktop" ? "#fff" : "#8e8e93",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  fontSize: "9px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                💻 Desktop
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleTimelineTarget?.("mobile");
+                }}
+                style={{
+                  background: timelineTarget === "mobile" ? "rgba(52, 199, 89, 0.3)" : "rgba(255, 255, 255, 0.06)",
+                  border: timelineTarget === "mobile" ? "1px solid #34c759" : "1px solid rgba(255, 255, 255, 0.1)",
+                  color: timelineTarget === "mobile" ? "#fff" : "#8e8e93",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  fontSize: "9px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                📱 Mobile
+              </button>
+
+              {timelineTarget === "mobile" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleInheritFromMain();
+                  }}
+                  title="Copy all keyframes from Main Timeline as baseline for Mobile Timeline"
+                  style={{
+                    background: "rgba(255, 214, 10, 0.15)",
+                    border: "1px solid rgba(255, 214, 10, 0.4)",
+                    color: "#ffd60a",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    fontSize: "9px",
+                    cursor: "pointer",
+                  }}
+                >
+                  🔄 Inherit
+                </button>
+              )}
             </div>
 
-            {/* Camera Position group */}
-            <ChannelGroup label="Camera Position">
-              <ChannelRow
-                label="Cam X"
-                valKey="camX"
-                value={values.camX}
-                min={-3}
-                max={3}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.camX = el)}
-                inputRef={(el) => (sliderInputsRef.current.camX = el)}
-              />
-              <ChannelRow
-                label="Cam Y"
-                valKey="camY"
-                value={values.camY}
-                min={-2}
-                max={2}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.camY = el)}
-                inputRef={(el) => (sliderInputsRef.current.camY = el)}
-              />
-              <ChannelRow
-                label="Cam Z"
-                valKey="camZ"
-                value={values.camZ}
-                min={1}
-                max={8}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.camZ = el)}
-                inputRef={(el) => (sliderInputsRef.current.camZ = el)}
-              />
-            </ChannelGroup>
+            {/* Mobile Tab Switcher */}
+            {isMobileScreen && (
+              <div style={{ display: "flex", gap: "4px", marginLeft: "4px" }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (collapsed) setCollapsed(false);
+                    setMobileHeightMode("expanded");
+                    setActiveMobileTab("channels");
+                  }}
+                  style={{
+                    background: activeMobileTab === "channels" && mobileHeightMode === "expanded" ? "rgba(77, 163, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
+                    border: activeMobileTab === "channels" && mobileHeightMode === "expanded" ? "1px solid #4DA3FF" : "1px solid rgba(255, 255, 255, 0.1)",
+                    color: activeMobileTab === "channels" && mobileHeightMode === "expanded" ? "#fff" : "#aaa",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    fontSize: "9px",
+                    cursor: "pointer",
+                  }}
+                >
+                  🎛️ Sliders
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (collapsed) setCollapsed(false);
+                    setMobileHeightMode("expanded");
+                    setActiveMobileTab("timeline");
+                  }}
+                  style={{
+                    background: activeMobileTab === "timeline" && mobileHeightMode === "expanded" ? "rgba(77, 163, 255, 0.3)" : "rgba(255, 255, 255, 0.05)",
+                    border: activeMobileTab === "timeline" && mobileHeightMode === "expanded" ? "1px solid #4DA3FF" : "1px solid rgba(255, 255, 255, 0.1)",
+                    color: activeMobileTab === "timeline" && mobileHeightMode === "expanded" ? "#fff" : "#aaa",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    fontSize: "9px",
+                    cursor: "pointer",
+                  }}
+                >
+                  ⏱️ Track
+                </button>
+              </div>
+            )}
 
-            {/* Ring Rotation group */}
-            <ChannelGroup label="Ring Rotation">
-              <ChannelRow
-                label="Rot X"
-                valKey="rotX"
-                value={values.rotX}
-                min={-3.14}
-                max={3.14}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.rotX = el)}
-                inputRef={(el) => (sliderInputsRef.current.rotX = el)}
-              />
-              <ChannelRow
-                label="Rot Y"
-                valKey="rotY"
-                value={values.rotY}
-                min={-6.3}
-                max={6.3}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.rotY = el)}
-                inputRef={(el) => (sliderInputsRef.current.rotY = el)}
-              />
-              <ChannelRow
-                label="Rot Z"
-                valKey="rotZ"
-                value={values.rotZ}
-                min={-3.14}
-                max={3.14}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.rotZ = el)}
-                inputRef={(el) => (sliderInputsRef.current.rotZ = el)}
-              />
-            </ChannelGroup>
+            {/* Peek 3D View button on mobile */}
+            {isMobileScreen && !collapsed && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileHeightMode(mobileHeightMode === "peek" ? "expanded" : "peek");
+                }}
+                title="Slide editor down to inspect full 3D ring view while playback continues"
+                style={{
+                  background: mobileHeightMode === "peek" ? "rgba(226, 91, 28, 0.3)" : "rgba(255, 255, 255, 0.08)",
+                  border: mobileHeightMode === "peek" ? "1px solid #E25B1C" : "1px solid rgba(255, 255, 255, 0.15)",
+                  color: mobileHeightMode === "peek" ? "#ff7b39" : "#fff",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  fontSize: "9px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                {mobileHeightMode === "peek" ? "🎛️ Sliders ▲" : "👁️ Hide Panel ▼"}
+              </button>
+            )}
 
-            {/* Ring Position group */}
-            <ChannelGroup label="Ring Position Offset">
-              <ChannelRow
-                label="Pos X"
-                valKey="posX"
-                value={values.posX}
-                min={-2}
-                max={2}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.posX = el)}
-                inputRef={(el) => (sliderInputsRef.current.posX = el)}
-              />
-              <ChannelRow
-                label="Pos Y"
-                valKey="posY"
-                value={values.posY}
-                min={-2}
-                max={2}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.posY = el)}
-                inputRef={(el) => (sliderInputsRef.current.posY = el)}
-              />
-              <ChannelRow
-                label="Pos Z"
-                valKey="posZ"
-                value={values.posZ}
-                min={-2}
-                max={2}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.posZ = el)}
-                inputRef={(el) => (sliderInputsRef.current.posZ = el)}
-              />
-            </ChannelGroup>
-
-            {/* Scale group */}
-            <ChannelGroup label="Ring Scale">
-              <ChannelRow
-                label="Scale"
-                valKey="scale"
-                value={values.scale}
-                min={0.2}
-                max={2.5}
-                onChange={handleSliderChange}
-                readoutRef={(el) => (readoutsRef.current.scale = el)}
-                inputRef={(el) => (sliderInputsRef.current.scale = el)}
-              />
-            </ChannelGroup>
+            <span
+              ref={beatTextRef}
+              style={{
+                background: "rgba(255, 255, 255, 0.06)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "9px",
+                color: "#a1a1a6",
+              }}
+            >
+              f:0
+            </span>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setPosition(position === "bottom" ? "top" : "bottom");
+              }}
+              style={{
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "4px",
+                padding: "2px 6px",
+                color: "#fff",
+                fontSize: "9px",
+                cursor: "pointer",
+              }}
+            >
+              {position === "bottom" ? "⇅ Top" : "⇅ Bottom"}
+            </button>
+            <span ref={frameTextRef} style={{ color: "#4DA3FF", fontWeight: "bold", fontSize: "10px" }}>f: 0</span>
+            <span ref={progressTextRef} style={{ color: "#999", fontSize: "10px" }}>0%</span>
+          </div>
+        </div>
+
+      {!collapsed && (
+        <div style={{ flex: 1, display: "flex", flexDirection: isMobileScreen ? "column" : "row", overflow: "hidden", minHeight: 0 }}>
+          {/* LEFT SIDEBAR - Channel Inspector (Parameters) */}
+          {(!isMobileScreen || activeMobileTab === "channels") && (
+            <div
+              style={{
+                width: isMobileScreen ? "100%" : "340px",
+                flex: isMobileScreen ? 1 : "none",
+                borderRight: isMobileScreen ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+                background: "rgba(14, 14, 16, 0.5)",
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                padding: isMobileScreen ? "8px" : "12px",
+              }}
+            >
+              <div style={{ fontWeight: "bold", textTransform: "uppercase", fontSize: "10px", color: "#8e8e93", marginBottom: "8px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "4px" }}>
+                Channels & Properties ({timelineTarget === "mobile" ? "Mobile" : "Desktop"})
+              </div>
+
+              {/* Camera Position group */}
+              <ChannelGroup label="Camera Position">
+                <ChannelRow
+                  label="Cam X"
+                  valKey="camX"
+                  value={values.camX}
+                  min={-3}
+                  max={3}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.camX = el)}
+                  inputRef={(el) => (sliderInputsRef.current.camX = el)}
+                />
+                <ChannelRow
+                  label="Cam Y"
+                  valKey="camY"
+                  value={values.camY}
+                  min={-2}
+                  max={2}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.camY = el)}
+                  inputRef={(el) => (sliderInputsRef.current.camY = el)}
+                />
+                <ChannelRow
+                  label="Cam Z"
+                  valKey="camZ"
+                  value={values.camZ}
+                  min={1}
+                  max={8}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.camZ = el)}
+                  inputRef={(el) => (sliderInputsRef.current.camZ = el)}
+                />
+              </ChannelGroup>
+
+              {/* Ring Rotation group */}
+              <ChannelGroup label="Ring Rotation">
+                <ChannelRow
+                  label="Rot X"
+                  valKey="rotX"
+                  value={values.rotX}
+                  min={-3.14}
+                  max={3.14}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.rotX = el)}
+                  inputRef={(el) => (sliderInputsRef.current.rotX = el)}
+                />
+                <ChannelRow
+                  label="Rot Y"
+                  valKey="rotY"
+                  value={values.rotY}
+                  min={-6.3}
+                  max={6.3}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.rotY = el)}
+                  inputRef={(el) => (sliderInputsRef.current.rotY = el)}
+                />
+                <ChannelRow
+                  label="Rot Z"
+                  valKey="rotZ"
+                  value={values.rotZ}
+                  min={-3.14}
+                  max={3.14}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.rotZ = el)}
+                  inputRef={(el) => (sliderInputsRef.current.rotZ = el)}
+                />
+              </ChannelGroup>
+
+              {/* Ring Position group */}
+              <ChannelGroup label="Ring Position Offset">
+                <ChannelRow
+                  label="Pos X"
+                  valKey="posX"
+                  value={values.posX}
+                  min={-2}
+                  max={2}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.posX = el)}
+                  inputRef={(el) => (sliderInputsRef.current.posX = el)}
+                />
+                <ChannelRow
+                  label="Pos Y"
+                  valKey="posY"
+                  value={values.posY}
+                  min={-2}
+                  max={2}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.posY = el)}
+                  inputRef={(el) => (sliderInputsRef.current.posY = el)}
+                />
+                <ChannelRow
+                  label="Pos Z"
+                  valKey="posZ"
+                  value={values.posZ}
+                  min={-2}
+                  max={2}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.posZ = el)}
+                  inputRef={(el) => (sliderInputsRef.current.posZ = el)}
+                />
+              </ChannelGroup>
+
+              {/* Scale group */}
+              <ChannelGroup label="Ring Scale">
+                <ChannelRow
+                  label="Scale"
+                  valKey="scale"
+                  value={values.scale}
+                  min={0.2}
+                  max={2.5}
+                  onChange={handleSliderChange}
+                  readoutRef={(el) => (readoutsRef.current.scale = el)}
+                  inputRef={(el) => (sliderInputsRef.current.scale = el)}
+                />
+              </ChannelGroup>
+            </div>
+          )}
 
           {/* RIGHT MAIN SECTION - Timeline, Transport & Keyframes */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px", overflow: "hidden" }}>
-            {/* Top Toolbar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "10px" }}>
-              {/* Transport buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <button
-                  onClick={() => onJumpToProgress(0, false)}
-                  title="Jump to Start"
-                  style={toolbarButtonStyle}
-                >
-                  ⏮
-                </button>
-                <button
-                  onClick={() => {
-                    const sorted = Array.from(savedBeats || []).sort((a, b) => a - b);
-                    const prev = sorted.reverse().find((f) => f < values.activeFrame);
-                    if (prev !== undefined) onSelectBeat(prev);
-                    else onSelectBeat(0);
-                  }}
-                  title="Previous Keyframe"
-                  style={toolbarButtonStyle}
-                >
-                  ◀
-                </button>
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  title={isPlaying ? "Pause scroll playback" : "Play scroll playback"}
-                  style={{
-                    ...toolbarButtonStyle,
-                    color: isPlaying ? "#E25B1C" : "#fff",
-                    background: isPlaying ? "rgba(226,91,28,0.15)" : "rgba(255,255,255,0.06)",
-                    borderColor: isPlaying ? "rgba(226,91,28,0.4)" : "rgba(255,255,255,0.15)",
-                  }}
-                >
-                  {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsPlaying(false);
-                    onJumpToProgress(0, false);
-                  }}
+          {(!isMobileScreen || activeMobileTab === "timeline") && (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: isMobileScreen ? "8px" : "12px", overflowY: isMobileScreen ? "auto" : "hidden" }}>
+              {/* Top Toolbar */}
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", gap: "6px" }}>
+                {/* Transport buttons */}
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <button
+                    onClick={() => onJumpToProgress(0, false)}
+                    title="Jump to Start"
+                    style={toolbarButtonStyle}
+                  >
+                    ⏮
+                  </button>
+                  <button
+                    onClick={() => {
+                      const sorted = Array.from(savedBeats || []).sort((a, b) => a - b);
+                      const prev = sorted.reverse().find((f) => f < values.activeFrame);
+                      if (prev !== undefined) onSelectBeat(prev);
+                      else onSelectBeat(0);
+                    }}
+                    title="Previous Keyframe"
+                    style={toolbarButtonStyle}
+                  >
+                    ◀
+                  </button>
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    title={isPlaying ? "Pause scroll playback" : "Play scroll playback"}
+                    style={{
+                      ...toolbarButtonStyle,
+                      color: isPlaying ? "#E25B1C" : "#fff",
+                      background: isPlaying ? "rgba(226,91,28,0.15)" : "rgba(255,255,255,0.06)",
+                      borderColor: isPlaying ? "rgba(226,91,28,0.4)" : "rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsPlaying(false);
+                      onJumpToProgress(0, false);
+                    }}
                   title="Stop"
                   style={toolbarButtonStyle}
                 >
@@ -969,9 +1304,11 @@ ringScale: ${values.scale.toFixed(2)},`;
               )}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    )}
+  </div>
+</>
   );
 });
 
@@ -1023,7 +1360,7 @@ function ChannelRow({ label, valKey, value, min, max, onChange, readoutRef, inpu
           step={0.01}
           value={value}
           onChange={(e) => onChange(valKey, Number(e.target.value))}
-          style={{ flex: 1, accentColor: "#4DA3FF", height: "4px", background: "#333", borderRadius: "2px" }}
+          style={{ flex: 1, accentColor: "#4DA3FF", height: "18px", touchAction: "none", cursor: "pointer" }}
         />
       </div>
     </div>

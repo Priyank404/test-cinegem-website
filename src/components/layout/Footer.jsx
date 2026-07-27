@@ -99,7 +99,7 @@ export function Footer() {
               <Link to="/classic">Classic E-Commerce</Link>
               <Link to="/creative-visuals">Creative Visuals</Link>
               <Link to="/onbody">On-Body Visualization</Link>
-              <Link to="/">The Vault</Link>
+              <Link to="/3d-viewer">Interactive 3D Engine</Link>
             </div>
 
             <div className="hero2-footer-col">

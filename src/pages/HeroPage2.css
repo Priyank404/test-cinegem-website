@@ -6,6 +6,7 @@
 .hero2-page {
   position: relative;
   width: 100%;
+  overflow-x: hidden;
   color: #fff;
   font-family: "Poppins", sans-serif;
   /* White custom cursor — browsers can't recolor the native OS cursor

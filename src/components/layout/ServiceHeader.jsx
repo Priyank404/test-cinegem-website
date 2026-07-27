@@ -7,7 +7,7 @@ export const ALL_SERVICES = [
   { label: 'On-Body Visualization',  route: '/onbody'           },
   { label: 'Classic E-Commerce',     route: '/classic'          },
   { label: 'Creative Visuals',       route: '/creative-visuals' },
-  { label: 'Hero 2',                 route: '/hero2'            },
+  { label: '3D Customizer',          route: '/3d-viewer'        },
 ]
 
 const SERVICE_GROUP = {
@@ -18,7 +18,7 @@ const SERVICE_GROUP = {
 const ABOUT_GROUP = {
   heading: 'About',
   items: [
-    { label: 'The Vault', route: '/' },
+    { label: 'Home', route: '/' },
   ],
 }
 
@@ -333,7 +333,7 @@ export function ServiceHeader({ currentPage = '', navRef }) {
           >
             <div className="flex flex-col gap-6 max-w-sm mx-auto w-full">
               <span className="text-[#C5A059] font-[Poppins] text-[9px] tracking-[0.3em] uppercase block mb-1 font-light">
-                EXPLORE VAULT SERVICES
+                EXPLORE STUDIO SERVICES
               </span>
 
               {ALL_SERVICES.map((link, idx) => {
@@ -379,7 +379,7 @@ export function ServiceHeader({ currentPage = '', navRef }) {
                   onClick={() => setMenuOpen(false)}
                   className="font-[Poppins] text-[10px] tracking-[0.2em] uppercase text-[#444748] hover:text-[#121212] font-light"
                 >
-                  ← BACK TO THE VAULT
+                  ← BACK TO HOME
                 </Link>
                 <Link
                   to="/inquire"

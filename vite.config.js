@@ -16,12 +16,14 @@ function saveTimelinePlugin() {
           });
           req.on("end", () => {
             try {
-              const { beats } = JSON.parse(body);
+              const { beats, target = "desktop" } = JSON.parse(body);
               const ringHeroPath = path.resolve(__dirname, "src/components/three/RingHero.jsx");
               let fileContent = fs.readFileSync(ringHeroPath, "utf8");
 
+              const varName = target === "mobile" ? "MOBILE_BEATS" : "BEATS";
+
               // Serialize beats beautifully
-              const serializedBeats = "export const BEATS = [\n" + beats.map((beat, i) => {
+              const serializedBeats = `export const ${varName} = [\n` + beats.map((beat, i) => {
                 const parts = [
                   `    frame: ${beat.frame !== undefined ? beat.frame : (i * 20)}`,
                   `    bgTop: ${JSON.stringify(beat.bgTop)}`,
@@ -41,8 +43,9 @@ function saveTimelinePlugin() {
                 return "  {\n    // Keyframe at frame " + (beat.frame !== undefined ? beat.frame : (i * 20)) + "\n" + parts.join(",\n") + "\n  }";
               }).join(",\n") + "\n];";
 
-              // Replace BEATS array in the fileContent
-              const newContent = fileContent.replace(/export const BEATS = \[\s*[\s\S]*?\n\];/g, serializedBeats);
+              // Replace the targeted timeline array in the fileContent
+              const regex = new RegExp(`export const ${varName} = \\[\\s*[\\s\\S]*?\\n\\];`, "g");
+              const newContent = fileContent.replace(regex, serializedBeats);
 
               fs.writeFileSync(ringHeroPath, newContent, "utf8");
 
