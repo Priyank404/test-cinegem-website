@@ -124,8 +124,8 @@ export const BEATS = [
     ringScale: 1.0,
   },
   {
-    // Keyframe at frame 8.5 (Beat 2 Start - corner park)
-    frame: 8.5,
+    // Keyframe at frame 44 (Beat 2 Start - corner park)
+    frame: 44,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
     camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
@@ -137,8 +137,8 @@ export const BEATS = [
     ringScale: 0.83,
   },
   {
-    // Keyframe at frame 18.5 (Beat 2 End - steady corner park)
-    frame: 18.5,
+    // Keyframe at frame 96 (Beat 2 End - steady corner park)
+    frame: 96,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
     camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
@@ -150,8 +150,8 @@ export const BEATS = [
     ringScale: 0.83,
   },
   {
-    // Keyframe at frame 20 (Beat 3 Start - pose angle)
-    frame: 20,
+    // Keyframe at frame 104 (Beat 3 Start - pose angle)
+    frame: 104,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
     camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
@@ -163,8 +163,8 @@ export const BEATS = [
     ringScale: 1.33,
   },
   {
-    // Keyframe at frame 30 (Beat 3 End - steady pose angle)
-    frame: 30,
+    // Keyframe at frame 156 (Beat 3 End - steady pose angle)
+    frame: 156,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
     camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
@@ -176,8 +176,8 @@ export const BEATS = [
     ringScale: 1.33,
   },
   {
-    // Keyframe at frame 40 (Beat 4 - alternative pose)
-    frame: 40,
+    // Keyframe at frame 208 (Beat 4 - alternative pose)
+    frame: 208,
     bgTop: "#0c0c0e",
     bgBottom: "#000000",
     camPos: { x: 0.15, y: -0.05, z: 3.0, lookAtY: 0.0 },
@@ -189,8 +189,8 @@ export const BEATS = [
     ringScale: 1.0,
   },
   {
-    // Keyframe at frame 50 (Beat 5 - final spin)
-    frame: 50,
+    // Keyframe at frame 260 (Beat 5 - final spin)
+    frame: 260,
     bgTop: "#101014",
     bgBottom: "#000000",
     camPos: { x: 0.0, y: 0.0, z: 3.4, lookAtY: 0.0 },
@@ -228,7 +228,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.85,
   },
   {
-    frame: 8.5,
+    frame: 44,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
     camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
@@ -240,7 +240,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.80,
   },
   {
-    frame: 18.5,
+    frame: 96,
     bgTop: "#0d0d10",
     bgBottom: "#1a1a1f",
     camPos: { x: 0.0, y: 0.06, z: 3.48, lookAtY: 0.0 },
@@ -252,7 +252,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.80,
   },
   {
-    frame: 20,
+    frame: 104,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
     camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
@@ -264,7 +264,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.95,
   },
   {
-    frame: 30,
+    frame: 156,
     bgTop: "#241a12",
     bgBottom: "#3b2417",
     camPos: { x: 0.02, y: 0.05, z: 3.99, lookAtY: 0.0 },
@@ -276,7 +276,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.95,
   },
   {
-    frame: 40,
+    frame: 208,
     bgTop: "#0c0c0e",
     bgBottom: "#000000",
     camPos: { x: 0.15, y: -0.05, z: 3.0, lookAtY: 0.0 },
@@ -288,7 +288,7 @@ export const MOBILE_BEATS = [
     ringScale: 0.85,
   },
   {
-    frame: 50,
+    frame: 260,
     bgTop: "#101014",
     bgBottom: "#000000",
     camPos: { x: 0.0, y: 0.0, z: 3.4, lookAtY: 0.0 },
@@ -1199,7 +1199,8 @@ export default function RingHero({
             const beatIndex = Math.floor(beatPosition);
             const beatFraction = beatPosition - beatIndex;
 
-            const localFrame = progress * 50;
+            const maxFrame = allFrames[allFrames.length - 1] || 260;
+            const localFrame = progress * maxFrame;
             if (autoRotateStartFrame != null) {
               const inRange =
                 localFrame >= autoRotateStartFrame &&
@@ -1268,7 +1269,8 @@ export default function RingHero({
           jumpToBeat: (frame) => {
             const st = tl.scrollTrigger;
             if (!st) return;
-            const progress = Math.max(0, Math.min(50, frame)) / 50;
+            const maxFrame = 260;
+            const progress = Math.max(0, Math.min(maxFrame, frame)) / maxFrame;
             const targetY = st.start + (st.end - st.start) * progress;
             window.scrollTo({ top: targetY, behavior: "smooth" });
           },

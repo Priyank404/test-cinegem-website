@@ -128,11 +128,6 @@ const TimelineEditor = forwardRef(function TimelineEditor({
   // Timeline play/pause auto-scrolling animation loop
   useEffect(() => {
     if (isPlaying) {
-      // Turn off live override during playback so the animation plays smoothly
-      if (values.live && onToggleLive) {
-        onToggleLive(false);
-      }
-
       let lastTime = performance.now();
       const scrollSpeed = 0.05; // speed factor
 
@@ -164,16 +159,11 @@ const TimelineEditor = forwardRef(function TimelineEditor({
         cancelAnimationFrame(autoScrollRafRef.current);
       }
     };
-  }, [isPlaying, onJumpToProgress, values.live, onToggleLive]);
+  }, [isPlaying, onJumpToProgress]);
 
   // Handle timeline track scrubbing
   const handleTimelineScrub = (e) => {
     if (!timelineTrackRef.current || !onJumpToProgress) return;
-
-    // Deactivate live override on scrub so the animation updates correctly
-    if (values.live && onToggleLive) {
-      onToggleLive(false);
-    }
 
     const rect = timelineTrackRef.current.getBoundingClientRect();
     const updateFromPosition = (clientX) => {
@@ -952,14 +942,30 @@ ringScale: ${values.scale.toFixed(2)},`;
                   <span style={{ color: autoKey ? "#ff7b39" : "#aaa", fontWeight: "bold", fontSize: "9px" }}>AUTO-KEY</span>
                 </label>
 
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    background: values.live ? "rgba(77, 163, 255, 0.2)" : "rgba(255,255,255,0.03)",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    border: values.live ? "1px solid rgba(77, 163, 255, 0.5)" : "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: values.live ? "0 0 8px rgba(77, 163, 255, 0.25)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  title="Keep active to preview overridden settings across the entire timeline during scrub, play, or scroll"
+                >
                   <input
                     type="checkbox"
                     checked={values.live}
                     onChange={(e) => onToggleLive(e.target.checked)}
                     style={{ accentColor: "#4DA3FF" }}
                   />
-                  <span style={{ color: values.live ? "#4DA3FF" : "#aaa", fontSize: "10px" }}>LIVE OVERRIDE</span>
+                  <span style={{ color: values.live ? "#4DA3FF" : "#aaa", fontWeight: "bold", fontSize: "9px" }}>
+                    LIVE OVERRIDE {values.live ? "● ON" : ""}
+                  </span>
                 </label>
               </div>
 

@@ -408,7 +408,7 @@ export default function HomePage() {
   const [timelineTarget, setTimelineTarget] = useState("desktop");
 
   // Selecting a frame prefills the sliders from that frame's interpolated
-  // base values, UNLESS a keyframe was already saved for it.
+  // base values, UNLESS a keyframe was already saved for it or Live Override is ON.
   function selectCoordFrame(frame) {
     const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
     const kf = snap[frame];
@@ -418,20 +418,29 @@ export default function HomePage() {
       ringPosOffset: { x: 0, y: 0, z: 0 },
       ringScale: 1,
     };
-    setCoordValues((prev) => ({
-      ...prev,
-      activeFrame: frame,
-      camX: kf?.camPos?.x ?? base.camPos.x,
-      camY: kf?.camPos?.y ?? base.camPos.y,
-      camZ: kf?.camPos?.z ?? base.camPos.z,
-      rotX: kf?.ringRot?.x ?? base.ringRot.x,
-      rotY: kf?.ringRot?.y ?? base.ringRot.y,
-      rotZ: kf?.ringRot?.z ?? base.ringRot.z ?? 0,
-      posX: kf?.ringPosOffset?.x ?? base.ringPosOffset?.x ?? 0,
-      posY: kf?.ringPosOffset?.y ?? base.ringPosOffset?.y ?? 0,
-      posZ: kf?.ringPosOffset?.z ?? base.ringPosOffset?.z ?? 0,
-      scale: kf?.ringScale ?? base.ringScale ?? 1,
-    }));
+    setCoordValues((prev) => {
+      if (prev.live) {
+        // Keep live overridden values intact so user changes do not vanish on scrub/jump
+        return {
+          ...prev,
+          activeFrame: frame,
+        };
+      }
+      return {
+        ...prev,
+        activeFrame: frame,
+        camX: kf?.camPos?.x ?? base.camPos.x,
+        camY: kf?.camPos?.y ?? base.camPos.y,
+        camZ: kf?.camPos?.z ?? base.camPos.z,
+        rotX: kf?.ringRot?.x ?? base.ringRot.x,
+        rotY: kf?.ringRot?.y ?? base.ringRot.y,
+        rotZ: kf?.ringRot?.z ?? base.ringRot.z ?? 0,
+        posX: kf?.ringPosOffset?.x ?? base.ringPosOffset?.x ?? 0,
+        posY: kf?.ringPosOffset?.y ?? base.ringPosOffset?.y ?? 0,
+        posZ: kf?.ringPosOffset?.z ?? base.ringPosOffset?.z ?? 0,
+        scale: kf?.ringScale ?? base.ringScale ?? 1,
+      };
+    });
     poseApiRef.current?.jumpToBeat(frame);
   }
 
@@ -492,7 +501,29 @@ export default function HomePage() {
       setCoordValues(next);
       applyLiveOverride(next);
     } else {
-      const next = { ...coordValues, live };
+      const frame = coordValues.activeFrame;
+      const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
+      const kf = snap[frame];
+      const base = poseApiRef.current?.getBaseValuesForFrame?.(frame, timelineTarget) ?? {
+        camPos: { x: 0, y: 0.2, z: 4.2 },
+        ringRot: { x: 0.15, y: 0, z: 0 },
+        ringPosOffset: { x: 0, y: 0, z: 0 },
+        ringScale: 1,
+      };
+      const next = {
+        ...coordValues,
+        live: false,
+        camX: kf?.camPos?.x ?? base.camPos.x,
+        camY: kf?.camPos?.y ?? base.camPos.y,
+        camZ: kf?.camPos?.z ?? base.camPos.z,
+        rotX: kf?.ringRot?.x ?? base.ringRot.x,
+        rotY: kf?.ringRot?.y ?? base.ringRot.y,
+        rotZ: kf?.ringRot?.z ?? base.ringRot.z ?? 0,
+        posX: kf?.ringPosOffset?.x ?? base.ringPosOffset?.x ?? 0,
+        posY: kf?.ringPosOffset?.y ?? base.ringPosOffset?.y ?? 0,
+        posZ: kf?.ringPosOffset?.z ?? base.ringPosOffset?.z ?? 0,
+        scale: kf?.ringScale ?? base.ringScale ?? 1,
+      };
       setCoordValues(next);
       poseApiRef.current?.setCamOverride(null);
       poseApiRef.current?.setRingRotOverride(null);
@@ -815,17 +846,7 @@ export default function HomePage() {
     }
   }
 
-  // Automatically turn off live override when the user scrolls the page
-  // so the scroll animation plays smoothly and doesn't freeze.
-  useEffect(() => {
-    const handleWindowScroll = () => {
-      if (coordValues.live) {
-        toggleCoordLive(false);
-      }
-    };
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleWindowScroll);
-  }, [coordValues.live]);
+
 
   // Converts a stored px width (tuned against a 1920px reference design)
   // into a fluid clamp() string: min px floor, vw-scaled preferred value,
@@ -1463,15 +1484,11 @@ export default function HomePage() {
         gemHdrPower={gemHdrConfig.power}
         gemHdrGamma={gemHdrConfig.gamma}
         postFxEnabled={postFxEnabled}
-        autoRotateStartFrame={(AUTO_ROTATE_GLOBAL_FRAME / TOTAL_FRAMES) * 50}
-        autoRotateEndFrame={(AUTO_ROTATE_GLOBAL_END_FRAME / TOTAL_FRAMES) * 50}
+        autoRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
+        autoRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         autoRotateSpeed={0.6}
-        interactiveRotateStartFrame={
-          (AUTO_ROTATE_GLOBAL_FRAME / TOTAL_FRAMES) * 50
-        }
-        interactiveRotateEndFrame={
-          (AUTO_ROTATE_GLOBAL_END_FRAME / TOTAL_FRAMES) * 50
-        }
+        interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
+        interactiveRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
           refreshSavedBeats();
