@@ -21,17 +21,49 @@ const section1Images = [
 ];
 
 const section2Images = [
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Front view", label: "Front" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Side view", label: "Side" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Angle view", label: "Angle" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Detail view", label: "Detail" },
+  {
+    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png",
+    alt: "Front view",
+    label: "Front",
+  },
+  {
+    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png",
+    alt: "Side view",
+    label: "Side",
+  },
+  {
+    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png",
+    alt: "Angle view",
+    label: "Angle",
+  },
+  {
+    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png",
+    alt: "Detail view",
+    label: "Detail",
+  },
 ];
 
 const section3Images = [
-  { src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png", alt: "Front view", label: "Front" },
-  { src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png", alt: "Side view", label: "Side" },
-  { src: "/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png", alt: "Detail view", label: "Detail" },
-  { src: "/G7P25CLACRAW0113D00-TZPDP00005-24Y-V3-WB.png", alt: "Macro view", label: "Macro" },
+  {
+    src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
+    alt: "Front view",
+    label: "Front",
+  },
+  {
+    src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png",
+    alt: "Side view",
+    label: "Side",
+  },
+  {
+    src: "/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png",
+    alt: "Detail view",
+    label: "Detail",
+  },
+  {
+    src: "/G7P25CLACRAW0113D00-TZPDP00005-24Y-V3-WB.png",
+    alt: "Macro view",
+    label: "Macro",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -125,7 +157,11 @@ function ScrollArrow({ direction, onClick }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {direction === "left" ? <path d="M15 6l-6 6 6 6" /> : <path d="M9 6l6 6-6 6" />}
+        {direction === "left" ? (
+          <path d="M15 6l-6 6 6 6" />
+        ) : (
+          <path d="M9 6l6 6-6 6" />
+        )}
       </svg>
     </button>
   );
@@ -195,7 +231,9 @@ function PeekCarousel({ images, className = "" }) {
 
   return (
     <div className={`relative w-full min-w-0 max-w-full ${className}`}>
-      {canLeft && <ScrollArrow direction="left" onClick={() => goTo(activeIndex - 1)} />}
+      {canLeft && (
+        <ScrollArrow direction="left" onClick={() => goTo(activeIndex - 1)} />
+      )}
       <div
         ref={trackRef}
         className="peek-scroll flex gap-3 overflow-x-auto snap-x snap-mandatory max-w-full px-[9%] sm:px-[16%] md:px-[22%]"
@@ -215,7 +253,9 @@ function PeekCarousel({ images, className = "" }) {
           </div>
         ))}
       </div>
-      {canRight && <ScrollArrow direction="right" onClick={() => goTo(activeIndex + 1)} />}
+      {canRight && (
+        <ScrollArrow direction="right" onClick={() => goTo(activeIndex + 1)} />
+      )}
       <style>{`.peek-scroll::-webkit-scrollbar { display: none; }`}</style>
     </div>
   );
@@ -237,7 +277,12 @@ function PeekCarousel({ images, className = "" }) {
    drag that starts on the video doesn't hijack its native play/seek
    controls; a mostly-vertical drag is ignored so the page can still
    scroll normally. */
-function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className = "" }) {
+function MainPreviewCarousel({
+  images,
+  videoSrc,
+  heightClassName = "",
+  className = "",
+}) {
   const media = videoSrc
     ? [...images.map((img) => ({ type: "image", img })), { type: "video" }]
     : images.map((img) => ({ type: "image", img }));
@@ -250,7 +295,9 @@ function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className
   const canRight = activeIndex < media.length - 1;
 
   const step = (delta) => {
-    setActiveIndex((prev) => Math.max(0, Math.min(media.length - 1, prev + delta)));
+    setActiveIndex((prev) =>
+      Math.max(0, Math.min(media.length - 1, prev + delta)),
+    );
   };
 
   const SWIPE_THRESHOLD = 40;
@@ -294,11 +341,11 @@ function MainPreviewCarousel({ images, videoSrc, heightClassName = "", className
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SECTION 1 — Video (left) + 2×2 grid (right)
+   SECTION 1 — Video (top on mobile/tablet, left on desktop) + 2×2 grid
    Centered in exactly one viewport on load (no snap, no forced cutoff —
    just a min-h block tall enough to fill the screen below the 80px
    fixed header, with its content vertically centered inside it).
-   Mobile: video on top, grid stacked below.
+   Mobile + tablet: video on top, 2×2 square image grid stacked below.
 ═══════════════════════════════════════════════════════════════════════ */
 
 function Section1({ images, videoSrc }) {
@@ -307,30 +354,23 @@ function Section1({ images, videoSrc }) {
       className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-0"
       style={{ minHeight: "calc(100vh - 80px)" }}
     >
-      <div className="w-full max-w-[1800px] mx-auto">
-        {/* MOBILE (<md) — stacked. Video is kept to a wide 16:9 rather
-            than a tall portrait crop so it doesn't eat the screen and
-            push the 2×2 grid (and the rest of the page) further down. */}
-        <div className="flex flex-col gap-4 md:hidden">
-          <div className="grid grid-cols-2 gap-3 aspect-square">
+      <div className="w-full max-w-[2560px] mx-auto">
+        {/* MOBILE + TABLET (<lg) — stacked: 2×2 image grid on top,
+            video below. Each grid cell gets an explicit aspect-square
+            so the tiles stay perfectly square at every viewport width,
+            independent of the grid container's own sizing. The grid
+            spans the full available width (no max-width wrapper) so
+            there's no extra empty space around it — just the gap
+            between tiles. Video is kept to a wide 16:9 rather than a
+            tall portrait crop so it doesn't eat the screen. */}
+        <div className="flex flex-col gap-4 lg:hidden">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
             {images.map((img, i) => (
-              <ImageTile key={i} img={img} />
+              <ImageTile key={i} img={img} className="aspect-square" />
             ))}
           </div>
 
           <VideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
-        </div>
-
-        {/* TABLET (md–lg) — same side-by-side idea as desktop, just a
-            shorter row height suited to iPad-class viewports instead
-            of desktop's 75vh. */}
-        <div className="hidden md:flex lg:hidden flex-row gap-6 items-center justify-center h-[52vh]">
-          <VideoPlayer videoSrc={videoSrc} className="flex-1 h-full" />
-          <div className="h-full aspect-square max-w-[42%] grid grid-cols-2 gap-3 shrink-0">
-            {images.map((img, i) => (
-              <ImageTile key={i} img={img} />
-            ))}
-          </div>
         </div>
 
         {/* DESKTOP (lg+) — grid is a height-driven square block
@@ -338,9 +378,9 @@ function Section1({ images, videoSrc }) {
             stretched/squashed by section height. */}
         <div className="hidden lg:flex flex-row gap-8 items-center justify-center h-[75vh]">
           <VideoPlayer videoSrc={videoSrc} className="flex-1 h-full" />
-          <div className="h-full aspect-square max-w-[44%] grid grid-cols-2 gap-4 shrink-0">
+          <div className="h-full aspect-square max-w-[100%] grid grid-cols-2 gap-4 shrink-0">
             {images.map((img, i) => (
-              <ImageTile key={i} img={img} />
+              <ImageTile key={i} img={img} className="aspect-square" />
             ))}
           </div>
         </div>
@@ -358,7 +398,7 @@ function Section1({ images, videoSrc }) {
 function Section2({ images, videoSrc }) {
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
-      <div className="w-full max-w-[1800px] mx-auto">
+      <div className="w-full max-w-[2560px] mx-auto">
         {/* MOBILE / TABLET (<lg) — one-at-a-time peek carousel: the
             active image sits centered at full slide size, the next/
             previous image peeks in dimmed at each edge, and the arrows
@@ -395,7 +435,7 @@ function Section3({ images, videoSrc }) {
 
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-16 pb-24 md:py-24">
-      <div className="w-full max-w-[1800px] mx-auto">
+      <div className="w-full max-w-[2560px] mx-auto">
         {/* MOBILE / TABLET (<lg) — same main-preview container/arrows
             as before (ScrollArrow, same styling), just without the
             thumbnail strip underneath. With that strip gone, the
@@ -407,7 +447,7 @@ function Section3({ images, videoSrc }) {
           <MainPreviewCarousel
             images={[hero, img2, img3, img4]}
             videoSrc={videoSrc}
-            heightClassName="h-[58vh] sm:h-[62vh] md:h-[66vh]"
+            heightClassName="h-[72vh] sm:h-[78vh] md:h-[100vh]"
           />
         </div>
 
@@ -442,7 +482,6 @@ export default function ClassicEComVisuals({
 }) {
   const containerRef = useRef(null);
 
-
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:
   //   • scrolling down past it  -> cards slide in from the RIGHT
@@ -459,43 +498,62 @@ export default function ClassicEComVisuals({
         // Mobile + desktop variants both exist in the DOM at once
         // (Tailwind just toggles `hidden`), so only animate the ones
         // actually visible at this breakpoint.
-        const cards = gsap
-          .utils.toArray(".reveal-right", section)
+        const cards = gsap.utils
+          .toArray(".reveal-right", section)
           .filter((el) => el.offsetParent !== null);
 
         if (!cards.length) return;
 
-        gsap.fromTo(
-          cards,
-          {
-            opacity: 0,
-            x: 120,
-            filter: "blur(8px)",
-            // Tiles carry a CSS `transition-transform` (hover lift).
-            // Left on, the browser CSS-transitions every GSAP-driven
-            // transform frame on top of GSAP's own easing — two
-            // engines fighting over the same property — causing
-            // stepped, jerky motion. Kill it for the tween, hand it
-            // back after via clearProps.
-            transition: "none",
-            willChange: "transform, opacity, filter",
+        // Kill CSS transition on cards for the duration of any GSAP
+        // tween so the browser's CSS transition engine doesn't fight
+        // GSAP over the same properties (causes jittery motion).
+        // Restore it only when the tween is fully at rest in its
+        // "played" end-state.
+        cards.forEach((el) => {
+          el.style.transition = "none";
+          el.style.willChange = "transform, opacity, filter";
+        });
+
+        // Use `gsap.from` (not `fromTo`) so GSAP knows the "to"
+        // values are the element's natural CSS state and never loses
+        // track of them.  The previous `fromTo` + `clearProps` combo
+        // was the root cause of the overlap: clearProps stripped the
+        // inline styles GSAP was using to track end-state positions,
+        // so on a reverse → re-play cycle the "from" snapshot was
+        // stale / wrong and items piled on top of each other.
+        gsap.from(cards, {
+          opacity: 0,
+          x: 120,
+          filter: "blur(8px)",
+          duration: 0.9,
+          ease: "power3.out",
+          stagger: 0.07,
+          // Re-hand CSS transition back to the elements once the
+          // forward animation finishes so hover effects work again.
+          onComplete() {
+            cards.forEach((el) => {
+              el.style.willChange = "auto";
+              el.style.transition = "";
+            });
           },
-          {
-            opacity: 1,
-            x: 0,
-            filter: "blur(0px)",
-            duration: 0.9,
-            ease: "power3.out",
-            stagger: 0.07,
-            clearProps: "transform,filter,transition,willChange",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 85%",
-              // enter / leave / enterBack / leaveBack
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
+          // When reversing (scrolling back up), disable the CSS
+          // transition again so it doesn't interfere with GSAP.
+          onReverseComplete() {
+            cards.forEach((el) => {
+              el.style.transition = "none";
+              el.style.willChange = "transform, opacity, filter";
+            });
+          },
+          scrollTrigger: {
+            trigger: section,
+            start: "top 85%",
+            // enter / leave / enterBack / leaveBack
+            toggleActions: "play none none reverse",
+            // Re-grab "from" snapshot when the page resizes or
+            // images finish loading and shift section heights.
+            invalidateOnRefresh: true,
+          },
+        });
       });
 
       // Section heights can shift slightly once images finish loading,
@@ -519,7 +577,6 @@ export default function ClassicEComVisuals({
           hidden. z-0 + the content wrapper's z-10 is enough to order
           them correctly without that trap. */}
 
-
       {/* Cinematic scroll-zoom hero — entirely self-contained (own GSAP
           context/ScrollTrigger, own cleanup) in HeroSection.jsx. Kept
           outside `containerRef` on purpose: the effect above scans
@@ -527,10 +584,10 @@ export default function ClassicEComVisuals({
           elements to drive Section 1–3's own reveal + divider animations,
           and this keeps the hero from ever being swept into that scan. */}
       <HeroSection
-      backgroundSrc="/4.png"
-  heading={["Classic", "E-Commerce", "Visuals"]}
-  paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
-/>
+        backgroundSrc="/4.png"
+        heading={["Classic", "E-Commerce", "Visuals"]}
+        paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
+      />
 
       <div ref={containerRef} className="relative z-10">
         <Section1 images={section1Images} videoSrc={videoSrc1} />
@@ -540,6 +597,3 @@ export default function ClassicEComVisuals({
     </ServicePageLayout>
   );
 }
-
-
-
