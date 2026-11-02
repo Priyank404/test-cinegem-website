@@ -18,7 +18,7 @@ const SERVICE_GROUP = {
 const ABOUT_GROUP = {
   heading: 'About',
   items: [
-    { label: 'Home', route: '/' },
+    { label: 'FAQ', route: '/faq' },
   ],
 }
 
