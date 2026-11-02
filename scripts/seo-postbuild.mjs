@@ -8,10 +8,9 @@ import { execSync } from 'child_process';
 import { SITE_URL, SITE_NAME, LOGO_PATH } from '../src/seo/site.js';
 import { ROUTES_LIST } from '../src/seo/routes.js';
 import { buildJsonLd } from '../src/seo/schema.js';
-import { SEO_CONTENT } from '../src/seo/content.js';
 import {
-  FAQ_SECTIONS,
-  getConfirmedFaqSections,
+  FAQ_TREE,
+  getConfirmedFaqTree,
   getFaqCounts,
   parseInlineLinks,
 } from '../src/seo/faq.js';
@@ -40,7 +39,6 @@ function getLastMod(filePath) {
 }
 
 function buildStaticSnapshot(route) {
-  const content = SEO_CONTENT[route.key];
   let h1Text = '';
   let bodyHtml = '';
 
@@ -58,29 +56,34 @@ function buildStaticSnapshot(route) {
     `;
   } else if (route.path === '/faq') {
     h1Text = 'Frequently Asked Questions';
-    const confirmedSections = getConfirmedFaqSections();
-    const categoriesHtml = confirmedSections
-      .map((section) => {
-        const itemsHtml = section.items
-          .map((item) => {
-            const answerHtml = parseInlineLinks(item.answer)
-              .map((p) => (p.isLink ? `<a href="${p.url}">${p.text}</a>` : p.text))
-              .join('');
-            return `<h3>${item.question}</h3><p>${answerHtml}</p>`;
+    const tree = getConfirmedFaqTree();
+    const treeHtml = tree
+      .map((cat) => {
+        const subHtml = cat.subcategories
+          .map((sub) => {
+            const itemsHtml = sub.items
+              .map((item) => {
+                const answerHtml = parseInlineLinks(item.answer)
+                  .map((p) => (p.isLink ? `<a href="${p.url}">${p.text}</a>` : p.text))
+                  .join('');
+                return `<h4>${item.question}</h4><p>${answerHtml}</p>`;
+              })
+              .join('\n');
+            return `<h3>${sub.title}</h3>\n${itemsHtml}`;
           })
           .join('\n');
-        return `<h2>${section.title}</h2>\n${itemsHtml}`;
+        return `<h2>${cat.title}</h2><p>${cat.summary}</p>\n${subHtml}`;
       })
       .join('\n');
 
     bodyHtml = `
       <p>${route.description}</p>
       <nav>
-        ${confirmedSections.map((s) => `<a href="#${s.id}">${s.title}</a>`).join('')}
+        ${tree.map((c) => `<a href="#${c.id}">${c.title}</a>`).join('')}
       </nav>
-      ${categoriesHtml}
+      ${treeHtml}
     `;
-  } else if (content) {
+  } else if (route.path === '/classic' || route.path === '/creative-visuals' || route.path === '/onbody') {
     const serviceH1 = {
       classic: 'Classic E-Commerce Visuals',
       creative: 'Creative Visuals',
@@ -88,14 +91,14 @@ function buildStaticSnapshot(route) {
     };
     h1Text = serviceH1[route.key] || route.breadcrumbName;
     bodyHtml = `
-      <h2>${content.heading}</h2>
-      <p>${content.intro}</p>
-      <ul>
-        ${content.deliverables.map((d) => `<li>${d}</li>`).join('')}
-      </ul>
-      <p>${content.process}</p>
+      <p>${route.description}</p>
       <nav>
-        ${content.links.map((l) => `<a href="${l.to}">${l.label}</a>`).join('')}
+        <a href="/">Home</a>
+        <a href="/classic">Classic E-Commerce</a>
+        <a href="/creative-visuals">Creative Visuals</a>
+        <a href="/onbody">On-Body Visualization</a>
+        <a href="/faq">FAQ</a>
+        <a href="/inquire">Start a Project</a>
       </nav>
     `;
   } else if (route.path === '/inquire') {
@@ -312,10 +315,12 @@ console.log(`  ✓ Written dist/_headers`);
 // 7. Validate: No pending FAQ item appears anywhere in dist/
 console.log('[seo-postbuild] Validating zero pending FAQ items in dist/...');
 const pendingItems = [];
-for (const section of FAQ_SECTIONS) {
-  for (const item of section.items) {
-    if (item.status === 'pending') {
-      pendingItems.push(item);
+for (const cat of FAQ_TREE) {
+  for (const sub of cat.subcategories) {
+    for (const item of sub.items) {
+      if (item.status === 'pending') {
+        pendingItems.push(item);
+      }
     }
   }
 }

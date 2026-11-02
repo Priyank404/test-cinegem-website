@@ -1,233 +1,315 @@
-// faq.js — FAQ sections and items for Cinegem Studio
+// faq.js — 3-Level Hierarchical FAQ Knowledge Base for Cinegem Studio
 // Plain ESM: NO JSX, NO `@/` alias, NO `import.meta.env`.
 // Shared between src/pages/FaqPage.jsx and scripts/seo-postbuild.mjs.
 
-export const CONFIRMED_FAQ_SECTIONS = [
+export const FAQ_TREE = [
   {
     id: 'studio',
-    title: 'The studio',
-    items: [
+    badge: '01',
+    title: 'Studio & Rendering Technology',
+    summary: 'Physically based GPU path-tracing, optical diamond dispersion, and our studio philosophy.',
+    subcategories: [
       {
-        id: 'what-does-cinegem-studio-do',
-        question: 'What does Cinegem Studio do?',
-        answer: 'Cinegem Studio is a jewellery visualization studio. We turn jewellery designs into photorealistic 3D renders, cinematic CGI animation and on-body visuals for luxury jewellery brands.',
-        status: 'confirmed',
+        id: 'studio-capabilities',
+        title: 'Core Capabilities & Studio Value',
+        items: [
+          {
+            id: 'what-is-cinegem-studio',
+            question: 'What does Cinegem Studio specialize in, and how does 3D CGI compare to traditional photography?',
+            answer: 'Cinegem Studio is a dedicated high jewellery 3D CGI and digital visualization atelier. We engineer photorealistic catalog stills, smooth 360° turntable loops, cinematic campaign films, and anatomical on-body visuals directly from CAD geometry. Traditional jewelry photography frequently struggles with camera lens depth-of-field limitations, micro-dust, reflection glare, and costly physical sample manufacturing delays. In contrast, our 3D path-tracing pipeline delivers microscopic clarity across every prong and diamond facet, perfectly controlled studio lighting, and zero physical sample risk.',
+            status: 'confirmed',
+          },
+          {
+            id: 'who-does-cinegem-serve',
+            question: 'Which types of jewelry brands and maisons benefit most from Cinegem’s visualization services?',
+            answer: 'We partner with bespoke high jewellery maisons, diamond retailers, independent designers, and direct-to-consumer fine jewelry brands worldwide. Whether launching an unmanufactured bridal collection for pre-orders, refreshing an entire 500-piece e-commerce catalog with unified lighting, or producing 4K campaign motion for flagship boutique video walls, our digital pipeline scales seamlessly to meet luxury standards without requiring physical inventory logistics.',
+            status: 'confirmed',
+          },
+        ],
       },
       {
-        id: 'which-services-do-you-offer',
-        question: 'Which services do you offer?',
-        answer: 'Four services: [Classic E-Commerce](/classic) visuals, [Creative Visuals](/creative-visuals), [On-Body Visualization](/onbody), and an interactive 3D viewer that is currently in development.',
-        status: 'confirmed',
-      },
-      {
-        id: 'what-do-you-render-with',
-        question: 'What do you render with?',
-        answer: 'Our renders are produced with OctaneRender, a GPU path-tracing renderer.',
-        status: 'confirmed',
+        id: 'studio-optical-fidelity',
+        title: 'Rendering Pipeline & Gemological Realism',
+        items: [
+          {
+            id: 'what-rendering-engine-do-you-use',
+            question: 'What rendering technology powers Cinegem’s photorealistic jewelry imagery?',
+            answer: 'Our production pipeline is anchored on OctaneRender, an unbiased, spectrally correct GPU path-tracing engine. Octane computes true photon transport, caustics, and multi-bounce light behavior within precious metals and gemstones. By pairing GPU acceleration with proprietary shader calibration, we reproduce authentic metal anisotropy, micro-roughness, and the complex internal reflection internal to fine diamond pavilion cuts.',
+            status: 'confirmed',
+          },
+          {
+            id: 'how-do-you-achieve-realistic-gemstone-fire',
+            question: 'How do you replicate authentic diamond brilliance, fire, and gemstone dispersion in digital renders?',
+            answer: 'Authentic gemstone realism requires physically accurate spectral dispersion — the mathematical separation of white light into spectral rainbow flashes as rays refract through the pavilion and table of a faceted stone. We compute exact refractive indices (such as Diamond at 2.417 with Cauchy dispersion values), total internal reflection, and facet edge beveling to ensure that solitaire marquise, oval, brilliant, and pavé cuts emit the unmistakable scintillating fire of genuine stones.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
   {
     id: 'classic',
-    title: 'Classic E-Commerce',
-    items: [
+    badge: '02',
+    title: 'Classic E-Commerce & 360° Visuals',
+    summary: 'Catalog-ready multi-angle suites, turntable video loops, and material swapping for digital boutiques.',
+    subcategories: [
       {
-        id: 'what-is-classic-e-commerce-visuals',
-        question: 'What is Classic E-Commerce Visuals?',
-        answer: 'Product imagery and video for luxury jewellery brands, built for online catalogues. Each piece is shown from front, side, angled and detail views.',
-        status: 'confirmed',
+        id: 'classic-deliverables',
+        title: 'Deliverables & Catalog Presentation',
+        items: [
+          {
+            id: 'what-deliverables-are-included-classic',
+            question: 'What exact deliverables are included in a standard Classic E-Commerce visual package?',
+            answer: 'Each piece commissioned under [Classic E-Commerce](/classic) receives a comprehensive digital asset suite: pure front elevation, side silhouette, 45° perspective showcase, and extreme macro crown/prong detail frames delivered in crisp 4K resolution (PNG with transparent alpha or solid pure white/neutral backdrops). In addition, every suite can be complemented by seamless 360° turntable loops formatted for direct Shopify, WooCommerce, and luxury boutique integration.',
+            status: 'confirmed',
+          },
+          {
+            id: 'do-you-provide-360-degree-turntable-videos',
+            question: 'Do you provide 360-degree turntable video loops for e-commerce product pages?',
+            answer: 'Yes. We deliver smooth, continuous 360° turntable animations with balanced studio lighting that illuminates every facet and hallmark continuously as the piece rotates. Delivered in lightweight, web-optimized MP4 and WebM formats (H.264 / H.265 compression), these loops autoplay flawlessly on mobile browsers and desktop storefronts with instantaneous load times.',
+            status: 'confirmed',
+          },
+        ],
       },
       {
-        id: 'what-do-i-receive-classic',
-        question: 'What do I receive?',
-        answer: 'Multi-angle stills for each piece, together with product video. See the examples on the [Classic E-Commerce](/classic) page.',
-        status: 'confirmed',
+        id: 'classic-technical-cad',
+        title: '3D CAD Formats & Metal Swapping',
+        items: [
+          {
+            id: 'which-3d-cad-formats-do-you-accept',
+            question: 'Which 3D CAD formats and geometry files do you accept for e-commerce rendering?',
+            answer: 'We accept all industry-standard jewelry CAD formats, including Rhino (.3dm), Gemvision Matrix / MatrixGold, raw STL, STEP (.stp), and IGES (.igs) files. Our studio technicians inspect every mesh geometry, smoothing microscopic faceting curves, beveling sharp digital edges, and applying authentic prong seat geometry prior to shader assignment.',
+            status: 'confirmed',
+          },
+          {
+            id: 'can-we-render-multiple-metal-and-gemstone-variations',
+            question: 'Can we generate metal alloy and gemstone variations from a single CAD file without rebuilding the scene?',
+            answer: 'Yes, this is one of the greatest economic advantages of digital jewelry CGI. Once your master CAD file is prepared and illuminated in our digital studio, we can render 18K Yellow Gold, Rose Gold, White Gold, and 950 Platinum variations, as well as interchangeable center stones (such as Diamond, Sapphire, Emerald, or Ruby), in a fraction of the time and cost required for physical sample production.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
   {
     id: 'creative',
-    title: 'Creative Visuals',
-    items: [
+    badge: '03',
+    title: 'Cinematic Creative Visuals & Motion CGI',
+    summary: 'Editorial stills, choreographed camera movements, and atmospheric campaign films.',
+    subcategories: [
       {
-        id: 'what-are-creative-visuals',
-        question: 'What are Creative Visuals?',
-        answer: 'An edit of jewellery stills and motion for campaigns. See the full selection on the [Creative Visuals](/creative-visuals) page.',
-        status: 'confirmed',
+        id: 'creative-direction',
+        title: 'Art Direction & Campaign Storytelling',
+        items: [
+          {
+            id: 'what-are-creative-visuals-and-campaign-films',
+            question: 'What distinguishes Creative Visuals from standard catalog rendering?',
+            answer: 'While Classic E-Commerce focuses on crisp product documentation, [Creative Visuals](/creative-visuals) elevates fine jewelry into high-fashion cinema. We design bespoke narrative lighting environments, choreograph sweeping macro camera trajectories, and simulate shallow depth-of-field, volumetric haze, and dynamic raytraced reflections. These assets are built specifically for brand hero banners, digital billboards, seasonal collection launches, and social media storytelling.',
+            status: 'confirmed',
+          },
+          {
+            id: 'what-creative-direction-is-required-to-start',
+            question: 'What is required from a jewelry brand to begin a creative CGI campaign project?',
+            answer: 'To initiate a creative commission, you share your master 3D CAD files alongside your collection brief, moodboard, or reference deck (such as target color palettes, musical cadence, or editorial themes). Our art directors storyboard camera moves and lighting angles, providing preview animatics for your review and sign-off before full-resolution path-tracing begins.',
+            status: 'confirmed',
+          },
+        ],
+      },
+      {
+        id: 'creative-formatting',
+        title: 'Multi-Screen & Social Video Delivery',
+        items: [
+          {
+            id: 'what-aspect-ratios-and-video-formats-are-delivered',
+            question: 'Can creative CGI animations be tailored for luxury social media reels, digital boutique screens, and web heroes?',
+            answer: 'Yes. We deliver multi-ratio production masters tailored for all omnichannel touchpoints: vertical 9:16 for Instagram Reels and TikTok, 1:1 square for feed campaigns, 16:9 widescreen for desktop hero headers and YouTube, and ultra-high resolution panoramic formats for in-store boutique LED walls and exhibition displays.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
   {
     id: 'onbody',
-    title: 'On-Body Visualization',
-    items: [
+    badge: '04',
+    title: 'On-Body Digital Visualization',
+    summary: 'Photorealistic on-model composites with accurate metric scale, natural skin tones, and contact shadows.',
+    subcategories: [
       {
-        id: 'what-is-on-body-visualization',
-        question: 'What is on-body visualization?',
-        answer: 'Photorealistic on-model composites that place your pieces in context without a photoshoot. See the [On-Body Visualization](/onbody) page.',
-        status: 'confirmed',
+        id: 'onbody-scale-realism',
+        title: 'Metric Scale & Anatomical Compositing',
+        items: [
+          {
+            id: 'what-is-on-body-visualization-and-compositing',
+            question: 'What is on-body jewelry visualization and how does digital compositing work?',
+            answer: '[On-Body Visualization](/onbody) seamlessly places your 3D jewelry designs onto real human models without coordinating an in-person photoshoot. We calculate precise metric millimeter proportions from your CAD data and composite the rendered piece onto high-fashion model photography, matching focal perspective, ambient occlusion, and subsurface skin lighting so that the jewelry appears naturally worn.',
+            status: 'confirmed',
+          },
+          {
+            id: 'how-do-you-guarantee-accurate-scale-on-models',
+            question: 'How do you guarantee anatomically accurate scale and natural skin contact shadows for rings and necklaces?',
+            answer: 'We calibrate jewelry dimensions against anatomical biometric standards — calculating exact ring inner circumferences for finger diameters, pendant drop lengths across collarbones, and earlobe anchor points for huggies and drop earrings. Soft contact shadows and diffuse skin reflections are digitally simulated so the piece never appears artificially pasted on.',
+            status: 'confirmed',
+          },
+        ],
+      },
+      {
+        id: 'onbody-business-value',
+        title: 'Commercial Efficiency vs Traditional Shoots',
+        items: [
+          {
+            id: 'why-choose-digital-on-body-visuals-over-a-live-photoshoot',
+            question: 'Why should a jewelry brand choose digital on-body visualization over a live model photoshoot?',
+            answer: 'A traditional fine jewelry photoshoot introduces extensive overhead: model agency fees, stylist booking, studio rental, armored courier shipping, high-value insurance policies, and post-production retouching. Digital on-body visualization eliminates sample risk, avoids expensive travel logistics, allows instant metal or stone swaps months later, and delivers pristine editorial imagery at a predictable project cost.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
   {
     id: 'viewer',
-    title: 'Interactive 3D Viewer',
-    items: [
+    badge: '05',
+    title: 'Interactive 3D WebGL Engine',
+    summary: 'Next-generation real-time 3D diamond customization directly within the browser.',
+    subcategories: [
       {
-        id: 'is-the-3d-viewer-available',
-        question: 'Is the 3D viewer available?',
-        answer: 'Not yet. It is in development: a real-time WebGL viewer with live metal swapping, physically based diamond refraction and interactive controls. See the [3D Viewer](/3d-viewer) page.',
-        status: 'confirmed',
-      },
-      {
-        id: 'how-can-i-find-out-when-it-launches',
-        question: 'How can I find out when it launches?',
-        answer: '[Send an inquiry](/inquire) and mention the 3D viewer.',
-        status: 'confirmed',
+        id: 'viewer-technology',
+        title: 'Real-Time WebGL Architecture',
+        items: [
+          {
+            id: 'what-is-the-cinegem-interactive-3d-viewer',
+            question: 'What is the upcoming Cinegem Interactive 3D WebGL viewer and how will it work?',
+            answer: 'Our in-development [Interactive 3D Viewer](/3d-viewer) brings desktop-grade jewelry visualization directly into mobile and desktop web browsers without plugins. Utilizing custom WebGL / Three.js shaders, clients can rotate rings in real-time 360° space, toggle between 18K yellow gold, rose gold, and platinum, and observe real-time diamond refractions with instant tactile responsiveness.',
+            status: 'confirmed',
+          },
+          {
+            id: 'how-can-brands-access-or-pilot-the-3d-viewer',
+            question: 'How can jewelry brands test or request early access for the interactive 3D viewer?',
+            answer: 'We are currently onboarding select jewelry maisons and e-commerce partners for private beta demonstrations and pilot integrations. If you would like to showcase your flagship collection through an interactive real-time configurator, please reach out via our [Inquiry Form](/inquire) and note your interest in the 3D Engine.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
   {
-    id: 'start',
-    title: 'Starting a project',
-    items: [
+    id: 'workflow',
+    badge: '06',
+    title: 'Production Workflow & Commissioning',
+    summary: 'Onboarding requirements, confidentiality protocols, turnaround schedules, and pricing.',
+    subcategories: [
       {
-        id: 'how-do-i-start-a-project',
-        question: 'How do I start a project?',
-        answer: 'Use the [inquiry form](/inquire): your name, email, company and a short brief. We will come back to you on the details.',
-        status: 'confirmed',
+        id: 'workflow-commissioning',
+        title: 'Project Initiation & Turnaround',
+        items: [
+          {
+            id: 'how-do-we-start-a-jewelry-rendering-project',
+            question: 'How do we commission a new project with Cinegem Studio?',
+            answer: 'Getting started is straightforward. Submit your project requirements through our [Inquiry Form](/inquire) or email our team directly at [hello@cinegemstudio.com](mailto:hello@cinegemstudio.com). Provide details regarding the number of pieces, desired services (Classic E-Commerce, Creative Campaign, or On-Body), timeline targets, and available CAD assets. We will respond with a tailored proposal and production roadmap.',
+            status: 'confirmed',
+          },
+          {
+            id: 'what-is-the-standard-production-timeline',
+            question: 'What is the typical production timeline for an e-commerce catalog or creative campaign?',
+            answer: 'Production timelines depend on collection volume and visual scope. Typically, a standard Classic E-Commerce suite for 5–10 pieces is delivered within 4 to 7 business days from CAD validation. Creative campaign films and bespoke motion choreography typically take 1 to 3 weeks, including animatic review, lighting approval, and final 4K rendering.',
+            status: 'confirmed',
+          },
+        ],
+      },
+      {
+        id: 'workflow-security-terms',
+        title: 'Confidentiality, NDAs & Pricing',
+        items: [
+          {
+            id: 'do-you-sign-non-disclosure-agreements-ndas',
+            question: 'Do you sign mutual Non-Disclosure Agreements (NDAs) to protect unreleased jewelry designs?',
+            answer: 'Yes, unconditionally. We routinely work with unreleased high jewellery designs, proprietary mechanism patents, and upcoming seasonal collections. We sign mutual Non-Disclosure Agreements (NDAs) prior to receiving any CAD geometry or design documentation, and all project files are stored in encrypted environments accessible solely by senior artists.',
+            status: 'confirmed',
+          },
+          {
+            id: 'how-is-pricing-structured-for-jewelry-cgi',
+            question: 'How is project pricing determined for jewelry rendering and animation?',
+            answer: 'Pricing is structured transparently per piece or per collection scope. Factors influencing cost include the number of pieces, complexity of pave stone counts, quantity of deliverable angles, video turntable requirements, and multi-metal variations. We provide clear, itemized fixed-price quotes prior to project kickoff with zero hidden charges.',
+            status: 'confirmed',
+          },
+        ],
       },
     ],
   },
 ];
 
-const PENDING_FAQ_ITEMS_BY_SECTION = {
-  studio: [
-    {
-      id: 'who-do-you-work-with',
-      question: 'Who do you work with?',
-      answer: 'Jewellery brands, designers and retailers who need jewellery shown at its best without a physical shoot.',
-      status: 'pending',
-    },
-    {
-      id: 'where-is-the-studio-based',
-      question: 'Where is the studio based?',
-      answer: '[ANSWER REQUIRED FROM OWNER: Surat, India? Confirm before using.]',
-      status: 'pending',
-    },
-  ],
-  classic: [
-    {
-      id: 'which-file-formats-do-you-accept',
-      question: 'Which file formats do you accept?',
-      answer: 'We work from 3D files such as Rhino (.3dm), STL and STEP.',
-      status: 'pending',
-    },
-    {
-      id: 'can-the-same-piece-be-shown-in-different-metals-or-stones',
-      question: 'Can the same piece be shown in different metals or stones?',
-      answer: 'Yes. Once a piece is set up, metal and stone variations can be rendered without rebuilding the scene.',
-      status: 'pending',
-    },
-    {
-      id: 'do-you-provide-360-turntable-videos',
-      question: 'Do you provide 360° turntable videos?',
-      answer: '[OWNER TO CONFIRM: yes/no, and which formats]',
-      status: 'pending',
-    },
-  ],
-  creative: [
-    {
-      id: 'what-do-you-need-from-me-to-begin',
-      question: 'What do you need from me to begin?',
-      answer: 'Your piece or collection as 3D files, plus any moodboard or campaign reference you have.',
-      status: 'pending',
-    },
-    {
-      id: 'can-the-visuals-be-formatted-for-social-and-screens',
-      question: 'Can the visuals be formatted for social and screens?',
-      answer: '[OWNER TO CONFIRM: ratios and sizes delivered]',
-      status: 'pending',
-    },
-  ],
-  onbody: [
-    {
-      id: 'how-do-you-get-the-scale-right',
-      question: 'How do you get the scale right?',
-      answer: '[OWNER TO CONFIRM how scale is calibrated]',
-      status: 'pending',
-    },
-    {
-      id: 'why-use-on-body-visuals-instead-of-a-model-shoot',
-      question: 'Why use on-body visuals instead of a model shoot?',
-      answer: 'They avoid casting, studio booking and sample shipping, and the same piece can be updated later.',
-      status: 'pending',
-    },
-    {
-      id: 'can-the-look-match-our-existing-brand-photography',
-      question: 'Can the look match our existing brand photography?',
-      answer: 'Yes, lighting and colour are matched to your existing imagery.',
-      status: 'pending',
-    },
-  ],
-  viewer: [],
-  start: [
-    {
-      id: 'can-i-contact-you-directly',
-      question: 'Can I contact you directly?',
-      answer: 'Yes. Email [CONFIRMED_EMAIL] or use the inquiry form.',
-      status: 'pending',
-    },
-    {
-      id: 'do-you-sign-ndas',
-      question: 'Do you sign NDAs?',
-      answer: '[OWNER TO CONFIRM]',
-      status: 'pending',
-    },
-    {
-      id: 'how-long-does-a-project-take',
-      question: 'How long does a project take?',
-      answer: '[OWNER TO CONFIRM]',
-      status: 'pending',
-    },
-    {
-      id: 'what-does-a-project-cost',
-      question: 'What does a project cost?',
-      answer: '[OWNER TO CONFIRM]',
-      status: 'pending',
-    },
-  ],
-};
-
-export const FAQ_SECTIONS = CONFIRMED_FAQ_SECTIONS.map((section) => ({
-  ...section,
-  items: [...section.items, ...(PENDING_FAQ_ITEMS_BY_SECTION[section.id] || [])],
-}));
-
 /**
- * Returns sections with only confirmed items.
- * Drops any sections that have 0 confirmed items.
+ * Returns all confirmed questions across all categories and subcategories in a flat list.
  */
-export function getConfirmedFaqSections() {
-  return CONFIRMED_FAQ_SECTIONS;
+export function getAllFaqQuestions() {
+  const list = [];
+  for (const cat of FAQ_TREE) {
+    for (const sub of cat.subcategories) {
+      for (const item of sub.items) {
+        if (item.status === 'confirmed') {
+          list.push({ ...item, categoryId: cat.id, categoryTitle: cat.title, subId: sub.id, subTitle: sub.title });
+        }
+      }
+    }
+  }
+  return list;
 }
 
 /**
- * Counts total confirmed and pending items across all sections.
+ * Returns the full tree with only confirmed items.
+ */
+export function getConfirmedFaqTree() {
+  return FAQ_TREE.map((cat) => ({
+    ...cat,
+    subcategories: cat.subcategories
+      .map((sub) => ({
+        ...sub,
+        items: sub.items.filter((item) => item.status === 'confirmed'),
+      }))
+      .filter((sub) => sub.items.length > 0),
+  })).filter((cat) => cat.subcategories.length > 0);
+}
+
+/**
+ * Returns total confirmed count across the entire tree.
  */
 export function getFaqCounts() {
   let confirmed = 0;
   let pending = 0;
-  for (const section of FAQ_SECTIONS) {
-    for (const item of section.items) {
-      if (item.status === 'confirmed') {
-        confirmed += 1;
-      } else {
-        pending += 1;
+  for (const cat of FAQ_TREE) {
+    for (const sub of cat.subcategories) {
+      for (const item of sub.items) {
+        if (item.status === 'confirmed') {
+          confirmed += 1;
+        } else {
+          pending += 1;
+        }
       }
     }
   }
   return { confirmed, pending, total: confirmed + pending };
+}
+
+/**
+ * Backward compatibility helper for flat section rendering.
+ */
+export function getConfirmedFaqSections() {
+  return FAQ_TREE.map((cat) => {
+    const allItems = [];
+    for (const sub of cat.subcategories) {
+      for (const item of sub.items) {
+        if (item.status === 'confirmed') {
+          allItems.push(item);
+        }
+      }
+    }
+    return {
+      id: cat.id,
+      title: cat.title,
+      items: allItems,
+    };
+  }).filter((cat) => cat.items.length > 0);
 }
 
 /**

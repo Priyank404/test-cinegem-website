@@ -7,8 +7,6 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
-import SeoTextToggle from "@/components/seo/SeoTextToggle";
-import SeoTextSection from "@/components/seo/SeoTextSection";
 import { LightboxModal } from "@/components/shared/LightboxModal";
 import { useLightbox } from "@/hooks/useLightbox";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
@@ -657,7 +655,6 @@ export default function CreativeVisualsPage() {
     <ServicePageLayout title="Creative Visuals" currentPage="/creative-visuals" fullBleed>
       {/* Floating Toggle: Retrieve clean grid without glassy container */}
       <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="Creative Visuals" />
-      <SeoTextToggle pageName="Creative Visuals" />
 
       {/* Nav bar + cinematic hero */}
       <HeroSection
@@ -675,8 +672,6 @@ export default function CreativeVisualsPage() {
           isClean={isCleanGrid}
         />
       </div>
-
-      <SeoTextSection contentKey="creative" />
 
       {/* Lightbox Modal */}
       <LightboxModal
