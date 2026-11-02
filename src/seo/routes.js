@@ -69,6 +69,16 @@ export const ROUTES = {
     breadcrumbName: '3D Viewer',
     schemaType: null,
   },
+  notFound: {
+    key: 'notFound',
+    path: '/404',
+    title: 'Page Not Found — Cinegem Studio',
+    description: 'The requested page could not be found.',
+    indexable: false,
+    ogImage: DEFAULT_OG_IMAGE,
+    breadcrumbName: 'Not Found',
+    schemaType: null,
+  },
 };
 
 export const ROUTES_LIST = Object.values(ROUTES);

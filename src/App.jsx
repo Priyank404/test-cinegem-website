@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 
 import HomePage                from '@/pages/HomePage'
 import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
@@ -8,6 +8,7 @@ import { CustomCursor }        from '@/components/ui/CustomCursor'
 import ClassicEComVisuals      from './pages/ClassicEComVisuals'
 import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
 import ThreeDViewerPage        from '@/pages/ThreeDViewerPage'
+import NotFound                from '@/pages/NotFound'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -86,13 +87,14 @@ export default function App() {
       <CustomCursor />
       <Routes>
         <Route path="/"                 element={<HomePage />} />
-        <Route path="/hero2"            element={<HomePage />} />
+        <Route path="/hero2"            element={<Navigate to="/" replace />} />
         <Route path="/onbody"           element={<OnBodyVisualizationPage />} />
         <Route path="/inquire"          element={<InquirePage />} />
         <Route path="/classic"          element={<ClassicEComVisuals />} />
         <Route path="/creative-visuals" element={<CreativeVisualsPage />} />
         <Route path="/3d-viewer"        element={<ThreeDViewerPage />} />
-        <Route path="/3dviewer"         element={<ThreeDViewerPage />} />
+        <Route path="/3dviewer"         element={<Navigate to="/3d-viewer" replace />} />
+        <Route path="*"                 element={<NotFound />} />
       </Routes>
     </>
   )
