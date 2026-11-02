@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { ServiceHeader } from '@/components/layout/ServiceHeader'
 import { Footer } from '@/components/layout/Footer'
 import VantaFogBackground from '@/components/effects/VantaFogBackground'
+import { useSeo } from '@/seo/useSeo'
 
 /**
  * ServicePageLayout
@@ -22,15 +23,14 @@ export function ServicePageLayout({
   children,
   title = 'Cinegem Studio',
   currentPage = '',
+  seoKey = '',
   fullBleed = false,
   theme = 'dark',
   hideFooter = false,
   noScroll = false,
   alwaysVisibleHeader = false,
 }) {
-  useEffect(() => {
-    document.title = `${title} — Cinegem Studio`
-  }, [title])
+  useSeo(seoKey || currentPage)
 
   useEffect(() => {
     if (noScroll) {

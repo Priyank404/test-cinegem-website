@@ -6,8 +6,10 @@ import { ServiceHeader } from '@/components/layout/ServiceHeader'
 import { BackToVault } from '@/components/shared/BackToVault'
 import { INQUIRE_CONFIG } from '@/constants/inquire'
 import VantaFogBackground from '@/components/effects/VantaFogBackground'
+import { useSeo } from '@/seo/useSeo'
 
 export default function InquirePage() {
+  useSeo('inquire')
   const containerRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',

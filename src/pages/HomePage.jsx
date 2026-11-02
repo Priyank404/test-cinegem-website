@@ -28,6 +28,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useSeo } from "@/seo/useSeo";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -204,6 +205,7 @@ const DEFAULT_DISPERSION = 0.006;
 
 
 export default function HomePage() {
+  useSeo("home");
   const lenisRef = useRef(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSectionRef = useRef(0);
