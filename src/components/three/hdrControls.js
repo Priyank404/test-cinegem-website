@@ -62,3 +62,4 @@ export function computeGemHdrFactor(config) {
 export function degToRad(deg) {
   return ((typeof deg === "number" && isFinite(deg) ? deg : 0) * Math.PI) / 180;
 }
+

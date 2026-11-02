@@ -1,0 +1,160 @@
+{
+  "criteriaA": {
+    "pass": true,
+    "maxDeltaCx": 0,
+    "maxDeltaCy": 0,
+    "maxDeltaW": 0,
+    "maxDeltaH": 0,
+    "failures": []
+  },
+  "criteriaB": {
+    "pass": true,
+    "maxDeltaCx": 0.0007000000000000339,
+    "maxVisLoss": 0
+  },
+  "criteriaC": {
+    "pass": true,
+    "maxOverflow": 0,
+    "minVisible": 1,
+    "failures": []
+  },
+  "criteriaD": {
+    "pass": true,
+    "heroWidths": [
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 0,
+        "w": 50.44
+      },
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 22,
+        "w": 52.06
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 0,
+        "w": 50.02
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 22,
+        "w": 51.85
+      },
+      {
+        "vp": "phone-412x915",
+        "frame": 0,
+        "w": 51.66
+      },
+      {
+        "vp": "phone-412x915",
+        "frame": 22,
+        "w": 52.29
+      },
+      {
+        "vp": "phone-390x844",
+        "frame": 0,
+        "w": 51.65
+      },
+      {
+        "vp": "phone-390x844",
+        "frame": 22,
+        "w": 52.33
+      },
+      {
+        "vp": "phone-360x640",
+        "frame": 0,
+        "w": 51.43
+      },
+      {
+        "vp": "phone-360x640",
+        "frame": 22,
+        "w": 52.52
+      }
+    ],
+    "smallestWidths": [
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 131,
+        "w": 16.15
+      },
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 156,
+        "w": 16.15
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 131,
+        "w": 16.14
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 156,
+        "w": 16.14
+      },
+      {
+        "vp": "phone-412x915",
+        "frame": 131,
+        "w": 22.86
+      },
+      {
+        "vp": "phone-412x915",
+        "frame": 156,
+        "w": 22.86
+      },
+      {
+        "vp": "phone-390x844",
+        "frame": 131,
+        "w": 22.27
+      },
+      {
+        "vp": "phone-390x844",
+        "frame": 156,
+        "w": 22.27
+      },
+      {
+        "vp": "phone-360x640",
+        "frame": 131,
+        "w": 18.3
+      },
+      {
+        "vp": "phone-360x640",
+        "frame": 156,
+        "w": 18.3
+      }
+    ],
+    "maxHeights": [
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 214,
+        "h": 45.69
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 236,
+        "h": 45.69
+      },
+      {
+        "vp": "ipad-port-768x1024",
+        "frame": 260,
+        "h": 45.69
+      },
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 214,
+        "h": 42.57
+      },
+      {
+        "vp": "ipadair-port-820x1180",
+        "frame": 236,
+        "h": 42.57
+      }
+    ]
+  },
+  "criteriaF": {
+    "pass": true,
+    "phoneFov": 40,
+    "deskFov": 35
+  }
+}

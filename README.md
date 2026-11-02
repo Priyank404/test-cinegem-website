@@ -1,6 +1,6 @@
 # Cinegem Studio — Production Website v2.0
 
-> The Art of Digital Craft. Luxury jewelry rendering studio.
+> High Jewellery CGI & 3D Visualization Studio.
 
 ## Stack
 

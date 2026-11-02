@@ -26,13 +26,14 @@
  * -------------------------------------------------------------------------
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import RingHero, { BEATS } from "@/components/three/RingHero";
 import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
+import { useHomePageMedia } from "@/hooks/useHomePageMedia";
 import VantaFogControlPanel from "@/components/effects/VantaFogControlPanel";
 import {
   loadBeatFogPresets,
@@ -45,6 +46,11 @@ import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 import TimelineEditor from "@/components/three/TimelineEditor";
 import { metalPresets } from "@/components/three/metalMaterials";
 import "./HeroPage2.css";
+import LoadingScreen from "@/components/ui/LoadingScreen";
+import VerticalDotNav, {
+  DEFAULT_HOME_SECTIONS,
+} from "@/components/ui/VerticalDotNav";
+import { isDevMode } from "@/config/env";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -97,18 +103,153 @@ const FOOTER_REVEAL_GLOBAL_END_FRAME = 260;
 // the ring still clips behind the footer or lifts too far.
 const FOOTER_RING_LIFT_AMOUNT = 0.25;
 
-const SHOW_DEV_PANEL = true;
+const SHOW_DEV_PANEL = isDevMode();
 
-// Defaults for a single HDR control group — reused for both metal and gem.
-const DEFAULT_HDR_CONFIG = {
-  rotation: 0,
-  rotationY: 0,
-  scale: 100,
-  power: 100,
-  gamma: 100,
+// Default HDR configurations matching tuned studio lighting & Octane Diamond logic
+const DEFAULT_METAL_HDR_CONFIG = {
+  rotation: -105,
+  rotationY: -9,
+  scale: 134,
+  power: 1,
+  gamma: 167,
 };
 
+// Octane Diamond Slot Defaults (Identity transform at first load)
+const DEFAULT_GEM_BASE_ENV = {
+  power: 1.0,
+  gamma: 1.2,
+  rot: 0,
+  scaleU: 1.0,
+  scaleV: 1.0,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+const DEFAULT_GEM_SPOT_ENV = {
+  power: 4.0,
+  gamma: 1.8,
+  size: 2,
+  rot: 0,
+  scaleU: 1.0,
+  scaleV: 1.0,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  lod: 0.0,
+  mono: true,
+  scaleInvert: false,
+};
+
+// Octane ER_11 Ground Truth Reference from node editor & inspector
+const OCTANE_ER11_BASE_ENV = {
+  power: 1.0,
+  gamma: 1.2,
+  rot: 30,
+  scaleU: 0.5,
+  scaleV: 0.2,
+  lockScale: false,
+  transU: -0.433,
+  transV: 0.252,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+const OCTANE_ER11_SPOT_ENV = {
+  power: 4.0,
+  gamma: 1.8,
+  size: 2,
+  rot: 30,
+  scaleU: 0.3,
+  scaleV: 0.3,
+  lockScale: true,
+  transU: 0.095,
+  transV: -0.079,
+  lod: 0.0,
+  mono: true,
+  scaleInvert: false,
+};
+
+// Cinegem 3DViewer reference bloom config (soft optical diamond spill)
+const DEFAULT_BLOOM_CONFIG = {
+  enabled: true,
+  gemsOnly: true,
+  threshold: 0.96,
+  soft: 0.35,
+  intensity: 0.035,
+  radius: 0.28,
+  levels: 5,
+  debug: false,
+};
+
+// Live 2:1 EXR preview configuration (Task B)
+const DEFAULT_PREVIEW_CONFIG = {
+  ev: 0,
+  tonemap: true,
+  raw: false,
+  markThreshold: false,
+};
+
+// Decoupled post-processing effects config (Task D3)
+const DEFAULT_POSTFX_CONFIG = {
+  noiseEnabled: true,
+  vignetteEnabled: true,
+};
+
+const DEFAULT_DISPERSION = 0.006;
+
+
 export default function HomePage() {
+  const lenisRef = useRef(null);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const activeSectionRef = useRef(0);
+
+  // Synchronize active dot with scroll position across the 5 sections
+  const updateActiveSection = useCallback(() => {
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const maxScroll = Math.max(
+      1,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
+
+    const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
+    const currentFrame = progress * TOTAL_FRAMES;
+
+    let newIndex = 0;
+    if (currentFrame < 25) {
+      newIndex = 0; // Overview
+    } else if (currentFrame < 68) {
+      newIndex = 1; // Classic E-Commerce
+    } else if (currentFrame < 114) {
+      newIndex = 2; // Creative Visuals
+    } else if (currentFrame < 185) {
+      newIndex = 3; // On-Body Visuals
+    } else {
+      newIndex = 4; // 3D Interactive (Frame 185 to 260)
+    }
+
+    if (newIndex !== activeSectionRef.current) {
+      activeSectionRef.current = newIndex;
+      setActiveSectionIndex(newIndex);
+    }
+  }, []);
+
+  // Window scroll & resize listeners for real-time dot tracking
+  useEffect(() => {
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("resize", updateActiveSection, { passive: true });
+    updateActiveSection();
+
+    return () => {
+      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, [updateActiveSection]);
+
   // Smooth-scroll layer — RingHero.jsx's docblock mentions Lenis as part
   // of the intended stack, but nothing was ever wiring it up: the page
   // was running on raw native scroll, so wheel/trackpad input arrived in
@@ -144,6 +285,8 @@ export default function HomePage() {
       // ScrollTrigger scrub value is what actually controls how the
       // 3D scene lags/tracks that (now-smooth) scroll position.
     });
+
+    lenisRef.current = lenis;
 
     // Scroll to the top immediately on initialization
     lenis.scrollTo(0, { immediate: true });
@@ -189,10 +332,15 @@ export default function HomePage() {
     // Keep ScrollTrigger's internal scroll tracking synced to Lenis's
     // interpolated position every time Lenis emits a scroll update,
     // rather than trusting its own separate scroll listener.
-    lenis.on("scroll", ScrollTrigger.update);
+    const handleLenisScroll = () => {
+      ScrollTrigger.update();
+      updateActiveSection();
+    };
+    lenis.on("scroll", handleLenisScroll);
 
     return () => {
-      lenis.off("scroll", ScrollTrigger.update);
+      lenisRef.current = null;
+      lenis.off("scroll", handleLenisScroll);
       gsap.ticker.remove(lenisTick);
       lenis.destroy();
     };
@@ -208,23 +356,94 @@ export default function HomePage() {
   const [metalHdrUrl, setMetalHdrUrl] = useState(
     "/hdr/env_metal_001_d01c4504e0.hdr",
   );
-  const [gemHdrUrl, setGemHdrUrl] = useState(
-    "/hdr/LUMA-Unsaid-R_D-DIA-Mirrored-Automation-shapes-Wave-R3.hdr",
+  const [gemBaseHdrUrl, setGemBaseHdrUrl] = useState(
+    "/hdr/Diamond-Base-HDRI.exr",
+  );
+  const [gemSpotHdrUrl, setGemSpotHdrUrl] = useState(
+    "/hdr/Diamond-Spotlight-HDRI.exr",
   );
   const [gemMode, setGemMode] = useState(null); // null = preset default ("refraction"), or "matte"
   const [meshDebugList, setMeshDebugList] = useState([]);
 
-  // Rotation / scale / power / gamma — same shape as your viewer's
-  // useHdrSync.js, one group per element.
-  const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_HDR_CONFIG);
-  const [gemHdrConfig, setGemHdrConfig] = useState(DEFAULT_HDR_CONFIG);
+  // Studio lighting & Octane Diamond Dual-EXR Slot States
+  const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_METAL_HDR_CONFIG);
+  const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
+  const [gemSpotEnv, setGemSpotEnv] = useState(DEFAULT_GEM_SPOT_ENV);
+  const [gemEnvView, setGemEnvView] = useState(0); // 0 = Base+Spot, 1 = Base only, 2 = Spot only
+  const [gemGammaMode, setGemGammaMode] = useState(0); // 0 = Octane pow(x, γ), 1 = Legacy pow(x, 1/γ)
+  const [bloomConfig, setBloomConfig] = useState(DEFAULT_BLOOM_CONFIG);
+  const [baseFileMeta, setBaseFileMeta] = useState(null);
+  const [spotFileMeta, setSpotFileMeta] = useState(null);
+  const [dispersionStrength, setDispersionStrength] = useState(DEFAULT_DISPERSION);
+  const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG);
+  const [postFxConfig, setPostFxConfig] = useState(DEFAULT_POSTFX_CONFIG);
+  const [baseFileNameHint, setBaseFileNameHint] = useState("Diamond-Base-HDRI.exr");
+  const [spotFileNameHint, setSpotFileNameHint] = useState("Diamond-Spotlight-HDRI.exr");
 
-  const [postFxEnabled, setPostFxEnabled] = useState(false);
-  const [panelVisible, setPanelVisible] = useState(true);
+  // Live 2:1 EXR preview canvas refs and renderer callback (Task B)
+  const renderEnvPreviewRef = useRef(null);
+  const envCanvasRef = useRef(null);
+  const baseCanvasRef = useRef(null);
+  const spotCanvasRef = useRef(null);
+
+  const updatePreviews = useCallback(() => {
+    if (!renderEnvPreviewRef.current) return;
+    const markThr = previewConfig.markThreshold ? (bloomConfig.threshold ?? 1.0) : 0;
+    if (envCanvasRef.current) {
+      renderEnvPreviewRef.current(envCanvasRef.current, {
+        mode: 2,
+        raw: previewConfig.raw,
+        ev: previewConfig.ev,
+        tonemap: previewConfig.tonemap,
+        markThreshold: markThr,
+      });
+    }
+    if (baseCanvasRef.current) {
+      renderEnvPreviewRef.current(baseCanvasRef.current, {
+        mode: 0,
+        raw: previewConfig.raw,
+        ev: previewConfig.ev,
+        tonemap: previewConfig.tonemap,
+        markThreshold: markThr,
+      });
+    }
+    if (spotCanvasRef.current) {
+      renderEnvPreviewRef.current(spotCanvasRef.current, {
+        mode: 1,
+        raw: previewConfig.raw,
+        ev: previewConfig.ev,
+        tonemap: previewConfig.tonemap,
+        markThreshold: markThr,
+      });
+    }
+  }, [previewConfig, bloomConfig.threshold]);
+
+  const [postFxEnabled, setPostFxEnabled] = useState(true);
+  const [panelVisible, setPanelVisible] = useState(false);
+
+  useEffect(() => {
+    if (panelVisible) {
+      const id = requestAnimationFrame(() => {
+        updatePreviews();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [
+    panelVisible,
+    gemBaseEnv,
+    gemSpotEnv,
+    gemEnvView,
+    gemGammaMode,
+    gemBaseHdrUrl,
+    gemSpotHdrUrl,
+    previewConfig,
+    bloomConfig.threshold,
+    updatePreviews,
+  ]);
   // Independent from panelVisible — hides/shows the bottom "3D Animation
   // Timeline & Channel Box" bar (TimelineEditor) without touching the
-  // MaterialDevPanel sliders. Defaults to visible, same as panelVisible.
-  const [timelineVisible, setTimelineVisible] = useState(true);
+  // MaterialDevPanel sliders. Defaults to false so the user experience is clean.
+  const [timelineVisible, setTimelineVisible] = useState(false);
 
   // Tracks the live window width so the dev panel can display the
   // ACTUAL resolved px value of the clamp()'d card widths at the
@@ -239,6 +458,76 @@ export default function HomePage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // 3D Experience Loading Screen State
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadStatus, setLoadStatus] = useState("Initiating exhibition...");
+  const [shouldStart3D, setShouldStart3D] = useState(false);
+
+  // Defer heavy 3D WebGL / Draco initialization so intro ring animation plays at buttery smooth 60fps
+  useEffect(() => {
+    const isDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("ringdebug");
+    if (isDebug) {
+      setShouldStart3D(true);
+      return;
+    }
+    const t = setTimeout(() => {
+      setShouldStart3D(true);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Vertical Dot Navigation scroll handler
+  const handleDotClick = useCallback((index, section) => {
+    // Immediately set active dot state for instant, responsive feedback
+    setActiveSectionIndex(index);
+    activeSectionRef.current = index;
+
+    const maxScroll = Math.max(
+      1,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
+
+    // Frame-accurate destination targeting:
+    // 0: Home (frame 0)
+    // 1: Classic E-Commerce (frame 45)
+    // 2: Creative Visuals (frame 93)
+    // 3: On-Body Visuals (frame 147)
+    // 4: 3D Interactive (frame 223)
+    const targetFrame = section?.frame ?? 0;
+    const targetScrollY = Math.round((targetFrame / TOTAL_FRAMES) * maxScroll);
+
+    const currentScrollY = window.scrollY || window.pageYOffset || 0;
+    const distancePx = Math.abs(targetScrollY - currentScrollY);
+    const distanceRatio = Math.min(1, distancePx / maxScroll);
+
+    // Leisurely, slow, buttery smooth cinematic glide
+    // Minimum 2.4s for close sections, scaling up to 4.2s for long jumps
+    const duration = 2.4 + distanceRatio * 1.8;
+
+    if (lenisRef.current) {
+      // Gentle easeInOutSine: soft acceleration, consistent calm cruise, silky deceleration (no jumping)
+      lenisRef.current.scrollTo(targetScrollY, {
+        duration,
+        easing: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+      });
+    } else {
+      window.scrollTo({
+        top: targetScrollY,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
+  // Header Logo click handler: smoothly scroll to Home section
+  const handleLogoClick = useCallback(
+    (e) => {
+      e.preventDefault();
+      handleDotClick(0, DEFAULT_HOME_SECTIONS[0]);
+    },
+    [handleDotClick]
+  );
 
   // Beat coordinate panel — works across ALL beats.
   // poseApiRef holds the jumpToBeat/setCamOverride/etc functions RingHero
@@ -281,6 +570,15 @@ export default function HomePage() {
 
   const beat4OverlayRef = useRef(null);
 
+  // Live media dynamically fetched from Google Drive folder IDs in .env
+  const {
+    beat2Images,
+    beat2Video,
+    beat3Images,
+    beat3Video,
+    beat4Image,
+  } = useHomePageMedia();
+
   // "Explore 3D Viewer" text link that fades in during the tail of Beat 5
   // (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME constants above) once the
   // ring's auto-rotate has kicked in. Visibility is re-evaluated every
@@ -315,7 +613,10 @@ export default function HomePage() {
     scale: 1,
   });
   // Which frames currently have a saved keyframe — drives the markers.
-  const [savedBeats, setSavedBeats] = useState(new Set());
+  const [savedBeats, setSavedBeats] = useState(() => new Set(BEATS.map((b) => b.frame)));
+
+  // [EXPERIMENTAL_ATMOSPHERE] Experimental atmospheric fog, macro DOF & weightless float at frame 0
+  const [experimentalAtmosphere, setExperimentalAtmosphere] = useState(true);
 
   // Developers card layout config state (drives Title/Content positions)
   const [layoutConfig, setLayoutConfig] = useState({
@@ -410,7 +711,7 @@ export default function HomePage() {
   // Selecting a frame prefills the sliders from that frame's interpolated
   // base values, UNLESS a keyframe was already saved for it or Live Override is ON.
   function selectCoordFrame(frame) {
-    const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
+    const snap = poseApiRef.current?.getKeyframeSnapshot?.(timelineTarget) ?? {};
     const kf = snap[frame];
     const base = poseApiRef.current?.getBaseValuesForFrame?.(frame, timelineTarget) ?? {
       camPos: { x: 0, y: 0.2, z: 4.2 },
@@ -441,7 +742,7 @@ export default function HomePage() {
         scale: kf?.ringScale ?? base.ringScale ?? 1,
       };
     });
-    poseApiRef.current?.jumpToBeat(frame);
+    poseApiRef.current?.jumpToBeat(frame, false);
   }
 
   function applyLiveOverride(next) {
@@ -532,8 +833,8 @@ export default function HomePage() {
     }
   }
 
-  function refreshSavedBeats() {
-    const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
+  function refreshSavedBeats(target = timelineTarget) {
+    const snap = poseApiRef.current?.getKeyframeSnapshot?.(target) ?? {};
     setSavedBeats(new Set(Object.keys(snap).map(Number)));
   }
 
@@ -557,24 +858,26 @@ export default function HomePage() {
       posZ,
       scale,
     } = dataToSave;
+    const curPose = poseApiRef.current?.getCurrentPose?.();
     poseApiRef.current?.saveKeyframe(activeFrame, {
       camPos: { x: camX, y: camY, z: camZ },
       ringRot: { x: rotX, y: rotY, z: rotZ },
       ringPosOffset: { x: posX, y: posY, z: posZ },
       ringScale: scale,
-    });
-    refreshSavedBeats();
+      cornerPark: curPose?.cornerPark !== undefined ? curPose.cornerPark : (activeFrame <= 210 ? 1 : 0),
+    }, timelineTarget);
+    refreshSavedBeats(timelineTarget);
   }
 
   function clearCoordKeyframe() {
-    poseApiRef.current?.clearKeyframe(coordValues.activeFrame);
-    refreshSavedBeats();
+    poseApiRef.current?.clearKeyframe(coordValues.activeFrame, timelineTarget);
+    refreshSavedBeats(timelineTarget);
   }
 
   function moveCoordKeyframe(oldFrame, newFrame) {
     if (oldFrame === newFrame) return;
-    poseApiRef.current?.moveKeyframe?.(oldFrame, newFrame);
-    refreshSavedBeats();
+    poseApiRef.current?.moveKeyframe?.(oldFrame, newFrame, timelineTarget);
+    refreshSavedBeats(timelineTarget);
     selectCoordFrame(newFrame);
   }
 
@@ -591,41 +894,48 @@ export default function HomePage() {
   // reflects the latest slider values.
   // ---------------------------------------------------------------------
   function applyCardOverlayFrame(frame, config) {
+    const isPortraitScreen =
+      typeof window !== "undefined" &&
+      window.innerWidth <= 1024 &&
+      window.innerHeight > window.innerWidth;
+
     // ---- BEAT 2 ----
     const b2es = config.beat2EntryStart;
     const b2ee = config.beat2EntryEnd;
     const b2xs = config.beat2ExitStart;
     const b2xe = config.beat2ExitEnd;
 
-    let beat2YOffset = 800;
+    const winH = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const slideDist = Math.max(1200, winH + 200);
+    let beat2YOffset = slideDist;
     let beat2Opacity = 0;
 
     if (frame < b2es) {
-      beat2YOffset = 800;
+      beat2YOffset = slideDist;
       beat2Opacity = 0;
     } else if (frame >= b2es && frame < b2ee) {
       const t = (frame - b2es) / Math.max(0.001, b2ee - b2es);
       const easeT = t * t * (3 - 2 * t);
-      beat2YOffset = 800 * (1 - easeT);
-      beat2Opacity = easeT;
+      beat2YOffset = slideDist * (1 - easeT);
+      beat2Opacity = 1;
     } else if (frame >= b2ee && frame < b2xs) {
       beat2YOffset = 0;
       beat2Opacity = 1;
     } else if (frame >= b2xs && frame <= b2xe) {
       const t = (frame - b2xs) / Math.max(0.001, b2xe - b2xs);
       const easeT = t * t * (3 - 2 * t);
-      beat2YOffset = -800 * easeT;
-      beat2Opacity = 1 - easeT;
+      beat2YOffset = -slideDist * easeT;
+      beat2Opacity = 1;
     } else {
-      beat2YOffset = -800;
+      beat2YOffset = -slideDist;
       beat2Opacity = 0;
     }
 
     if (beat2OverlayRef.current) {
       beat2OverlayRef.current.style.transform = `translateY(${beat2YOffset}px)`;
       beat2OverlayRef.current.style.opacity = beat2Opacity;
-      beat2OverlayRef.current.style.pointerEvents =
-        beat2Opacity > 0.05 ? "auto" : "none";
+      beat2OverlayRef.current.style.display = beat2Opacity > 0 ? "block" : "none";
+      beat2OverlayRef.current.style.pointerEvents = "none";
     }
 
     if (frame >= b2ee && frame <= b2xe) {
@@ -634,14 +944,17 @@ export default function HomePage() {
         1,
         Math.max(0, (frame - b2ee) / activeRange),
       );
+      const trackElem = beat2SlideTrackRef.current;
       const totalSlides = 3;
       const slideH = beat2Slide1Ref.current?.clientHeight ?? 380;
       const containerH =
-        beat2SlideTrackRef.current?.parentElement?.clientHeight ?? 380;
-      const maxScrollOffset = Math.max(0, totalSlides * slideH - containerH);
+        trackElem?.parentElement?.clientHeight ?? 380;
+      const maxScrollOffset = trackElem
+        ? Math.max(0, trackElem.scrollHeight - containerH)
+        : Math.max(0, totalSlides * slideH - containerH);
       const pxOffset = trackProgress * maxScrollOffset;
-      if (beat2SlideTrackRef.current) {
-        beat2SlideTrackRef.current.style.transform = `translateY(-${pxOffset}px)`;
+      if (trackElem) {
+        trackElem.style.transform = `translateY(-${pxOffset}px)`;
       }
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
       if (beat2VideoRef.current) {
@@ -667,35 +980,35 @@ export default function HomePage() {
     const b3xs = config.beat3ExitStart;
     const b3xe = config.beat3ExitEnd;
 
-    let beat3YOffset = 800;
+    let beat3YOffset = slideDist;
     let beat3Opacity = 0;
 
     if (frame < b3es) {
-      beat3YOffset = 800;
+      beat3YOffset = slideDist;
       beat3Opacity = 0;
     } else if (frame >= b3es && frame < b3ee) {
       const t = (frame - b3es) / Math.max(0.001, b3ee - b3es);
       const easeT = t * t * (3 - 2 * t);
-      beat3YOffset = 800 * (1 - easeT);
-      beat3Opacity = easeT;
+      beat3YOffset = slideDist * (1 - easeT);
+      beat3Opacity = 1;
     } else if (frame >= b3ee && frame < b3xs) {
       beat3YOffset = 0;
       beat3Opacity = 1;
     } else if (frame >= b3xs && frame <= b3xe) {
       const t = (frame - b3xs) / Math.max(0.001, b3xe - b3xs);
       const easeT = t * t * (3 - 2 * t);
-      beat3YOffset = -800 * easeT;
-      beat3Opacity = 1 - easeT;
+      beat3YOffset = -slideDist * easeT;
+      beat3Opacity = 1;
     } else {
-      beat3YOffset = -800;
+      beat3YOffset = -slideDist;
       beat3Opacity = 0;
     }
 
     if (beat3OverlayRef.current) {
       beat3OverlayRef.current.style.transform = `translateY(${beat3YOffset}px)`;
       beat3OverlayRef.current.style.opacity = beat3Opacity;
-      beat3OverlayRef.current.style.pointerEvents =
-        beat3Opacity > 0.05 ? "auto" : "none";
+      beat3OverlayRef.current.style.display = beat3Opacity > 0 ? "block" : "none";
+      beat3OverlayRef.current.style.pointerEvents = "none";
     }
 
     // NOTE: Beat 3's content/title cards no longer need a runtime swap —
@@ -709,14 +1022,17 @@ export default function HomePage() {
         1,
         Math.max(0, (frame - b3ee) / activeRange),
       );
+      const trackElem = beat3SlideTrackRef.current;
       const totalSlides = 3;
       const slideH = beat3Slide1Ref.current?.clientHeight ?? 380;
       const containerH =
-        beat3SlideTrackRef.current?.parentElement?.clientHeight ?? 380;
-      const maxScrollOffset = Math.max(0, totalSlides * slideH - containerH);
+        trackElem?.parentElement?.clientHeight ?? 380;
+      const maxScrollOffset = trackElem
+        ? Math.max(0, trackElem.scrollHeight - containerH)
+        : Math.max(0, totalSlides * slideH - containerH);
       const pxOffset = trackProgress * maxScrollOffset;
-      if (beat3SlideTrackRef.current) {
-        beat3SlideTrackRef.current.style.transform = `translateY(-${pxOffset}px)`;
+      if (trackElem) {
+        trackElem.style.transform = `translateY(-${pxOffset}px)`;
       }
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
       if (beat3VideoRef.current) {
@@ -752,9 +1068,18 @@ export default function HomePage() {
     let beat4Opacity = 0;
     let beat4BorderRadius = "24px";
 
+    const isSmallScreen =
+      typeof window !== "undefined" &&
+      window.innerWidth <= 1024 &&
+      window.innerHeight > window.innerWidth;
+    const baseBeat4WNum = isSmallScreen ? 88 : 60;
+    const baseBeat4HNum = isSmallScreen ? 44 : 35;
+    const baseBeat4WStr = `${baseBeat4WNum}vw`;
+    const baseBeat4HStr = `${baseBeat4HNum}vh`;
+
     if (frame < b4es) {
-      beat4Width = "60vw";
-      beat4Height = "35vh";
+      beat4Width = baseBeat4WStr;
+      beat4Height = baseBeat4HStr;
       beat4YOffset = 100;
       beat4Opacity = 0;
       beat4BorderRadius = "24px";
@@ -762,17 +1087,17 @@ export default function HomePage() {
       // Bottom to Center (keeps small card size)
       const t = (frame - b4es) / Math.max(0.001, b4midEntry - b4es);
       const easeT = t * t * (3 - 2 * t);
-      beat4Width = "60vw";
-      beat4Height = "35vh";
+      beat4Width = baseBeat4WStr;
+      beat4Height = baseBeat4HStr;
       beat4YOffset = 100 * (1 - easeT);
       beat4BorderRadius = "24px";
-      beat4Opacity = easeT;
+      beat4Opacity = 1;
     } else if (frame >= b4midEntry && frame < b4ee) {
       // Center to Fullscreen (expands from small card size to fullscreen)
       const t = (frame - b4midEntry) / Math.max(0.001, b4ee - b4midEntry);
       const easeT = t * t * (3 - 2 * t);
-      beat4Width = `${60 + (100 - 60) * easeT}vw`;
-      beat4Height = `${35 + (100 - 35) * easeT}vh`;
+      beat4Width = `${baseBeat4WNum + (100 - baseBeat4WNum) * easeT}vw`;
+      beat4Height = `${baseBeat4HNum + (100 - baseBeat4HNum) * easeT}vh`;
       beat4YOffset = 0;
       beat4BorderRadius = `${24 * (1 - easeT)}px`;
       beat4Opacity = 1;
@@ -787,8 +1112,8 @@ export default function HomePage() {
       // Fullscreen to Center (shrinks from fullscreen back to small card size)
       const t = (frame - b4xs) / Math.max(0.001, b4midExit - b4xs);
       const easeT = t * t * (3 - 2 * t);
-      beat4Width = `${100 - (100 - 60) * easeT}vw`;
-      beat4Height = `${100 - (100 - 35) * easeT}vh`;
+      beat4Width = `${100 - (100 - baseBeat4WNum) * easeT}vw`;
+      beat4Height = `${100 - (100 - baseBeat4HNum) * easeT}vh`;
       beat4YOffset = 0;
       beat4BorderRadius = `${24 * easeT}px`;
       beat4Opacity = 1;
@@ -796,14 +1121,14 @@ export default function HomePage() {
       // Center to Top (keeps small card size while moving off screen)
       const t = (frame - b4midExit) / Math.max(0.001, b4xe - b4midExit);
       const easeT = t * t * (3 - 2 * t);
-      beat4Width = "60vw";
-      beat4Height = "35vh";
+      beat4Width = baseBeat4WStr;
+      beat4Height = baseBeat4HStr;
       beat4YOffset = -100 * easeT;
       beat4BorderRadius = "24px";
-      beat4Opacity = 1 - easeT;
+      beat4Opacity = 1;
     } else {
-      beat4Width = "60vw";
-      beat4Height = "35vh";
+      beat4Width = baseBeat4WStr;
+      beat4Height = baseBeat4HStr;
       beat4YOffset = -100;
       beat4Opacity = 0;
       beat4BorderRadius = "24px";
@@ -815,6 +1140,7 @@ export default function HomePage() {
       beat4OverlayRef.current.style.transform = `translate(-50%, -50%) translateY(${beat4YOffset}vh)`;
       beat4OverlayRef.current.style.borderRadius = beat4BorderRadius;
       beat4OverlayRef.current.style.opacity = beat4Opacity;
+      beat4OverlayRef.current.style.display = beat4Opacity > 0 ? "block" : "none";
       beat4OverlayRef.current.style.pointerEvents =
         beat4Opacity > 0.05 ? "auto" : "none";
     }
@@ -899,70 +1225,76 @@ export default function HomePage() {
     const gapClamp = "max(40px, 2vw)";
     if (direction === "left") {
       const titleWidthClamp = pxToClampVw(titleWidthPx, 200);
-      return `calc(${contentLeftStyle} - ${titleWidthClamp} - ${gapClamp})`;
+      return `calc(${contentLeftStyle} - 8px - ${titleWidthClamp} - ${gapClamp})`;
     }
     const contentWidthClamp = pxToClampVw(contentWidthPx, 320);
-    return `calc(${contentLeftStyle} + ${contentWidthClamp} + ${gapClamp})`;
+    return `calc(${contentLeftStyle} + ${contentWidthClamp} + 8px + ${gapClamp})`;
   }
 
   const getContentCardStyle = () => {
     const { contentLeft, contentTop, contentWidth } = layoutConfig;
     return {
       position: "absolute",
-      left: `${contentLeft}%`,
-      top: `${contentTop}%`,
-      width: pxToClampVw(contentWidth, 320),
-      bottom: "20px", // always stretches to 20px from screen bottom
+      left: `calc(${contentLeft}% - 8px)`,
+      top: `calc(${contentTop}% - 8px)`,
+      width: `calc(${pxToClampVw(contentWidth, 320)} + 16px)`,
+      bottom: "12px", // 8px lower to compensate for 12px padding
     };
   };
 
   return (
     <div className="hero2-page">
+      {/* Cinematic Luxury Loading Screen — completes only when 3D ring & assets are loaded */}
+      <LoadingScreen
+        isLoading={isLoading}
+        progress={loadProgress}
+        statusText={loadStatus}
+      />
+
       {/* Per-beat background — Vanta FOG, one preset per beat
           (beatFogPresets.js). Crossfades using the exact blend weight
           RingHero reports via onBeatBlendUpdate below, so it never
           drifts from the ring's own scroll position. (The old particle/
           shader BeatBackground layer has been removed — this is now the
           only background layer.) */}
-      <VantaBeatFogBackground
-        ref={vantaBeatRef}
-        beatOptions={beatFogOptions}
-        zIndex={1}
-      />
+      {shouldStart3D && (
+        <VantaBeatFogBackground
+          ref={vantaBeatRef}
+          beatOptions={beatFogOptions}
+          zIndex={1}
+        />
+      )}
 
       {/* Dev-only tuning panel for the per-beat Vanta FOG colors/blur/
           zoom/speed above. Toggle with the small button; "Save as
           default" persists the whole 5-beat array to localStorage. Strip
           this block for production if you don't want it shippable. */}
-      <button
-        onClick={() => setShowFogPanel((v) => !v)}
-        style={{
-          position: "fixed",
-          bottom: 16,
-          left: 16,
-          zIndex: 1000,
-          padding: "6px 12px",
-          fontSize: 11,
-          fontFamily: "monospace",
-          background: "#121212",
-          color: "#FAF9F6",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 6,
-          cursor: "pointer",
-        }}
-      >
-        Fog Panel: {showFogPanel ? "On" : "Off"}
-      </button>
-      {showFogPanel && (
+
+      {SHOW_DEV_PANEL && showFogPanel && (
         <VantaFogControlPanel
           beatIndex={fogPanelBeat}
           onBeatIndexChange={setFogPanelBeat}
           beatCount={beatFogOptions.length}
           options={beatFogOptions[fogPanelBeat]}
           onChange={(next) =>
-            setBeatFogOptions((all) =>
-              all.map((o, i) => (i === fogPanelBeat ? next : o)),
-            )
+            setBeatFogOptions((all) => {
+              const current = all[fogPanelBeat] || {};
+              const blurChanged = next.blurFactor !== current.blurFactor;
+              const zoomChanged = next.zoom !== current.zoom;
+              const speedChanged = next.speed !== current.speed;
+
+              if (blurChanged || zoomChanged || speedChanged) {
+                // Apply the 3 sliders (blurFactor, zoom, speed) across ALL beats
+                return all.map((o, i) => ({
+                  ...(i === fogPanelBeat ? next : o),
+                  blurFactor: next.blurFactor,
+                  zoom: next.zoom,
+                  speed: next.speed,
+                }));
+              }
+              // Color changes apply only to the selected beat
+              return all.map((o, i) => (i === fogPanelBeat ? next : o));
+            })
           }
           onSaveAsDefault={() => saveBeatFogPresets(beatFogOptions)}
           onResetToShipped={() => {
@@ -977,10 +1309,16 @@ export default function HomePage() {
       {/* Glassmorphism Title & Content Cards Overlay */}
       <div className="glassy-content-overlay">
         {/* Beat 2 Layout */}
-        <div ref={beat2OverlayRef} className="glassy-beat-layout">
+        <div ref={beat2OverlayRef} className="glassy-beat-layout beat-2-layout">
           <ContentGlassyCard
             className="beat-content-left"
-            style={getContentCardStyle()}
+            style={
+              typeof window !== "undefined" &&
+              window.innerWidth <= 1024 &&
+              window.innerHeight > window.innerWidth
+                ? undefined
+                : getContentCardStyle()
+            }
           >
             <div className="glassy-slide-container">
               <div ref={beat2SlideTrackRef} className="glassy-slide-track">
@@ -988,10 +1326,16 @@ export default function HomePage() {
                 <div ref={beat2Slide1Ref} className="glassy-slide">
                   <div className="glassy-grid-2">
                     <div className="glassy-grid-item">
-                      <img src="/1.png" alt="Yellow Gold band" />
+                      <img
+                        src={beat2Images[0]?.src}
+                        alt={beat2Images[0]?.alt || "Solitaire Marquise Ring - Angle 1"}
+                      />
                     </div>
                     <div className="glassy-grid-item">
-                      <img src="/2.png" alt="Pave close up" />
+                      <img
+                        src={beat2Images[1]?.src}
+                        alt={beat2Images[1]?.alt || "Solitaire Marquise Ring - Angle 2"}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1000,10 +1344,16 @@ export default function HomePage() {
                 <div ref={beat2Slide2Ref} className="glassy-slide">
                   <div className="glassy-grid-2">
                     <div className="glassy-grid-item">
-                      <img src="/3.png" alt="Prong profiles" />
+                      <img
+                        src={beat2Images[2]?.src}
+                        alt={beat2Images[2]?.alt || "Solitaire Marquise Ring - Angle 3"}
+                      />
                     </div>
                     <div className="glassy-grid-item">
-                      <img src="/4.png" alt="Diamond cuts" />
+                      <img
+                        src={beat2Images[3]?.src}
+                        alt={beat2Images[3]?.alt || "Solitaire Marquise Ring - Angle 4"}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1013,7 +1363,8 @@ export default function HomePage() {
                   <div className="glassy-video-container">
                     <video
                       ref={beat2VideoRef}
-                      src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
+                      src={beat2Video?.src || "/E-com%20Visuals/solitaire-high-polish-yellow-marquise-video.mp4"}
+                      preload="auto"
                       loop
                       muted
                       playsInline
@@ -1025,16 +1376,22 @@ export default function HomePage() {
           </ContentGlassyCard>
           <TitleGlassyCard
             className="beat-title-right"
-            style={{
-              left: getTitleLeftCalc(
-                `${layoutConfig.contentLeft}%`,
-                layoutConfig.contentWidth,
-                layoutConfig.titleWidth,
-                "right",
-              ),
-              top: `${layoutConfig.titleTop}%`,
-              width: pxToClampVw(layoutConfig.titleWidth, 200),
-            }}
+            style={
+              typeof window !== "undefined" &&
+              window.innerWidth <= 1024 &&
+              window.innerHeight > window.innerWidth
+                ? undefined
+                : {
+                    left: getTitleLeftCalc(
+                      `${layoutConfig.contentLeft}%`,
+                      layoutConfig.contentWidth,
+                      layoutConfig.titleWidth,
+                      "right",
+                    ),
+                    top: `${layoutConfig.titleTop}%`,
+                    width: pxToClampVw(layoutConfig.titleWidth, 200),
+                  }
+            }
             subtitle="01 — PRODUCT SHOWCASE"
             title="Classic E-Commerce Visuals"
             description="High-fidelity 360° product photography, macro detail grids, and studio lighting tailored for luxury jewellery collections."
@@ -1048,371 +1405,72 @@ export default function HomePage() {
             instead of sharing layoutConfig with Beat 2 and being
             repositioned at runtime. This avoids any visible swap since
             the cards are simply born in their final spot. */}
-        <div ref={beat3OverlayRef} className="glassy-beat-layout">
+        <div ref={beat3OverlayRef} className="glassy-beat-layout beat-3-layout">
           <ContentGlassyCard
             className="beat-content-left"
-            style={{
-              position: "absolute",
-              left: `calc(100% - ${layoutConfig.contentLeft}% - ${pxToClampVw(layoutConfig.contentWidth, 320)})`,
-              top: `${beat3LayoutConfig.contentTop}%`,
-              width: pxToClampVw(layoutConfig.contentWidth, 320),
-              bottom: "20px",
-            }}
+            style={
+              typeof window !== "undefined" &&
+              window.innerWidth <= 1024 &&
+              window.innerHeight > window.innerWidth
+                ? undefined
+                : {
+                    position: "absolute",
+                    left: `calc(100% - ${layoutConfig.contentLeft}% - ${pxToClampVw(layoutConfig.contentWidth, 320)} - 8px)`,
+                    top: `calc(${beat3LayoutConfig.contentTop}% - 8px)`,
+                    width: `calc(${pxToClampVw(layoutConfig.contentWidth, 320)} + 16px)`,
+                    bottom: "12px",
+                  }
+            }
           >
             <div className="glassy-slide-container">
               <div ref={beat3SlideTrackRef} className="glassy-slide-track">
-                {/* Slide 1: 5-column masonry collage layout matching reference design */}
+                {/* Slide 1: First 2 creative images */}
                 <div ref={beat3Slide1Ref} className="glassy-slide">
-                  <div className="glassy-grid-masonry">
-                    {/* Column 1 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1 }}>
-                        <img
-                          src="/Creative%20visuals/Beauty.png"
-                          alt="Beauty Model Jewellery"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.4 }}>
-                        <img
-                          src="/Creative%20visuals/Figaro-BR-CH-Y-V1.png"
-                          alt="Figaro Bracelet Chain"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
-                        <img
-                          src="/Creative%20visuals/R1-L2-P1-SB-Y-V4.png"
-                          alt="Pave Band Ring"
-                        />
-                      </div>
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img
+                        src={beat3Images[0]?.src}
+                        alt={beat3Images[0]?.alt || "High Fashion Jewellery Beauty Shot"}
+                      />
                     </div>
-
-                    {/* Column 2 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.75 }}>
-                        <video
-                          ref={beat3VideoRef}
-                          src="/Creative%20visuals/A6-R3-HQ.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.25 }}>
-                        <img
-                          src="/Creative%20visuals/NB-1%20LO%20R.png"
-                          alt="Ring Render Low Angle"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 3 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.5 }}>
-                        <img
-                          src="/Creative%20visuals/NP-1-YG-LS2-V2.png"
-                          alt="Yellow Gold Pendant"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
-                        <video
-                          src="/Creative%20visuals/B4%20ANimated.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
-                        <img
-                          src="/Creative%20visuals/R4-L2-Y-V4.png"
-                          alt="Gold Ring Studio"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 4 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
-                        <img
-                          src="/Creative%20visuals/R6-L2-Y-V1.png"
-                          alt="Ring Profile"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.65 }}>
-                        <video
-                          src="/Creative%20visuals/KC-A01-TR1%20.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
-                        <img
-                          src="/Creative%20visuals/RG01_Out2_0000.png"
-                          alt="Ring Outdoor Macro"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.95 }}>
-                        <img
-                          src="/Creative%20visuals/RG01-Y-B-V1.png"
-                          alt="Ring Band View"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 5 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.4 }}>
-                        <img
-                          src="/Creative%20visuals/4%20Ring%20Banner%20T4%20HQ_.jpg"
-                          alt="Ring Collection Banner"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.8 }}>
-                        <video
-                          src="/MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
+                    <div className="glassy-grid-item">
+                      <img
+                        src={beat3Images[1]?.src}
+                        alt={beat3Images[1]?.alt || "Two-Tone Diamond Ring"}
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Slide 2: 5-column masonry collage with shuffled layout rhythm */}
+                {/* Slide 2: Next 2 creative images */}
                 <div ref={beat3Slide2Ref} className="glassy-slide">
-                  <div className="glassy-grid-masonry">
-                    {/* Column 1 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
-                        <img
-                          src="/Creative%20visuals/RG01-Y-B-V2.png"
-                          alt="Ring Detail V2"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
-                        <video
-                          src="/Creative%20visuals/360%20Turntable%20black.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.7 }}>
-                        <img
-                          src="/Creative%20visuals/RG01-Y-B-V3.png"
-                          alt="Ring Detail V3"
-                        />
-                      </div>
+                  <div className="glassy-grid-2">
+                    <div className="glassy-grid-item">
+                      <img
+                        src={beat3Images[2]?.src}
+                        alt={beat3Images[2]?.alt || "Figaro Bracelet Chain"}
+                      />
                     </div>
-
-                    {/* Column 2 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
-                        <img
-                          src="/Creative%20visuals/RG01-Y-B-V4.png"
-                          alt="Ring Detail V4"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.2 }}>
-                        <img
-                          src="/Band%20Ring%20With%20Enamel%20Marquise-Y-V1.jpg"
-                          alt="Enamel Marquise Band"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 3 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.4 }}>
-                        <img
-                          src="/Creative%20visuals/Ring%202-Color%20BG-V1-R3.png"
-                          alt="Two-Tone Ring"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
-                        <img
-                          src="/Creative%20visuals/Ring%202-Color%20BG-V1-R6.png"
-                          alt="Two-Tone Ring 2"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
-                        <video
-                          src="/Creative%20visuals/M-Video.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 4 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.0 }}>
-                        <img
-                          src="/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png"
-                          alt="Diamond Ring 14Y"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.7 }}>
-                        <img
-                          src="/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png"
-                          alt="Rose Gold Ring"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.2 }}>
-                        <video
-                          src="/Creative%20visuals/Multishot%20Brown.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
-                        <img src="/1.png" alt="Yellow Gold Band Close-up" />
-                      </div>
-                    </div>
-
-                    {/* Column 5 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.45 }}>
-                        <img src="/2.png" alt="Pave Macro" />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.75 }}>
-                        <video
-                          src="/Creative%20visuals/S4.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
+                    <div className="glassy-grid-item">
+                      <img
+                        src={beat3Images[3]?.src}
+                        alt={beat3Images[3]?.alt || "Yellow Gold Diamond Pendant"}
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Slide 3: 5-column masonry collage variation */}
+                {/* Slide 3: Featured cinematic video */}
                 <div ref={beat3Slide3Ref} className="glassy-slide">
-                  <div className="glassy-grid-masonry">
-                    {/* Column 1 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.1 }}>
-                        <img src="/3.png" alt="Prong Profiles" />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
-                        <img src="/4.png" alt="Diamond Cuts" />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.8 }}>
-                        <video
-                          src="/Creative%20visuals/Webptimized.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 2 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.85 }}>
-                        <video
-                          src="/Creative%20visuals/VIDEO.1.128.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.15 }}>
-                        <img
-                          src="/Creative%20visuals/ring.png"
-                          alt="Classic Ring Render"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 3 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 1.5 }}>
-                        <video
-                          src="/Creative%20visuals/FK-A1-Final-HQ.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
-                        <img
-                          src="/Creative%20visuals/Beauty.png"
-                          alt="Beauty Shot"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.3 }}>
-                        <img
-                          src="/Creative%20visuals/Figaro-BR-CH-Y-V1.png"
-                          alt="Figaro Bracelet"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 4 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
-                        <img
-                          src="/Creative%20visuals/R1-L2-P1-SB-Y-V4.png"
-                          alt="Pave Band"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.75 }}>
-                        <video
-                          src="/Creative%20visuals/A6-R3-HQ.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 1.15 }}>
-                        <img
-                          src="/Creative%20visuals/NP-1-YG-LS2-V2.png"
-                          alt="Pendant Render"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 0.9 }}>
-                        <img
-                          src="/Creative%20visuals/R4-L2-Y-V4.png"
-                          alt="Gold Ring"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Column 5 */}
-                    <div className="glassy-masonry-column">
-                      <div className="glassy-grid-item" style={{ flex: 0.4 }}>
-                        <img
-                          src="/Creative%20visuals/RG01_Out2_0000.png"
-                          alt="Outdoor Macro"
-                        />
-                      </div>
-                      <div className="glassy-grid-item" style={{ flex: 2.8 }}>
-                        <video
-                          src="/Creative%20visuals/ZBZ-A4-Final-HQ.mp4"
-                          loop
-                          muted
-                          autoPlay
-                          playsInline
-                        />
-                      </div>
-                    </div>
+                  <div className="glassy-video-container">
+                    <video
+                      ref={beat3VideoRef}
+                      src={beat3Video?.src || "/Creative%20visuals/A6-R3-HQ.mp4"}
+                      preload="auto"
+                      loop
+                      muted
+                      playsInline
+                    />
                   </div>
                 </div>
               </div>
@@ -1420,11 +1478,17 @@ export default function HomePage() {
           </ContentGlassyCard>
           <TitleGlassyCard
             className="beat-title-right"
-            style={{
-              left: `calc(100% - (${layoutConfig.contentLeft}% + ${pxToClampVw(layoutConfig.contentWidth, 320)} + max(40px, 2vw) + ${pxToClampVw(layoutConfig.titleWidth, 200)}))`,
-              top: `${beat3LayoutConfig.titleTop}%`,
-              width: pxToClampVw(layoutConfig.titleWidth, 200),
-            }}
+            style={
+              typeof window !== "undefined" &&
+              window.innerWidth <= 1024 &&
+              window.innerHeight > window.innerWidth
+                ? undefined
+                : {
+                    left: `calc(100% - (${layoutConfig.contentLeft}% + ${pxToClampVw(layoutConfig.contentWidth, 320)} + 8px + max(40px, 2vw) + ${pxToClampVw(layoutConfig.titleWidth, 200)}))`,
+                    top: `${beat3LayoutConfig.titleTop}%`,
+                    width: pxToClampVw(layoutConfig.titleWidth, 200),
+                  }
+            }
             subtitle="02 — CREATIVE CINEMATICS"
             title="Creative Visuals"
             description="Cinematic animations, dynamic lighting studies, and stylized visual storytelling that elevates your brand identity."
@@ -1440,8 +1504,8 @@ export default function HomePage() {
           className="beat4-box-overlay group cursor-pointer block text-decoration-none relative overflow-hidden"
         >
           <img
-            src="/Gemini_Generated_Image_udnfihudnfihudnf.png"
-            alt="On-Body Visualization Showcase"
+            src={beat4Image?.src || "/Gemini_Generated_Image_udnfihudnfihudnf.png"}
+            alt={beat4Image?.alt || "On-Body Visualization Showcase"}
             className="beat4-media group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
@@ -1463,10 +1527,21 @@ export default function HomePage() {
 
       {/* Fixed 3D background — canvas + gradient overlay, pinned behind
           everything else via z-index (see RingHero.jsx inline styles) */}
-      <RingHero
-        glbUrl="/models/ring-draco.glb"
+      {shouldStart3D && (
+        <RingHero
+          glbUrl="/models/ring-draco.glb"
         metalHdrUrl={metalHdrUrl}
-        gemHdrUrl={gemHdrUrl}
+        gemBaseHdrUrl={gemBaseHdrUrl}
+        gemSpotHdrUrl={gemSpotHdrUrl}
+        onLoadingProgress={(p, status) => {
+          setLoadProgress(p);
+          if (status) setLoadStatus(status);
+        }}
+        onLoaded={() => {
+          setLoadProgress(100);
+          setLoadStatus("Experience ready");
+          setIsLoading(false);
+        }}
         metalPreset={metalPresets[metalPresetKey]}
         gemMaterialTypeOverride={gemMode}
         dracoDecoderPath="/draco/"
@@ -1478,20 +1553,37 @@ export default function HomePage() {
         metalHdrScale={metalHdrConfig.scale}
         metalHdrPower={metalHdrConfig.power}
         metalHdrGamma={metalHdrConfig.gamma}
-        gemHdrRotation={gemHdrConfig.rotation}
-        gemHdrRotationY={gemHdrConfig.rotationY}
-        gemHdrScale={gemHdrConfig.scale}
-        gemHdrPower={gemHdrConfig.power}
-        gemHdrGamma={gemHdrConfig.gamma}
+        gemBaseEnv={gemBaseEnv}
+        gemSpotEnv={gemSpotEnv}
+        gemEnvView={gemEnvView}
+        gemGammaMode={gemGammaMode}
+        dispersionStrength={dispersionStrength}
+        bloomConfig={bloomConfig}
+        bloomIntensity={bloomConfig.intensity}
+        bloomThreshold={bloomConfig.threshold}
+        postFxConfig={postFxConfig}
+        onBaseMetaUpdate={setBaseFileMeta}
+        onSpotMetaUpdate={setSpotFileMeta}
+        onRegisterEnvPreview={(fn) => {
+          renderEnvPreviewRef.current = fn;
+          updatePreviews();
+        }}
+        onRefreshPreviews={updatePreviews}
+        baseFileNameHint={baseFileNameHint}
+        spotFileNameHint={spotFileNameHint}
         postFxEnabled={postFxEnabled}
+        experimentalAtmosphere={experimentalAtmosphere}
         autoRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
         autoRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
-        autoRotateSpeed={0.6}
+        autoRotateSpeed={0.35}
         interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
         interactiveRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
-          refreshSavedBeats();
+          refreshSavedBeats(timelineTarget);
+        }}
+        onKeyframesUpdate={(framesSet) => {
+          setSavedBeats(framesSet);
         }}
         onBeatBlendUpdate={(blend) => {
           vantaBeatRef.current?.setBlend(blend);
@@ -1504,6 +1596,23 @@ export default function HomePage() {
 
           const frame = info.progress * TOTAL_FRAMES;
           const roundedFrame = Math.round(frame);
+
+          // Sync vertical dot navigation active index with scroll progress (5 sections)
+          const newSectionIndex =
+            frame < 25
+              ? 0
+              : frame < 68
+                ? 1
+                : frame < 114
+                  ? 2
+                  : frame < 185
+                    ? 3
+                    : 4;
+
+          if (newSectionIndex !== activeSectionRef.current) {
+            activeSectionRef.current = newSectionIndex;
+            setActiveSectionIndex(newSectionIndex);
+          }
 
           // Keep the last-known global frame available outside this
           // callback (the live-preview useEffect on cardTimingConfig
@@ -1519,11 +1628,13 @@ export default function HomePage() {
           if (exploreLinkRef.current) {
             const showExploreLink =
               frame >= EXPLORE_LINK_GLOBAL_FRAME &&
-              frame <= EXPLORE_LINK_GLOBAL_END_FRAME;
+              frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
             exploreLinkRef.current.classList.toggle(
               "is-visible",
               showExploreLink,
             );
+            exploreLinkRef.current.style.display = showExploreLink ? "flex" : "none";
+            exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
           }
 
           // Footer reveal — 0 (fully hidden below viewport) -> 1 (fully
@@ -1547,26 +1658,9 @@ export default function HomePage() {
             footerRevealRef.current.style.pointerEvents =
               footerT > 0.5 ? "auto" : "none";
 
-            // Lift the ring up in lockstep with the footer's own reveal
-            // progress (0 -> 1), so it stays fully visible above the
-            // footer panel instead of clipping behind it. Uses the same
-            // live pose-override channel the dev panel drives
-            // (setRingPosOffsetOverride), so it composes correctly with
-            // whatever the scroll-tweened Beat 6 pose already is —
-            // released back to null once the footer is fully hidden
-            // again (footerT === 0) so normal scroll-tweened behavior
-            // resumes rather than leaving a stale override applied.
-            poseApiRef.current?.setRingPosOffsetOverride(
-              footerT > 0 ? { y: footerT * FOOTER_RING_LIFT_AMOUNT } : null,
-            );
-
-            // Hide the nav bar in lockstep with the same footerT — slides
-            // fully up off-screen (translateY -100%) by the time the
-            // footer/ring reveal completes, and slides back down smoothly
-            // if the user scrolls back up, exactly like every other
-            // reversible effect here.
-            if (navRef.current) {
-              navRef.current.style.transform = `translateY(-${footerT * 100}%)`;
+            // Keep header logo fixed in place at the top of the page (do not slide up)
+            if (navRef.current && navRef.current.style.transform) {
+              navRef.current.style.transform = "";
             }
           }
 
@@ -1577,8 +1671,9 @@ export default function HomePage() {
               const currentFrame = Math.round(info.progress * TOTAL_FRAMES);
 
               setCoordValues((prev) => {
+                if (prev.live) return prev;
                 if (prev.activeFrame === currentFrame) return prev;
-                const snap = poseApiRef.current?.getKeyframeSnapshot?.() ?? {};
+                const snap = poseApiRef.current?.getKeyframeSnapshot?.(timelineTarget) ?? {};
                 const kf = snap[currentFrame];
                 const base = poseApiRef.current?.getBaseValuesForFrame?.(
                   currentFrame,
@@ -1608,15 +1703,17 @@ export default function HomePage() {
           }, 150);
         }}
       />
+      )}
 
       {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
       <div
         ref={exploreLinkRef}
         className="hero2-explore-link"
+        style={{ display: "none", pointerEvents: "none" }}
       >
         <Link
           to="/3d-viewer"
-          className="glassy-card p-6 md:p-8 border border-white/20 bg-black/60 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col gap-3 max-w-md text-decoration-none text-left pointer-events-auto block hover:border-[#C5A059]/60 transition-colors"
+          className="glassy-card p-6 md:p-8 border border-white/20 bg-black/60 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col gap-3 w-full max-w-md mx-auto text-decoration-none text-left block hover:border-[#C5A059]/60 transition-colors"
         >
           <span className="text-[#C5A059] font-label text-[10px] tracking-[0.25em] uppercase font-semibold block">
             04 — 3D INTERACTIVE ENGINE
@@ -1644,40 +1741,42 @@ export default function HomePage() {
             <div className="hero2-footer-brand">
               <span className="hero2-logo">Cinegem Studio</span>
               <p>
-                The Art of Digital Craft. Luxury jewellery rendering, 3D
-                visualization, and cinematic animation.
+                High jewellery rendering, photorealistic 3D visualization, and
+                cinematic animation for the world's finest maisons.
               </p>
               <Link to="/inquire" className="hero2-cta-btn">
                 Inquire →
               </Link>
             </div>
 
-            <div className="hero2-footer-col">
-              <span className="hero2-footer-col-title">Services</span>
-              <Link to="/classic">Classic E-Commerce</Link>
-              <Link to="/creative-visuals">Creative Visuals</Link>
-              <Link to="/onbody">On-Body Visualization</Link>
-              <Link to="/3d-viewer">Interactive 3D Engine</Link>
-            </div>
+            <div className="hero2-footer-links-grid">
+              <div className="hero2-footer-col">
+                <span className="hero2-footer-col-title">Services</span>
+                <Link to="/classic">Classic E-Commerce</Link>
+                <Link to="/creative-visuals">Creative Visuals</Link>
+                <Link to="/onbody">On-Body Visualization</Link>
+                <Link to="/3d-viewer">Interactive 3D Engine</Link>
+              </div>
 
-            <div className="hero2-footer-col">
-              <span className="hero2-footer-col-title">Connect</span>
-              <Link to="/inquire">Inquiries</Link>
-              <a
-                href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Instagram
-              </a>
-              <a
-                href="https://www.behance.net/cinegem-studio/projects"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Behance
-              </a>
-              <a href="mailto:hello@cinegemstudio.com">Email</a>
+              <div className="hero2-footer-col">
+                <span className="hero2-footer-col-title">Connect</span>
+                <Link to="/inquire">Inquiries</Link>
+                <a
+                  href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Instagram
+                </a>
+                <a
+                  href="https://www.behance.net/cinegem-studio/projects"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Behance
+                </a>
+                <a href="mailto:hello@cinegemstudio.com">Email</a>
+              </div>
             </div>
           </div>
 
@@ -1689,7 +1788,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {SHOW_DEV_PANEL && timelineVisible && (
+      {!isLoading && SHOW_DEV_PANEL && timelineVisible && (
         <TimelineEditor
           ref={timelineRef}
           values={coordValues}
@@ -1705,7 +1804,7 @@ export default function HomePage() {
           onToggleTimelineTarget={(target) => {
             setTimelineTarget(target);
             if (poseApiRef.current) {
-              const snap = poseApiRef.current.getKeyframeSnapshot?.() ?? {};
+              const snap = poseApiRef.current.getKeyframeSnapshot?.(target) ?? {};
               setSavedBeats(new Set(Object.keys(snap).map(Number)));
             }
           }}
@@ -1718,62 +1817,36 @@ export default function HomePage() {
             }
           }}
           onMoveKeyframe={moveCoordKeyframe}
+          experimentalAtmosphere={experimentalAtmosphere}
+          onToggleAtmosphere={() => setExperimentalAtmosphere((v) => !v)}
         />
       )}
 
-      {SHOW_DEV_PANEL && (
+      {!isLoading && SHOW_DEV_PANEL && (
         <>
-          {/* Always-visible toggle — stays on screen even when the panel
-              itself is hidden, so there's a way back in. Positioned above
-              where the panel sits (bottom-right) so it doesn't overlap it. */}
-          <button
-            onClick={() => setPanelVisible((v) => !v)}
-            style={{
-              position: "fixed",
-              // Nav bar occupies top:0 with ~24px vertical padding plus
-              // button height, so this sits clear below it rather than
-              // overlapping the "Get in touch" button in the corner.
-              top: 84,
-              right: 20,
-              zIndex: 51,
-              background: "rgba(20,20,22,0.9)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 8,
-              padding: "8px 12px",
-              color: "#fff",
-              fontSize: 11,
-              fontFamily: "monospace",
-              cursor: "pointer",
-              backdropFilter: "blur(6px)",
-            }}
-          >
-            {panelVisible ? "Hide dev panel" : "Show dev panel"}
-          </button>
+          <div className="hero2-dev-cluster">
+            <button
+              onClick={() => setPanelVisible((v) => !v)}
+              className="hero2-dev-btn hero2-dev-btn-panel"
+            >
+              {panelVisible ? "Hide dev panel" : "Show dev panel"}
+            </button>
 
-          {/* Independent toggle for the bottom "3D Animation Timeline &
-              Channel Box" bar — stacked directly below the dev-panel
-              toggle. Always on screen (even while the timeline itself is
-              hidden) so there's always a way back in. */}
-          <button
-            onClick={() => setTimelineVisible((v) => !v)}
-            style={{
-              position: "fixed",
-              top: 124,
-              right: 20,
-              zIndex: 51,
-              background: "rgba(20,20,22,0.9)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 8,
-              padding: "8px 12px",
-              color: "#fff",
-              fontSize: 11,
-              fontFamily: "monospace",
-              cursor: "pointer",
-              backdropFilter: "blur(6px)",
-            }}
-          >
-            {timelineVisible ? "Hide timeline" : "Show timeline"}
-          </button>
+            <button
+              onClick={() => setTimelineVisible((v) => !v)}
+              className="hero2-dev-btn hero2-dev-btn-timeline"
+            >
+              {timelineVisible ? "Hide timeline" : "Show timeline"}
+            </button>
+
+            <button
+              onClick={() => setShowFogPanel((v) => !v)}
+              className="hero2-dev-btn hero2-dev-btn-fog"
+            >
+              Fog Panel: {showFogPanel ? "On" : "Off"}
+            </button>
+
+          </div>
 
           {panelVisible && (
             <MaterialDevPanel
@@ -1781,17 +1854,45 @@ export default function HomePage() {
               setMetalPresetKey={setMetalPresetKey}
               metalHdrUrl={metalHdrUrl}
               setMetalHdrUrl={setMetalHdrUrl}
-              gemHdrUrl={gemHdrUrl}
-              setGemHdrUrl={setGemHdrUrl}
+              gemBaseHdrUrl={gemBaseHdrUrl}
+              setGemBaseHdrUrl={setGemBaseHdrUrl}
+              gemSpotHdrUrl={gemSpotHdrUrl}
+              setGemSpotHdrUrl={setGemSpotHdrUrl}
               gemMode={gemMode}
               setGemMode={setGemMode}
               meshDebugList={meshDebugList}
               metalHdrConfig={metalHdrConfig}
               setMetalHdrConfig={setMetalHdrConfig}
-              gemHdrConfig={gemHdrConfig}
-              setGemHdrConfig={setGemHdrConfig}
+              gemBaseEnv={gemBaseEnv}
+              setGemBaseEnv={setGemBaseEnv}
+              gemSpotEnv={gemSpotEnv}
+              setGemSpotEnv={setGemSpotEnv}
+              gemEnvView={gemEnvView}
+              setGemEnvView={setGemEnvView}
+              gemGammaMode={gemGammaMode}
+              setGemGammaMode={setGemGammaMode}
+              dispersionStrength={dispersionStrength}
+              setDispersionStrength={setDispersionStrength}
+              baseFileMeta={baseFileMeta}
+              spotFileMeta={spotFileMeta}
+              previewConfig={previewConfig}
+              setPreviewConfig={setPreviewConfig}
+              bloomConfig={bloomConfig}
+              setBloomConfig={setBloomConfig}
+              postFxConfig={postFxConfig}
+              setPostFxConfig={setPostFxConfig}
               postFxEnabled={postFxEnabled}
               setPostFxEnabled={setPostFxEnabled}
+              baseFileNameHint={baseFileNameHint}
+              setBaseFileNameHint={setBaseFileNameHint}
+              spotFileNameHint={spotFileNameHint}
+              setSpotFileNameHint={setSpotFileNameHint}
+              envCanvasRef={envCanvasRef}
+              baseCanvasRef={baseCanvasRef}
+              spotCanvasRef={spotCanvasRef}
+              onRefreshPreviews={updatePreviews}
+              experimentalAtmosphere={experimentalAtmosphere}
+              setExperimentalAtmosphere={setExperimentalAtmosphere}
               layoutConfig={layoutConfig}
               setLayoutConfig={setLayoutConfig}
               beat3LayoutConfig={beat3LayoutConfig}
@@ -1803,6 +1904,24 @@ export default function HomePage() {
               setCardTimingConfig={setCardTimingConfig}
               defaultCardTimingConfig={DEFAULT_CARD_TIMING_CONFIG}
               onSaveCardTiming={saveCardTimingConfig}
+              onResetHdrDefaults={() => {
+                setMetalPresetKey("yellowGold");
+                setMetalHdrUrl("/hdr/env_metal_001_d01c4504e0.hdr");
+                setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
+                setGemBaseHdrUrl("/hdr/Diamond-Base-HDRI.exr");
+                setGemSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
+                setGemMode(null);
+                setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
+                setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
+                setGemEnvView(0);
+                setGemGammaMode(0);
+                setDispersionStrength(DEFAULT_DISPERSION);
+                setBloomConfig(DEFAULT_BLOOM_CONFIG);
+                setPreviewConfig(DEFAULT_PREVIEW_CONFIG);
+                setPostFxConfig(DEFAULT_POSTFX_CONFIG);
+                setPostFxEnabled(true);
+                setExperimentalAtmosphere(true);
+              }}
             />
           )}
         </>
@@ -1811,20 +1930,31 @@ export default function HomePage() {
       {/* Dedicated minimal header for Hero2: transparent background with centered Logo image, stuck flush to top edge */}
       <header
         ref={navRef}
-        className="fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-0 px-6 bg-transparent pointer-events-none transition-all duration-500"
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-0 px-6 bg-transparent pointer-events-none transition-all duration-700 ${
+          isLoading ? "opacity-0" : "opacity-100"
+        }`}
       >
         <Link
           to="/"
-          className="pointer-events-auto inline-block transition-opacity duration-300 hover:opacity-80 focus:outline-none"
+          onClick={handleLogoClick}
+          className="pointer-events-auto inline-block transition-opacity duration-300 hover:opacity-80 focus:outline-none cursor-pointer"
           aria-label="Cinegem Studio — return to top"
         >
           <img
             src="/Logo.png"
             alt="Cinegem Studio Logo"
-            className="h-28 sm:h-36 md:h-44 lg:h-52 w-auto object-contain filter drop-shadow block -mt-1 sm:-mt-7 md:-mt-14 lg:-mt-17"
+            className="h-28 sm:h-28 md:h-44 lg:h-52 w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
           />
         </Link>
       </header>
+
+      {/* Luxury Vertical Line Dot Navigation */}
+      <VerticalDotNav
+        sections={DEFAULT_HOME_SECTIONS}
+        activeIndex={activeSectionIndex}
+        onDotClick={handleDotClick}
+        visible={!isLoading}
+      />
 
       {/* Tall scrollable content — its height drives the ScrollTrigger
           timeline inside RingHero. Must match id used in
@@ -1834,7 +1964,7 @@ export default function HomePage() {
           (ring back to Beat 1 pose) -> standing spin. */}
       <div id="scroll-content" className="hero2-scroll-content">
         {/* Beat 1 — idle ring */}
-        <section className="hero2-section">
+        <section id="home" className="hero2-section">
           <div className="hero2-section-inner"></div>
         </section>
 
@@ -1864,6 +1994,7 @@ export default function HomePage() {
           <div className="hero2-section-inner"></div>
         </section>
       </div>
+
     </div>
   );
 }
@@ -1931,17 +2062,45 @@ function MaterialDevPanel({
   setMetalPresetKey,
   metalHdrUrl,
   setMetalHdrUrl,
-  gemHdrUrl,
-  setGemHdrUrl,
+  gemBaseHdrUrl,
+  setGemBaseHdrUrl,
+  gemSpotHdrUrl,
+  setGemSpotHdrUrl,
   gemMode,
   setGemMode,
   meshDebugList = [],
   metalHdrConfig,
   setMetalHdrConfig,
-  gemHdrConfig,
-  setGemHdrConfig,
+  gemBaseEnv,
+  setGemBaseEnv,
+  gemSpotEnv,
+  setGemSpotEnv,
+  gemEnvView,
+  setGemEnvView,
+  gemGammaMode,
+  setGemGammaMode,
+  dispersionStrength,
+  setDispersionStrength,
+  baseFileMeta,
+  spotFileMeta,
+  previewConfig,
+  setPreviewConfig,
+  bloomConfig,
+  setBloomConfig,
+  postFxConfig,
+  setPostFxConfig,
   postFxEnabled,
   setPostFxEnabled,
+  baseFileNameHint,
+  setBaseFileNameHint,
+  spotFileNameHint,
+  setSpotFileNameHint,
+  envCanvasRef,
+  baseCanvasRef,
+  spotCanvasRef,
+  onRefreshPreviews,
+  experimentalAtmosphere,
+  setExperimentalAtmosphere,
   layoutConfig,
   setLayoutConfig,
   beat3LayoutConfig,
@@ -1953,9 +2112,20 @@ function MaterialDevPanel({
   setCardTimingConfig,
   defaultCardTimingConfig,
   onSaveCardTiming,
+  onResetHdrDefaults,
 }) {
   const gemCount = meshDebugList.filter((m) => m.type === "gem").length;
   const metalCount = meshDebugList.filter((m) => m.type === "metal").length;
+
+  const metalFileInputRef = useRef(null);
+
+  const handleMetalFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isExr = file.name.toLowerCase().endsWith(".exr");
+    const blobUrl = URL.createObjectURL(file) + (isExr ? "#file.exr" : "#file.hdr");
+    setMetalHdrUrl(blobUrl);
+  };
 
   return (
     <div
@@ -1965,34 +2135,37 @@ function MaterialDevPanel({
         bottom: 20,
         right: 20,
         zIndex: 50,
-        background: "rgba(20,20,22,0.9)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: 10,
-        padding: "14px 16px",
+        background: "rgba(18,18,22,0.94)",
+        border: "1px solid rgba(255,255,255,0.18)",
+        borderRadius: 12,
+        padding: "16px 18px",
         color: "#fff",
         fontSize: 12,
         fontFamily: "monospace",
-        width: 280,
-        maxHeight: "85vh",
+        width: 320,
+        maxHeight: "88vh",
         overflowY: "auto",
-        backdropFilter: "blur(6px)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
       }}
     >
       <div
         style={{
-          fontWeight: 700,
-          marginBottom: 10,
-          fontSize: 12,
-          opacity: 0.8,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+          paddingBottom: 8,
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
         }}
       >
-        MATERIAL DEV PANEL
+        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: "0.04em", color: "#ffd280" }}>
+          CINEGEM DEV STUDIO
+        </span>
+        <span style={{ fontSize: 10, opacity: 0.5 }}>Octane Lighting</span>
       </div>
 
-      {/* Per-mesh classification — this is the part that actually tells
-          you whether gem/metal assignment is correct, instead of
-          eyeballing the render. Populated by RingHero's
-          onMeshesClassified callback once the GLB loads. */}
+      {/* Per-mesh classification */}
       <div
         style={{
           marginBottom: 12,
@@ -2026,705 +2199,434 @@ function MaterialDevPanel({
         )}
       </div>
 
-      <label style={{ display: "block", marginBottom: 10 }}>
-        Metal preset
-        <select
-          value={metalPresetKey}
-          onChange={(e) => setMetalPresetKey(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="yellowGold">Yellow Gold</option>
-          <option value="whiteGold">White Gold</option>
-          <option value="roseGold">Rose Gold</option>
-          <option value="platinum">Platinum</option>
-        </select>
-      </label>
+      {/* Metal Environment Section */}
+      <div
+        style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          background: "rgba(255, 216, 142, 0.05)",
+          border: "1px solid rgba(255, 216, 142, 0.2)",
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ fontWeight: 700, color: "#ffd88e", marginBottom: 8, fontSize: 11 }}>
+          👑 METAL ENVIRONMENT
+        </div>
 
-      <label style={{ display: "block", marginBottom: 10 }}>
-        Metal HDR URL
-        <input
-          type="text"
-          value={metalHdrUrl}
-          onChange={(e) => setMetalHdrUrl(e.target.value)}
-          style={inputStyle}
+        <label style={{ display: "block", marginBottom: 8 }}>
+          Preset
+          <select
+            value={metalPresetKey}
+            onChange={(e) => setMetalPresetKey(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="yellowGold">Yellow Gold</option>
+            <option value="whiteGold">White Gold</option>
+            <option value="roseGold">Rose Gold</option>
+            <option value="platinum">Platinum</option>
+          </select>
+        </label>
+
+        <label style={{ display: "block", marginBottom: 8 }}>
+          Metal HDR URL
+          <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+            <input
+              type="text"
+              value={metalHdrUrl}
+              onChange={(e) => setMetalHdrUrl(e.target.value)}
+              style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => metalFileInputRef.current?.click()}
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "#fff",
+                borderRadius: 6,
+                padding: "6px 8px",
+                fontSize: 10,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              📁 Browse
+            </button>
+            <input
+              ref={metalFileInputRef}
+              type="file"
+              accept=".hdr,.exr"
+              onChange={handleMetalFileUpload}
+              style={{ display: "none" }}
+            />
+          </div>
+        </label>
+
+        <HdrConfigGroup
+          label="Metal HDR controls"
+          config={metalHdrConfig}
+          setConfig={setMetalHdrConfig}
         />
-      </label>
+      </div>
 
-      <HdrConfigGroup
-        label="Metal HDR controls"
-        config={metalHdrConfig}
-        setConfig={setMetalHdrConfig}
-      />
+      {/* Octane Diamond Dual-EXR Section */}
+      <div
+        style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          background: "rgba(77, 163, 255, 0.06)",
+          border: "1px solid rgba(77, 163, 255, 0.25)",
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontWeight: 700, color: "#8ecbff", fontSize: 11 }}>
+            💎 OCTANE DIAMOND (2 EXR ADDITIVE)
+          </span>
+          <span style={{ fontSize: 9, background: "rgba(77, 163, 255, 0.2)", padding: "2px 5px", borderRadius: 4, color: "#a5d8ff" }}>
+            Add Texture
+          </span>
+        </div>
 
-      <label style={{ display: "block", marginTop: 14, marginBottom: 10 }}>
-        Gem HDR URL
-        <input
-          type="text"
-          value={gemHdrUrl}
-          onChange={(e) => setGemHdrUrl(e.target.value)}
-          style={inputStyle}
-        />
-      </label>
+        <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 8, lineHeight: 1.3 }}>
+          Base EXR provides body facet shape. Spotlight EXR injects intense concentrated pinpoints for optical sparkle. Result = colorKey(Base) + Spot.
+        </div>
 
-      <label style={{ display: "block", marginBottom: 10 }}>
-        Gem material
-        <select
-          value={gemMode ?? "default"}
-          onChange={(e) =>
-            setGemMode(e.target.value === "default" ? null : e.target.value)
-          }
-          style={selectStyle}
+        <label style={{ display: "block", marginBottom: 8 }}>
+          Gem Material Mode
+          <select
+            value={gemMode ?? "default"}
+            onChange={(e) =>
+              setGemMode(e.target.value === "default" ? null : e.target.value)
+            }
+            style={selectStyle}
+          >
+            <option value="default">Full Octane Refraction + Dispersion</option>
+            <option value="matte">Matte (flat preview)</option>
+          </select>
+        </label>
+
+        {/* Global Controls: View Mode & Gamma Mode */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+            marginBottom: 8,
+          }}
         >
-          <option value="default">Preset default (refraction)</option>
-          <option value="matte">Matte (cheap)</option>
-        </select>
-      </label>
+          <label style={{ fontSize: 10 }}>
+            Debug View
+            <select
+              value={gemEnvView}
+              onChange={(e) => setGemEnvView(Number(e.target.value))}
+              style={{ ...selectStyle, marginTop: 3 }}
+            >
+              <option value={0}>✨ Base + Spot (Full)</option>
+              <option value={1}>🏛️ Base only</option>
+              <option value={2}>💡 Spot only (Sparkle)</option>
+            </select>
+          </label>
 
-      <HdrConfigGroup
-        label="Gem HDR controls"
-        config={gemHdrConfig}
-        setConfig={setGemHdrConfig}
-      />
+          <label style={{ fontSize: 10 }}>
+            Gamma Mode (A/B)
+            <select
+              value={gemGammaMode}
+              onChange={(e) => setGemGammaMode(Number(e.target.value))}
+              style={{ ...selectStyle, marginTop: 3 }}
+            >
+              <option value={0}>Octane: pow(x, γ)</option>
+              <option value={1}>Legacy: pow(x, 1/γ)</option>
+            </select>
+          </label>
+        </div>
 
-      {/* Post-processing toggle — ported from components/JewelryPostFX.jsx
-          (SMAA + mipmap Bloom + ACES Filmic tone mapping + grain +
-          vignette). Useful to flip off during dev to isolate whether an
-          artifact is coming from the shader or from bloom/grain. */}
+        {/* Task A2: Dispersion (Fire) Slider */}
+        <SliderRow
+          label="Dispersion (Fire)"
+          value={dispersionStrength}
+          min={0}
+          max={0.03}
+          step={0.001}
+          onChange={(e) => setDispersionStrength(Number(e.target.value))}
+        />
+        <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 8, color: "#8ecbff" }}>
+          * 0 = Achromatic diamond (no rainbow). 0.006 = Smooth 7-tap spectral fire.
+        </div>
+
+        {/* Reference & Reset Preset Buttons */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setGemBaseEnv(OCTANE_ER11_BASE_ENV);
+              setGemSpotEnv(OCTANE_ER11_SPOT_ENV);
+              setDispersionStrength(DEFAULT_DISPERSION);
+              setBloomConfig(DEFAULT_BLOOM_CONFIG);
+            }}
+            style={{
+              flex: 1,
+              background: "rgba(77, 163, 255, 0.15)",
+              border: "1px solid rgba(77, 163, 255, 0.4)",
+              color: "#8ecbff",
+              borderRadius: 6,
+              padding: "6px 8px",
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            title="Applies Octane ER_11 reference settings from node editor"
+          >
+            🎯 Octane ER_11 Reference
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
+              setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
+              setDispersionStrength(DEFAULT_DISPERSION);
+              setBloomConfig(DEFAULT_BLOOM_CONFIG);
+            }}
+            style={{
+              flex: 1,
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#ddd",
+              borderRadius: 6,
+              padding: "6px 8px",
+              fontSize: 10,
+              cursor: "pointer",
+            }}
+            title="Reset to identity transforms (rot 0, scale 1, trans 0)"
+          >
+            🔄 Reset (Identity)
+          </button>
+        </div>
+
+        {/* Task B: Live EXR Previews (Octane-style) */}
+        <div
+          style={{
+            marginTop: 10,
+            marginBottom: 10,
+            padding: "10px",
+            background: "rgba(0, 0, 0, 0.4)",
+            border: "1px solid rgba(100, 210, 255, 0.25)",
+            borderRadius: 8,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 6,
+            }}
+          >
+            <span style={{ fontWeight: 700, color: "#64d2ff", fontSize: 10.5 }}>
+              🖼️ LIVE EXR PREVIEWS (OCTANE-STYLE)
+            </span>
+            <button
+              type="button"
+              onClick={onRefreshPreviews}
+              style={{
+                background: "rgba(100, 210, 255, 0.15)",
+                border: "1px solid rgba(100, 210, 255, 0.35)",
+                color: "#8ecbff",
+                borderRadius: 4,
+                padding: "2px 6px",
+                fontSize: 9,
+                cursor: "pointer",
+              }}
+              title="Force re-render of 2:1 offscreen preview canvases"
+            >
+              ↻ Refresh
+            </button>
+          </div>
+
+          {/* B2: Preview Controls */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
+              marginBottom: 8,
+              padding: "6px 8px",
+              background: "rgba(255, 255, 255, 0.03)",
+              borderRadius: 6,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 9.5, opacity: 0.85 }}>
+                EV Exposure: {previewConfig.ev > 0 ? `+${previewConfig.ev}` : previewConfig.ev} EV
+              </span>
+              <input
+                type="range"
+                min={-4}
+                max={8}
+                step={0.5}
+                value={previewConfig.ev}
+                onChange={(e) => setPreviewConfig((p) => ({ ...p, ev: Number(e.target.value) }))}
+                style={{ width: 100, height: 4 }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 9.5 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={previewConfig.tonemap}
+                  onChange={(e) => setPreviewConfig((p) => ({ ...p, tonemap: e.target.checked }))}
+                />
+                Tone-mapped
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={previewConfig.raw}
+                  onChange={(e) => setPreviewConfig((p) => ({ ...p, raw: e.target.checked }))}
+                />
+                Raw Source
+              </label>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                  color: previewConfig.markThreshold ? "#00ffff" : undefined,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={previewConfig.markThreshold}
+                  onChange={(e) => setPreviewConfig((p) => ({ ...p, markThreshold: e.target.checked }))}
+                />
+                Cyan &gt; Bloom Thr ({bloomConfig.threshold})
+              </label>
+            </div>
+          </div>
+
+          {/* Environment (Base + Spot Add) Preview Canvas */}
+          <div>
+            <div style={{ fontSize: 9.5, fontWeight: 600, color: "#a5d8ff", marginBottom: 3 }}>
+              🌍 Combined Environment (Base + Spot Add)
+            </div>
+            <canvas
+              ref={envCanvasRef}
+              width={512}
+              height={256}
+              style={{
+                width: "100%",
+                height: "auto",
+                aspectRatio: "2/1",
+                display: "block",
+                borderRadius: 4,
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                background: "#0c1017",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* 1. Base EXR Slot */}
+        <ExrSlotControls
+          title="1. Base EXR (Facet Definition)"
+          badgeColor="#8ecbff"
+          url={gemBaseHdrUrl}
+          setUrl={setGemBaseHdrUrl}
+          presets={[
+            { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
+            { label: "🌟 Mirrored LUMA HDR", value: "/hdr/LUMA-Unsaid-R_D-DIA-Mirrored-Automation-shapes-Wave-R3.hdr" },
+            { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_001_d01c4504e0.hdr" },
+          ]}
+          config={gemBaseEnv}
+          setConfig={setGemBaseEnv}
+          meta={baseFileMeta}
+          allowDisable={false}
+          canvasRef={baseCanvasRef}
+          setFileNameHint={setBaseFileNameHint}
+        />
+
+        {/* 2. Spotlight EXR Slot */}
+        <ExrSlotControls
+          title="2. Spotlight EXR (Sparkle Pinpoints)"
+          subtitle="Octane P4.0 | Gamma 1.8"
+          badgeColor="#ffda85"
+          url={gemSpotHdrUrl}
+          setUrl={setGemSpotHdrUrl}
+          presets={[
+            { label: "💡 Diamond Spotlight EXR (Pinpoints)", value: "/hdr/Diamond-Spotlight-HDRI.exr" },
+            { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
+          ]}
+          config={gemSpotEnv}
+          setConfig={setGemSpotEnv}
+          meta={spotFileMeta}
+          allowDisable={true}
+          canvasRef={spotCanvasRef}
+          setFileNameHint={setSpotFileNameHint}
+          isSpotSlot={true}
+        />
+      </div>
+
+      {/* [EXPERIMENTAL_ATMOSPHERE] Atmospheric Fog, Macro DOF & Weightless Float */}
       <label
         style={{
           display: "flex",
           alignItems: "center",
           gap: 8,
-          marginTop: 14,
-          marginBottom: 4,
+          marginTop: 6,
+          marginBottom: 6,
           cursor: "pointer",
+          background: experimentalAtmosphere
+            ? "rgba(255, 180, 50, 0.15)"
+            : "rgba(255, 255, 255, 0.05)",
+          padding: "6px 10px",
+          borderRadius: 6,
+          border: experimentalAtmosphere
+            ? "1px solid rgba(255, 180, 50, 0.4)"
+            : "1px solid rgba(255, 255, 255, 0.15)",
         }}
       >
         <input
           type="checkbox"
-          checked={postFxEnabled}
-          onChange={(e) => setPostFxEnabled(e.target.checked)}
+          checked={experimentalAtmosphere}
+          onChange={(e) => setExperimentalAtmosphere(e.target.checked)}
         />
-        Post-processing (Bloom / SMAA / Vignette)
+        <span
+          style={{
+            color: experimentalAtmosphere ? "#ffd280" : "#aaa",
+            fontWeight: 600,
+            fontSize: 11,
+          }}
+        >
+          ✨ Atmosphere (Fog Blend + Float)
+        </span>
       </label>
 
-      {/* Card Layout Controls */}
-      <div
-        style={{
-          marginTop: 16,
-          borderTop: "1px solid rgba(255,255,255,0.15)",
-          paddingTop: 14,
-        }}
-      >
-        <div
+      {onResetHdrDefaults && (
+        <button
+          onClick={onResetHdrDefaults}
           style={{
-            fontWeight: 700,
+            width: "100%",
+            background: "rgba(255, 180, 50, 0.15)",
+            border: "1px solid rgba(255, 180, 50, 0.35)",
+            borderRadius: 6,
+            color: "#ffd280",
+            padding: "6px 10px",
+            fontSize: 10,
+            cursor: "pointer",
+            fontWeight: 600,
+            marginTop: 4,
             marginBottom: 8,
-            fontSize: 11,
-            color: "#4DA3FF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
           }}
+          title="Reset dev panel HDR and materials to studio defaults"
         >
-          CARD LAYOUT CONTROLS
-        </div>
-
-        {/* Content Card Position & Size */}
-        <div style={{ marginBottom: 12 }}>
-          <div
-            style={{
-              fontWeight: 600,
-              fontSize: 10,
-              opacity: 0.7,
-              marginBottom: 6,
-            }}
-          >
-            Content Card (Left)
-          </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Left: {layoutConfig.contentLeft}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={layoutConfig.contentLeft}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  contentLeft: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Top: {layoutConfig.contentTop}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={layoutConfig.contentTop}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  contentTop: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Width: {layoutConfig.contentWidth}px ref → currently{" "}
-              {resolvedClampPx(layoutConfig.contentWidth, 320, viewportWidth)}
-              px
-            </span>
-            <input
-              type="range"
-              min="200"
-              max="1000"
-              step="10"
-              value={layoutConfig.contentWidth}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  contentWidth: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Height: {layoutConfig.contentHeight}px
-            </span>
-            <input
-              type="range"
-              min="200"
-              max="800"
-              step="10"
-              value={layoutConfig.contentHeight}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  contentHeight: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>Anchor:</span>
-            <select
-              value={layoutConfig.heightAnchor}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  heightAnchor: e.target.value,
-                }))
-              }
-              style={{
-                width: 120,
-                background: "rgba(255, 255, 255, 0.08)",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: 4,
-                color: "#fff",
-                fontSize: 10,
-                padding: "2px 4px",
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              <option value="center">Center (Symmetric)</option>
-              <option value="top">Lock Top (Grow Down)</option>
-              <option value="bottom">Lock Bottom (Grow Up)</option>
-            </select>
-          </label>
-        </div>
-
-        {/* Title Card Position & Size */}
-        <div style={{ marginBottom: 12 }}>
-          <div
-            style={{
-              fontWeight: 600,
-              fontSize: 10,
-              opacity: 0.7,
-              marginBottom: 6,
-            }}
-          >
-            Title Card (Right)
-          </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Left: {layoutConfig.titleLeft}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={layoutConfig.titleLeft}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  titleLeft: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>Top: {layoutConfig.titleTop}%</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={layoutConfig.titleTop}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  titleTop: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Width: {layoutConfig.titleWidth}px ref → currently{" "}
-              {resolvedClampPx(layoutConfig.titleWidth, 200, viewportWidth)}px
-            </span>
-            <input
-              type="range"
-              min="150"
-              max="800"
-              step="10"
-              value={layoutConfig.titleWidth}
-              onChange={(e) =>
-                setLayoutConfig((prev) => ({
-                  ...prev,
-                  titleWidth: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-        </div>
-
-        {/* Beat 3 Swapped Position Controls — independent from the
-            Content/Title controls above, which drive Beat 2 (and Beat 3's
-            pre-swap starting position). These control where Beat 3's cards
-            land AFTER the swap animation. */}
-        <div
-          style={{
-            marginBottom: 12,
-            borderTop: "1px solid rgba(255,255,255,0.1)",
-            paddingTop: 10,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 600,
-              fontSize: 10,
-              opacity: 0.7,
-              marginBottom: 6,
-              color: "#8fd694",
-            }}
-          >
-            Beat 3 — Swapped Positions
-          </div>
-
-          <div
-            style={{
-              fontSize: 9,
-              opacity: 0.5,
-              marginBottom: 8,
-              color: "#8ecbff",
-            }}
-          >
-            * Horizontal positions are automatically mirrored from Beat 2 for
-            responsive alignment.
-          </div>
-
-          <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 4 }}>
-            Content Card (ends up right)
-          </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Top: {beat3LayoutConfig.contentTop}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={beat3LayoutConfig.contentTop}
-              onChange={(e) =>
-                setBeat3LayoutConfig((prev) => ({
-                  ...prev,
-                  contentTop: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-
-          <div style={{ fontSize: 9, opacity: 0.5, margin: "8px 0 4px" }}>
-            Title Card (ends up left)
-          </div>
-          <label
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>
-              Top: {beat3LayoutConfig.titleTop}%
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.5"
-              value={beat3LayoutConfig.titleTop}
-              onChange={(e) =>
-                setBeat3LayoutConfig((prev) => ({
-                  ...prev,
-                  titleTop: Number(e.target.value),
-                }))
-              }
-              style={{ width: 120, height: 4 }}
-            />
-          </label>
-
-          <button
-            onClick={onSaveBeat3Layout}
-            style={{
-              marginTop: 6,
-              width: "100%",
-              padding: "6px 10px",
-              fontSize: 10,
-              fontWeight: 600,
-              background: "rgba(143, 214, 148, 0.15)",
-              border: "1px solid rgba(143, 214, 148, 0.4)",
-              borderRadius: 4,
-              color: "#8fd694",
-              cursor: "pointer",
-            }}
-          >
-            Save Beat 3 Layout
-          </button>
-        </div>
-
-        {/* Card Timing Controls — global frame scale (0–211) */}
-        {cardTimingConfig && setCardTimingConfig && (
-          <div style={{ marginBottom: 12 }}>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: 10,
-                opacity: 0.7,
-                marginBottom: 6,
-                color: "#f0c060",
-              }}
-            >
-              ⏱ Card Timing (global frames 0–211)
-            </div>
-            {/* Beat 2 (global frames 11–61) */}
-            <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 4 }}>
-              Beat 2 Card
-            </div>
-            {[
-              ["Entry Start", "beat2EntryStart", 0, 211, 1],
-              ["Entry End", "beat2EntryEnd", 0, 211, 1],
-              ["Exit Start", "beat2ExitStart", 0, 211, 1],
-              ["Exit End", "beat2ExitEnd", 0, 211, 1],
-            ].map(([label, key, min, max, step]) => (
-              <label
-                key={key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ fontSize: 10 }}>
-                  {label}: {cardTimingConfig[key]}
-                </span>
-                <input
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={cardTimingConfig[key]}
-                  onChange={(e) =>
-                    setCardTimingConfig((prev) => ({
-                      ...prev,
-                      [key]: Number(e.target.value),
-                    }))
-                  }
-                  style={{ width: 120, height: 4 }}
-                />
-              </label>
-            ))}
-            {/* Beat 3 (global frames 61–111) */}
-            <div
-              style={{
-                fontSize: 9,
-                opacity: 0.5,
-                marginBottom: 4,
-                marginTop: 6,
-              }}
-            >
-              Beat 3 Card
-            </div>
-            {[
-              ["Entry Start", "beat3EntryStart", 0, 211, 1],
-              ["Entry End", "beat3EntryEnd", 0, 211, 1],
-              ["Exit Start", "beat3ExitStart", 0, 211, 1],
-              ["Exit End", "beat3ExitEnd", 0, 211, 1],
-            ].map(([label, key, min, max, step]) => (
-              <label
-                key={key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ fontSize: 10 }}>
-                  {label}: {cardTimingConfig[key]}
-                </span>
-                <input
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={cardTimingConfig[key]}
-                  onChange={(e) =>
-                    setCardTimingConfig((prev) => ({
-                      ...prev,
-                      [key]: Number(e.target.value),
-                    }))
-                  }
-                  style={{ width: 120, height: 4 }}
-                />
-              </label>
-            ))}
-
-            {/* Beat 4 (global frames 111–161) */}
-            <div
-              style={{
-                fontSize: 9,
-                opacity: 0.5,
-                marginBottom: 4,
-                marginTop: 6,
-              }}
-            >
-              Beat 4 Card
-            </div>
-            {[
-              ["Entry Start", "beat4EntryStart", 0, 211, 1],
-              ["Entry End", "beat4EntryEnd", 0, 211, 1],
-              ["Exit Start", "beat4ExitStart", 0, 211, 1],
-              ["Exit End", "beat4ExitEnd", 0, 211, 1],
-            ].map(([label, key, min, max, step]) => (
-              <label
-                key={key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ fontSize: 10 }}>
-                  {label}:{" "}
-                  {cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
-                </span>
-                <input
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={cardTimingConfig[key] ?? defaultCardTimingConfig[key]}
-                  onChange={(e) =>
-                    setCardTimingConfig((prev) => ({
-                      ...prev,
-                      [key]: Number(e.target.value),
-                    }))
-                  }
-                  style={{ width: 120, height: 4 }}
-                />
-              </label>
-            ))}
-
-            {/* Save / Reset buttons */}
-            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              <button
-                onClick={onSaveCardTiming}
-                style={{
-                  flex: 1,
-                  padding: "4px 10px",
-                  fontSize: 10,
-                  background: "rgba(90, 200, 120, 0.2)",
-                  border: "1px solid rgba(90, 200, 120, 0.4)",
-                  borderRadius: 4,
-                  color: "#8ef0a8",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                💾 Save Card Timing
-              </button>
-              <button
-                onClick={() => setCardTimingConfig(defaultCardTimingConfig)}
-                style={{
-                  flex: 1,
-                  padding: "4px 10px",
-                  fontSize: 10,
-                  background: "rgba(240, 100, 60, 0.2)",
-                  border: "1px solid rgba(240, 100, 60, 0.4)",
-                  borderRadius: 4,
-                  color: "#f0c060",
-                  cursor: "pointer",
-                }}
-              >
-                Reset Timing
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Copy / Save CSS helpers */}
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            onClick={() => {
-              const css = buildCardCss(layoutConfig);
-              navigator.clipboard
-                .writeText(css)
-                .then(() => alert("CSS copied to clipboard!"));
-            }}
-            style={{
-              flex: 1,
-              background: "rgba(77, 163, 255, 0.2)",
-              border: "1px solid rgba(77, 163, 255, 0.4)",
-              borderRadius: 6,
-              color: "#fff",
-              padding: "6px 8px",
-              fontSize: 10,
-              cursor: "pointer",
-              fontWeight: "bold",
-              marginTop: 4,
-            }}
-          >
-            📋 COPY CSS
-          </button>
-          <button
-            onClick={() => {
-              const css = buildCardCss(layoutConfig);
-              // Blob + temporary <a download> is the standard way to trigger
-              // a client-side file save without any backend — the browser
-              // handles the actual "Save As" / downloads-folder behavior.
-              const blob = new Blob([css], { type: "text/css" });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = "hero2-cards.css";
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-            }}
-            style={{
-              flex: 1,
-              background: "rgba(90, 200, 120, 0.2)",
-              border: "1px solid rgba(90, 200, 120, 0.4)",
-              borderRadius: 6,
-              color: "#8ef0a8",
-              padding: "6px 8px",
-              fontSize: 10,
-              cursor: "pointer",
-              fontWeight: "bold",
-              marginTop: 4,
-            }}
-          >
-            💾 SAVE CSS
-          </button>
-        </div>
-      </div>
+          ↺ Reset to Studio Defaults
+        </button>
+      )}
 
       <div
         style={{ marginTop: 10, fontSize: 10, opacity: 0.5, lineHeight: 1.4 }}
@@ -2834,6 +2736,383 @@ function SliderRow({ label, value, min, max, step, unit = "", onChange }) {
     </label>
   );
 }
+
+function ExrSlotControls({
+  title,
+  subtitle,
+  badgeColor = "#8ecbff",
+  url,
+  setUrl,
+  presets = [],
+  config,
+  setConfig,
+  meta,
+  allowDisable = false,
+  canvasRef,
+  setFileNameHint,
+  isSpotSlot = false,
+}) {
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (setFileNameHint) setFileNameHint(file.name);
+    const isExr = file.name.toLowerCase().endsWith(".exr");
+    const blobUrl =
+      URL.createObjectURL(file) + (isExr ? "#file.exr" : "#file.hdr");
+    setUrl(blobUrl);
+  };
+
+  const isPreset = presets.some((p) => p.value === url);
+
+  const update = (key) => (e) => {
+    const val = Number(e.target.value);
+    setConfig((prev) => {
+      const next = { ...prev, [key]: val };
+      if (prev.lockScale) {
+        if (key === "scaleU") next.scaleV = val;
+        if (key === "scaleV") next.scaleU = val;
+      }
+      return next;
+    });
+  };
+
+  const updateBool = (key) => (e) => {
+    const checked = e.target.checked;
+    setConfig((prev) => {
+      const next = { ...prev, [key]: checked };
+      if (key === "lockScale" && checked) {
+        next.scaleV = prev.scaleU;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        marginBottom: 8,
+        padding: "8px 10px",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontWeight: 700, color: badgeColor, fontSize: 11 }}>
+          {title}
+        </span>
+        {subtitle && (
+          <span style={{ opacity: 0.5, fontSize: 9 }}>{subtitle}</span>
+        )}
+      </div>
+
+      {/* Task B: 2:1 Equirect Preview Canvas for this slot */}
+      {canvasRef && (
+        <div style={{ marginBottom: 8 }}>
+          <canvas
+            ref={canvasRef}
+            width={512}
+            height={256}
+            style={{
+              width: "100%",
+              height: "auto",
+              aspectRatio: "2/1",
+              display: "block",
+              borderRadius: 4,
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              background: "#0c1017",
+            }}
+          />
+        </div>
+      )}
+
+      {presets.length > 0 && (
+        <label style={{ display: "block", marginBottom: 6 }}>
+          Preset
+          <select
+            value={isPreset ? url : "custom"}
+            onChange={(e) => {
+              if (e.target.value !== "custom") {
+                setUrl(e.target.value);
+              }
+            }}
+            style={selectStyle}
+          >
+            {presets.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+            {allowDisable && <option value="">🚫 None (Disabled)</option>}
+            <option value="custom">Custom URL / Uploaded</option>
+          </select>
+        </label>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          marginBottom: 6,
+          alignItems: "center",
+        }}
+      >
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="EXR or HDR URL..."
+          style={{ ...inputStyle, flex: 1, marginTop: 0 }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            color: "#fff",
+            borderRadius: 6,
+            padding: "6px 8px",
+            fontSize: 10,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+          title="Upload local .exr or .hdr file"
+        >
+          📁 Browse
+        </button>
+        {allowDisable && url && (
+          <button
+            type="button"
+            onClick={() => setUrl("")}
+            style={{
+              background: "rgba(255,70,70,0.15)",
+              border: "1px solid rgba(255,70,70,0.3)",
+              color: "#ff9999",
+              borderRadius: 6,
+              padding: "6px 8px",
+              fontSize: 10,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+            title="Disable Spotlight slot"
+          >
+            Clear
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".exr,.hdr"
+          onChange={handleFileChange}
+          style={{ display: "none" }}
+        />
+      </div>
+
+      {/* Loaded-file metadata readout */}
+      {meta?.error ? (
+        <div
+          style={{
+            color: "#ff6b6b",
+            fontSize: 9.5,
+            marginBottom: 8,
+            padding: "4px 6px",
+            background: "rgba(255,0,0,0.12)",
+            border: "1px solid rgba(255,0,0,0.25)",
+            borderRadius: 4,
+          }}
+        >
+          ⚠️ {meta.error}
+        </div>
+      ) : meta ? (
+        <div
+          style={{
+            fontSize: 9,
+            opacity: 0.85,
+            marginBottom: 8,
+            padding: "4px 6px",
+            background: "rgba(0, 0, 0, 0.3)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: 4,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            fontFamily: "monospace",
+          }}
+        >
+          <span>📁 {meta.name}</span>
+          <span>📐 {meta.width}×{meta.height}</span>
+          <span>🎨 {meta.channels}</span>
+          <span>💾 {meta.approxMB}</span>
+        </div>
+      ) : url ? (
+        <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 8 }}>
+          Loading file info...
+        </div>
+      ) : (
+        <div style={{ fontSize: 9, opacity: 0.4, marginBottom: 8 }}>
+          🚫 Disabled / No texture
+        </div>
+      )}
+
+      {/* Mono toggle */}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 8,
+          cursor: "pointer",
+          fontSize: 10,
+          color: config.mono ? "#8ecbff" : "#888",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={config.mono ?? true}
+          onChange={updateBool("mono")}
+        />
+        <span>Mono (1 channel half-float) — <em>saves ~75% VRAM</em></span>
+      </label>
+
+      {/* Task C2: Spot Size (dilation pre-pass) for Spotlight Slot */}
+      {isSpotSlot && (
+        <SliderRow
+          label="Spot Size (px dilation)"
+          value={config.size ?? 2}
+          min={0}
+          max={16}
+          step={1}
+          onChange={update("size")}
+        />
+      )}
+
+      {/* Real Octane sliders */}
+      <SliderRow
+        label="Power"
+        value={config.power}
+        min={0}
+        max={isSpotSlot ? 50.0 : 5.0}
+        step={isSpotSlot ? 0.5 : 0.01}
+        onChange={update("power")}
+      />
+      <SliderRow
+        label="Gamma"
+        value={config.gamma}
+        min={0.2}
+        max={4.0}
+        step={0.01}
+        onChange={update("gamma")}
+      />
+      <SliderRow
+        label="Rotation"
+        value={config.rot}
+        min={-180}
+        max={180}
+        step={1}
+        unit="°"
+        onChange={update("rot")}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 6,
+          marginBottom: 2,
+        }}
+      >
+        <span style={{ fontSize: 10, opacity: 0.8 }}>Scale (2D Transform)</span>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 9,
+            cursor: "pointer",
+            opacity: 0.85,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={config.lockScale ?? true}
+            onChange={updateBool("lockScale")}
+          />
+          Lock U=V
+        </label>
+      </div>
+
+      <div style={{ fontSize: 9, opacity: 0.65, marginTop: 1, marginBottom: 4, color: "#8ecbff" }}>
+        * Octane scale &lt; 1 zooms in (verify against Octane)
+      </div>
+
+      <SliderRow
+        label="Scale U"
+        value={config.scaleU}
+        min={0.05}
+        max={4.0}
+        step={0.001}
+        onChange={update("scaleU")}
+      />
+      <SliderRow
+        label="Scale V"
+        value={config.scaleV}
+        min={0.05}
+        max={4.0}
+        step={0.001}
+        onChange={update("scaleV")}
+      />
+
+      <SliderRow
+        label="Translate U"
+        value={config.transU}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transU")}
+      />
+      <SliderRow
+        label="Translate V"
+        value={config.transV}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transV")}
+      />
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 6,
+          cursor: "pointer",
+          fontSize: 9.5,
+          opacity: 0.8,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={config.scaleInvert ?? false}
+          onChange={updateBool("scaleInvert")}
+        />
+        Invert scale convention (p / scale instead of p * scale)
+      </label>
+    </div>
+  );
+}
+
 
 const selectStyle = {
   display: "block",

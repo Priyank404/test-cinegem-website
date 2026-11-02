@@ -1,19 +1,12 @@
 // OnBodyVisualizationPage.jsx
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
-import Silk from "@/components/three/Silk";
 import HeroSection from "@/components/sections/HeroSection";
-
-gsap.registerPlugin(ScrollTrigger);
+import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
+import { useDriveMedia } from "@/hooks/useDriveMedia";
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
-   Placeholder paths for now — drop real files into /public and swap the
-   src values below (or wire this up to /constants/gallery.js). Add as
-   many entries as needed; the layout below packs them automatically no
-   matter how many images are in this array.
 ═══════════════════════════════════════════════════════════════════════ */
 
 const galleryImages = [
@@ -39,18 +32,12 @@ const galleryImages = [
   },
 ];
 
-const GAP = 16; // px, both between tiles in a row and between rows
-
-/* Used only until an image's real dimensions are known (first paint /
-   before the browser has decoded it). */
+const GAP_GLASSY = 4; // Minimal hairline gap for glassy container mode
+const GAP_ORIGINAL = 16; // Original generous gap from c111c47
 const FALLBACK_AR = 0.8;
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ASPECT RATIO DETECTION
-   Loads every image once, off-DOM, purely to read naturalWidth/
-   naturalHeight. Everything downstream — how many images share a row,
-   and each tile's exact pixel width/height — is derived from these
-   real dimensions. Nothing is hardcoded per breakpoint.
+   ASPECT RATIO & WIDTH HOOKS
 ═══════════════════════════════════════════════════════════════════════ */
 
 function useAspectRatios(images) {
@@ -81,7 +68,6 @@ function useAspectRatios(images) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
   return ratios;
@@ -90,17 +76,6 @@ function useAspectRatios(images) {
 function arOf(img, ratios) {
   return ratios[img.src] ?? FALLBACK_AR;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════
-   CONTAINER WIDTH
-   Row sizing below is computed entirely in JS from the gallery's own
-   real content width (tracked live via ResizeObserver). Doing the math
-   in JS — instead of leaning on CSS `aspect-ratio` + `flex-grow`
-   together — sidesteps real cross-browser inconsistencies in how that
-   combination resolves on some mobile browsers (this is what was
-   causing single, tall images to render narrower than the full
-   container width).
-═══════════════════════════════════════════════════════════════════════ */
 
 function useContainerWidth(ref) {
   const [width, setWidth] = useState(0);
@@ -121,25 +96,6 @@ function useContainerWidth(ref) {
   return width;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   PRIMITIVES
-
-   Row: a horizontal strip of 1–3 images, sized purely in JS.
-
-   Every image's pixel width is computed as:
-       width_i = availableWidth × (AR_i ÷ ΣAR)
-   That formula sums to exactly `availableWidth` by construction, no
-   matter what each image's own aspect ratio is — which is what
-   guarantees every row (including a lone single-image row) is always
-   the FULL container width, on every breakpoint.
-
-   The row's height is that same math's natural result — width ÷ AR is
-   identical for every image in the row by construction, so every
-   tile's box exactly equals that image's real aspect ratio: the image
-   fills its grid container completely on both axes, with zero
-   cropping and zero leftover space, on mobile, tablet, AND desktop.
-═══════════════════════════════════════════════════════════════════════ */
-
 function layoutRow(items, ratios, containerWidth, gap) {
   const slots = items.filter(Boolean);
   if (!slots.length || !containerWidth) return null;
@@ -155,29 +111,35 @@ function layoutRow(items, ratios, containerWidth, gap) {
     height,
     tiles: slots.map((img, i) => ({
       img,
-      // Always the image's proportional share of the FULL available
-      // width, so widths always sum to exactly `availableWidth`. No
-      // dead space, ever.
       width: availableWidth * (ars[i] / sumAR),
     })),
   };
 }
 
-function Tile({ img, width, height }) {
+function chunk(images, size) {
+  const chunks = [];
+  for (let i = 0; i < images.length; i += size) {
+    chunks.push(images.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   1. ORIGINAL NORMAL GRID COMPONENTS (Retrieved when in clean mode)
+   Authentic wide layout (max-w-[2560px]), 16px luxury gaps, cream cards from c111c47.
+═══════════════════════════════════════════════════════════════════════ */
+
+function OriginalTile({ img, width, height }) {
   return (
     <div
       className="
-        reveal-right shrink-0
+        shrink-0
         relative overflow-hidden bg-[#FAF9F6]
         border border-[#c4c7c7]/40 gallery-shadow
-        hover:-translate-y-1 transition-transform duration-300
+        hover:-translate-y-1 transition-all duration-300
       "
       style={{ width, height }}
     >
-      {/* The box's width÷height always matches this image's own real
-          aspect ratio exactly (see layoutRow above), so object-contain
-          and object-cover render identically here — nothing is ever
-          cropped, and the image fills the box completely. */}
       <img
         src={img.src}
         alt={img.alt}
@@ -190,14 +152,14 @@ function Tile({ img, width, height }) {
   );
 }
 
-function Row({ items, ratios, containerWidth }) {
-  const row = layoutRow(items, ratios, containerWidth, GAP);
+function OriginalRow({ items, ratios, containerWidth }) {
+  const row = layoutRow(items, ratios, containerWidth, GAP_ORIGINAL);
   if (!row) return null;
 
   return (
-    <div className="flex" style={{ gap: GAP, height: row.height }}>
+    <div className="flex" style={{ gap: GAP_ORIGINAL, height: row.height }}>
       {row.tiles.map(({ img, width }, i) => (
-        <Tile
+        <OriginalTile
           key={`${img.src}-${i}`}
           img={img}
           width={width}
@@ -208,44 +170,14 @@ function Row({ items, ratios, containerWidth }) {
   );
 }
 
-/* Splits `images` into groups of `size`, in order, with no wrapping —
-   the last group just gets whatever images are left over. */
-function chunk(images, size) {
-  const chunks = [];
-  for (let i = 0; i < images.length; i += size) {
-    chunks.push(images.slice(i, i + size));
-  }
-  return chunks;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   ON-BODY GALLERY — bento layout matched to the reference mock:
-     • Mobile  (< 768px)      — 6 images/block: single, single,
-                                 side-by-side pair, single, single
-     • Tablet  (768–1023px)   — 4 images/block: wide, side-by-side
-                                 pair, wide
-     • Desktop (≥ 1024px)     — 7 images/block: row of 2, row of 3,
-                                 row of 2
-
-   All three read from the same flat `galleryImages` array — only the
-   grouping changes per breakpoint (Tailwind toggles which block is
-   visible, so only one set of DOM nodes is ever painted at a time).
-   containerWidth is measured once here and passed down, since every
-   block shares the same full-width parent. Every row on every
-   breakpoint renders at its exact natural height, so each image fills
-   its grid container completely with no crop and no leftover space.
-   Extra images beyond one block simply start the pattern again from
-   the top.
-═══════════════════════════════════════════════════════════════════════ */
-
-function MobileBlock({ images, ratios, containerWidth }) {
+function OriginalMobileBlock({ images, ratios, containerWidth }) {
   const [a, b, c1, c2, d, e] = images;
   const rows = [[a], [b], [c1, c2], [d], [e]].filter((r) => r.some(Boolean));
 
   return (
-    <div className="flex md:hidden flex-col" style={{ gap: GAP }}>
+    <div className="flex md:hidden flex-col" style={{ gap: GAP_ORIGINAL }}>
       {rows.map((items, i) => (
-        <Row
+        <OriginalRow
           key={i}
           items={items}
           ratios={ratios}
@@ -256,14 +188,14 @@ function MobileBlock({ images, ratios, containerWidth }) {
   );
 }
 
-function TabletBlock({ images, ratios, containerWidth }) {
+function OriginalTabletBlock({ images, ratios, containerWidth }) {
   const [a, b, c, d] = images;
   const rows = [[a], [b, c], [d]].filter((r) => r.some(Boolean));
 
   return (
-    <div className="hidden md:flex lg:hidden flex-col" style={{ gap: GAP }}>
+    <div className="hidden md:flex lg:hidden flex-col" style={{ gap: GAP_ORIGINAL }}>
       {rows.map((items, i) => (
-        <Row
+        <OriginalRow
           key={i}
           items={items}
           ratios={ratios}
@@ -274,7 +206,7 @@ function TabletBlock({ images, ratios, containerWidth }) {
   );
 }
 
-function DesktopBlock({ images, ratios, containerWidth }) {
+function OriginalDesktopBlock({ images, ratios, containerWidth }) {
   const [a, b, c, d, e, f, g] = images;
   const rows = [
     [a, b],
@@ -283,9 +215,9 @@ function DesktopBlock({ images, ratios, containerWidth }) {
   ].filter((r) => r.some(Boolean));
 
   return (
-    <div className="hidden lg:flex flex-col" style={{ gap: GAP }}>
+    <div className="hidden lg:flex flex-col" style={{ gap: GAP_ORIGINAL }}>
       {rows.map((items, i) => (
-        <Row
+        <OriginalRow
           key={i}
           items={items}
           ratios={ratios}
@@ -296,7 +228,7 @@ function DesktopBlock({ images, ratios, containerWidth }) {
   );
 }
 
-function OnBodyGallery({ images }) {
+function OriginalOnBodyGallery({ images }) {
   const containerRef = useRef(null);
   const ratios = useAspectRatios(images);
   const containerWidth = useContainerWidth(containerRef);
@@ -310,27 +242,27 @@ function OnBodyGallery({ images }) {
       <div
         ref={containerRef}
         className="w-full max-w-[2560px] mx-auto flex flex-col"
-        style={{ gap: GAP }}
+        style={{ gap: GAP_ORIGINAL }}
       >
         {mobileChunks.map((c, i) => (
-          <MobileBlock
-            key={`m-${i}`}
+          <OriginalMobileBlock
+            key={`om-${i}`}
             images={c}
             ratios={ratios}
             containerWidth={containerWidth}
           />
         ))}
         {tabletChunks.map((c, i) => (
-          <TabletBlock
-            key={`t-${i}`}
+          <OriginalTabletBlock
+            key={`ot-${i}`}
             images={c}
             ratios={ratios}
             containerWidth={containerWidth}
           />
         ))}
         {desktopChunks.map((c, i) => (
-          <DesktopBlock
-            key={`d-${i}`}
+          <OriginalDesktopBlock
+            key={`od-${i}`}
             images={c}
             ratios={ratios}
             containerWidth={containerWidth}
@@ -342,59 +274,277 @@ function OnBodyGallery({ images }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   PAGE
+   2. GLASSY CONTAINER GRID COMPONENTS
+   Modern frosted luxury box with 4px minimal hairline gaps.
+   Outer 4 corners have smooth 12px radius matching container's 16px curve;
+   all inner seams and joints remain strictly sharp 90° (0px radius).
+═══════════════════════════════════════════════════════════════════════ */
+
+function GlassyTile({ img, width, height, cornerClass = "", cornerStyle = {} }) {
+  return (
+    <div
+      className={`
+        shrink-0
+        relative overflow-hidden isolate bg-[#0d0d10]
+        gallery-shadow
+        hover:-translate-y-0.5 transition-all duration-300
+        ${cornerClass}
+      `}
+      style={{
+        width,
+        height,
+        ...cornerStyle,
+      }}
+    >
+      <img
+        src={img.src}
+        alt={img.alt}
+        loading="lazy"
+        decoding="async"
+        className={`block w-full h-full object-cover object-center ${cornerClass}`}
+        style={{
+          transform: "translateZ(0)",
+          backfaceVisibility: "hidden",
+          ...cornerStyle,
+        }}
+      />
+    </div>
+  );
+}
+
+function GlassyRow({
+  items,
+  ratios,
+  containerWidth,
+  isFirstRow = false,
+  isLastRow = false,
+}) {
+  const row = layoutRow(items, ratios, containerWidth, GAP_GLASSY);
+  if (!row) return null;
+
+  const totalTiles = row.tiles.length;
+
+  return (
+    <div className="flex" style={{ gap: GAP_GLASSY, height: row.height }}>
+      {row.tiles.map(({ img, width }, i) => {
+        const isFirstCol = i === 0;
+        const isLastCol = i === totalTiles - 1;
+
+        let cornerClass = "rounded-none";
+        const cornerStyle = {
+          borderTopLeftRadius: "0px",
+          borderTopRightRadius: "0px",
+          borderBottomLeftRadius: "0px",
+          borderBottomRightRadius: "0px",
+        };
+
+        const setRadius = (tl, tr, bl, br) => {
+          if (tl) cornerStyle.borderTopLeftRadius = "12px";
+          if (tr) cornerStyle.borderTopRightRadius = "12px";
+          if (bl) cornerStyle.borderBottomLeftRadius = "12px";
+          if (br) cornerStyle.borderBottomRightRadius = "12px";
+        };
+
+        if (isFirstRow && isLastRow) {
+          // Lone row that is both first and last of container
+          if (isFirstCol && isLastCol) {
+            cornerClass = "rounded-[12px]";
+            setRadius(true, true, true, true);
+          } else if (isFirstCol) {
+            cornerClass = "rounded-l-[12px] rounded-r-none";
+            setRadius(true, false, true, false);
+          } else if (isLastCol) {
+            cornerClass = "rounded-r-[12px] rounded-l-none";
+            setRadius(false, true, false, true);
+          }
+        } else if (isFirstRow) {
+          // Top row of container
+          if (isFirstCol && isLastCol) {
+            cornerClass = "rounded-t-[12px] rounded-b-none";
+            setRadius(true, true, false, false);
+          } else if (isFirstCol) {
+            cornerClass = "rounded-tl-[12px] rounded-tr-none rounded-b-none";
+            setRadius(true, false, false, false);
+          } else if (isLastCol) {
+            cornerClass = "rounded-tr-[12px] rounded-tl-none rounded-b-none";
+            setRadius(false, true, false, false);
+          }
+        } else if (isLastRow) {
+          // Bottom row of container
+          if (isFirstCol && isLastCol) {
+            cornerClass = "rounded-b-[12px] rounded-t-none";
+            setRadius(false, false, true, true);
+          } else if (isFirstCol) {
+            cornerClass = "rounded-bl-[12px] rounded-br-none rounded-t-none";
+            setRadius(false, false, true, false);
+          } else if (isLastCol) {
+            cornerClass = "rounded-br-[12px] rounded-bl-none rounded-t-none";
+            setRadius(false, false, false, true);
+          }
+        }
+
+        return (
+          <GlassyTile
+            key={`${img.src}-${i}`}
+            img={img}
+            width={width}
+            height={row.height}
+            cornerClass={cornerClass}
+            cornerStyle={cornerStyle}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function GlassyMobileBlock({
+  images,
+  ratios,
+  containerWidth,
+  isFirstBlock = false,
+  isLastBlock = false,
+}) {
+  const [a, b, c1, c2, d, e] = images;
+  const rows = [[a], [b], [c1, c2], [d], [e]].filter((r) => r.some(Boolean));
+  const totalRows = rows.length;
+
+  return (
+    <div className="flex md:hidden flex-col" style={{ gap: GAP_GLASSY }}>
+      {rows.map((items, i) => (
+        <GlassyRow
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+          isFirstRow={isFirstBlock && i === 0}
+          isLastRow={isLastBlock && i === totalRows - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GlassyTabletBlock({
+  images,
+  ratios,
+  containerWidth,
+  isFirstBlock = false,
+  isLastBlock = false,
+}) {
+  const [a, b, c, d] = images;
+  const rows = [[a], [b, c], [d]].filter((r) => r.some(Boolean));
+  const totalRows = rows.length;
+
+  return (
+    <div className="hidden md:flex lg:hidden flex-col" style={{ gap: GAP_GLASSY }}>
+      {rows.map((items, i) => (
+        <GlassyRow
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+          isFirstRow={isFirstBlock && i === 0}
+          isLastRow={isLastBlock && i === totalRows - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GlassyDesktopBlock({
+  images,
+  ratios,
+  containerWidth,
+  isFirstBlock = false,
+  isLastBlock = false,
+}) {
+  const [a, b, c, d, e, f, g] = images;
+  const rows = [
+    [a, b],
+    [c, d, e],
+    [f, g],
+  ].filter((r) => r.some(Boolean));
+  const totalRows = rows.length;
+
+  return (
+    <div className="hidden lg:flex flex-col" style={{ gap: GAP_GLASSY }}>
+      {rows.map((items, i) => (
+        <GlassyRow
+          key={i}
+          items={items}
+          ratios={ratios}
+          containerWidth={containerWidth}
+          isFirstRow={isFirstBlock && i === 0}
+          isLastRow={isLastBlock && i === totalRows - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GlassyOnBodyGallery({ images }) {
+  const containerRef = useRef(null);
+  const ratios = useAspectRatios(images);
+  const containerWidth = useContainerWidth(containerRef);
+
+  const mobileChunks = chunk(images, 6);
+  const tabletChunks = chunk(images, 4);
+  const desktopChunks = chunk(images, 7);
+
+  return (
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-8 md:py-16">
+      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+        <div
+          ref={containerRef}
+          className="w-full mx-auto flex flex-col"
+          style={{ gap: GAP_GLASSY }}
+        >
+          {mobileChunks.map((c, i) => (
+            <GlassyMobileBlock
+              key={`gm-${i}`}
+              images={c}
+              ratios={ratios}
+              containerWidth={containerWidth}
+              isFirstBlock={i === 0}
+              isLastBlock={i === mobileChunks.length - 1}
+            />
+          ))}
+          {tabletChunks.map((c, i) => (
+            <GlassyTabletBlock
+              key={`gt-${i}`}
+              images={c}
+              ratios={ratios}
+              containerWidth={containerWidth}
+              isFirstBlock={i === 0}
+              isLastBlock={i === tabletChunks.length - 1}
+            />
+          ))}
+          {desktopChunks.map((c, i) => (
+            <GlassyDesktopBlock
+              key={`gd-${i}`}
+              images={c}
+              ratios={ratios}
+              containerWidth={containerWidth}
+              isFirstBlock={i === 0}
+              isLastBlock={i === desktopChunks.length - 1}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAGE COMPONENT
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
+  const { images: dynamicImages } = useDriveMedia("On-Body Visualization");
+  const activeImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : galleryImages;
   const containerRef = useRef(null);
-  const [silkOn, setSilkOn] = useState(true);
-
-  // Same reveal-on-scroll behavior as before: cards slide in from the
-  // right as the section enters view, reverse out to the right on
-  // scroll-up, and do nothing otherwise.
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const sections = gsap.utils.toArray("section", containerRef.current);
-
-      sections.forEach((section) => {
-        const cards = gsap.utils
-          .toArray(".reveal-right", section)
-          .filter((el) => el.offsetParent !== null);
-
-        if (!cards.length) return;
-
-        gsap.fromTo(
-          cards,
-          {
-            opacity: 0,
-            x: 120,
-            filter: "blur(8px)",
-            transition: "none",
-            willChange: "transform, opacity, filter",
-          },
-          {
-            opacity: 1,
-            x: 0,
-            filter: "blur(0px)",
-            duration: 0.9,
-            ease: "power3.out",
-            stagger: 0.07,
-            clearProps: "transform,filter,transition,willChange",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 85%",
-              toggleActions: "play none none reverse",
-            },
-          },
-        );
-      });
-
-      const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 300);
-      return () => window.clearTimeout(refreshId);
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
+  const [isCleanGrid, setIsCleanGrid] = useState(false);
 
   return (
     <ServicePageLayout
@@ -402,33 +552,9 @@ export default function OnBodyVisualizationPage() {
       currentPage="/onbody"
       fullBleed
     >
-      {/* Fixed, full-viewport Silk background */}
-      {silkOn && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <Silk
-            speed={10}
-            scale={1}
-            color="#633c3c"
-            noiseIntensity={2}
-            rotation={0}
-          />
-        </div>
-      )}
+      {/* Floating Toggle: Retrieve clean grid without glassy container */}
+      <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="On-Body Visualization" />
 
-      {/* Silk on/off toggle */}
-      <button
-        onClick={() => setSilkOn((v) => !v)}
-        className="
-          fixed bottom-6 right-6 z-50
-          font-[Manrope] text-[11px] tracking-[0.15em] font-semibold uppercase
-          px-4 py-2.5
-          bg-[#121212] text-[#FAF9F6] hover:bg-[#C5A059]
-          border border-white/10 shadow-lg
-          transition-colors duration-300
-        "
-      >
-        Silk: {silkOn ? "On" : "Off"}
-      </button>
       <HeroSection
         backgroundSrc="/onbody-1.png"
         heading={["On-Body", "Visualization"]}
@@ -436,7 +562,11 @@ export default function OnBodyVisualizationPage() {
       />
 
       <div ref={containerRef} className="relative z-10">
-        <OnBodyGallery images={galleryImages} />
+        {isCleanGrid ? (
+          <OriginalOnBodyGallery images={activeImages} />
+        ) : (
+          <GlassyOnBodyGallery images={activeImages} />
+        )}
       </div>
     </ServicePageLayout>
   );

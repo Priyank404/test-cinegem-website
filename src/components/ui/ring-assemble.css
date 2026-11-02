@@ -1,0 +1,216 @@
+/* ring-assemble.css — Cinegem Studio loader (concept 06 "Blueprint Sketch")
+   Pure CSS, GPU-optimized. Intro plays once (~3.6s), then a soft sparkle idles
+   until the loader unmounts. */
+
+.rl-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rl-svg {
+  width: clamp(150px, 40vw, 210px);
+  height: auto;
+  overflow: visible;
+  display: block;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ---- timing tokens (seconds) ---- */
+.rl-svg {
+  --pink: #c9446f;
+  --ease: cubic-bezier(.65, 0, .35, 1);
+  --t-guides: 0s;      /* crosshair + guide circles grow          */
+  --t-band:   .5s;     /* band drawn by the compass arm  (1.3s)   */
+  --t-gem:    1.3s;    /* gem outline traced             (.9s)    */
+  --t-lines:  1.9s;    /* facet lines + collar fade in   (.3s)    */
+  --t-out:    2.2s;    /* guides fade away               (.5s)    */
+  --t-fill:   2.4s;    /* facets fill, staggered .07s    (.45s)   */
+  --t-spark:  3.1s;    /* first sparkle, then repeats             */
+}
+
+/* ---- construction guides (thin dashed pink) ---- */
+.rl-guides {
+  stroke: var(--pink);
+  stroke-width: .7;
+  opacity: 0;
+  animation: rl-guides-out .5s ease var(--t-out) both;
+}
+
+.rl-g {
+  stroke-dasharray: 2 3;
+  transform-box: view-box;
+}
+
+.rl-gx {
+  transform-origin: 100px 138px;
+  animation: rl-grow-x .6s var(--ease) var(--t-guides) both;
+}
+
+.rl-gy {
+  transform-origin: 100px 119px;
+  animation: rl-grow-y .6s var(--ease) var(--t-guides) both;
+}
+
+.rl-gc {
+  transform-origin: 100px 138px;
+  animation: rl-grow .6s var(--ease) var(--t-guides) both;
+}
+
+.rl-gem-g1 {
+  transform-origin: 100px 72.5px;
+  animation: rl-grow-x .6s var(--ease) calc(var(--t-gem) - .4s) both;
+}
+
+.rl-gem-g2 {
+  transform-origin: 100px 62px;
+  animation: rl-grow-x .6s var(--ease) calc(var(--t-gem) - .4s) both;
+}
+
+.rl-gem-g3 {
+  transform-origin: 100px 77px;
+  animation: rl-grow-y .6s var(--ease) calc(var(--t-gem) - .4s) both;
+}
+
+/* compass arm: rotates 360deg in lock-step with the band stroke */
+.rl-arm {
+  fill: var(--pink);
+  stroke: var(--pink);
+  stroke-width: .7;
+  transform-box: view-box;
+  transform-origin: 100px 138px;
+  animation:
+    rl-spin 1.3s var(--ease) var(--t-band) both,
+    rl-fade-in .2s linear var(--t-band) both;
+}
+
+/* ---- the ring itself (native path + explicit stroke geometry) ---- */
+.rl-band {
+  stroke: #ffffff;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  fill: none;
+  stroke-dasharray: 277 280;
+  stroke-dashoffset: 0;
+  animation: rl-draw-band 1.3s var(--ease) var(--t-band) both;
+}
+
+@keyframes rl-draw-band {
+  0%   { stroke-dashoffset: 277; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.rl-gem-line {
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  fill: none;
+  stroke-dasharray: 109 115;
+  stroke-dashoffset: 0;
+  animation: rl-draw-gem .9s var(--ease) var(--t-gem) both;
+}
+
+@keyframes rl-draw-gem {
+  0%   { stroke-dashoffset: 109; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.rl-facet-lines {
+  stroke: #ffffff;
+  stroke-width: .7;
+  animation: rl-fade-in .3s ease var(--t-lines) both;
+}
+
+.rl-collar {
+  fill: #ffffff;
+  animation: rl-fade-in .3s ease var(--t-lines) both;
+}
+
+.rl-fills {
+  stroke: #000000;
+  stroke-width: .4;
+  stroke-linejoin: round;
+}
+
+.rl-fills polygon {
+  animation: rl-fade-in .45s ease calc(var(--t-fill) + var(--i) * .07s) both;
+}
+
+/* sparkle: fires at the end of the build, then twinkles every 3s while waiting */
+.rl-spark {
+  fill: #ffffff;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rl-twinkle 3s ease-in-out var(--t-spark) infinite;
+}
+
+/* ---- progress bar (smooth independent fill) ---- */
+.rl-bar {
+  width: clamp(140px, 38vw, 200px);
+  height: 2px;
+  margin-top: 22px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, .14);
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.rl-bar > i {
+  display: block;
+  height: 100%;
+  background: #c9446f;
+  transform-origin: left center;
+  animation: rl-bar-fill 3.4s cubic-bezier(.22, 1, .36, 1) .2s both;
+}
+
+/* ---- keyframes ---- */
+@keyframes rl-bar-fill {
+  0%   { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes rl-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes rl-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes rl-guides-out {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes rl-grow {
+  0%   { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: .75; }
+}
+
+@keyframes rl-grow-x {
+  0%   { transform: scaleX(0); opacity: 0; }
+  100% { transform: scaleX(1); opacity: .75; }
+}
+
+@keyframes rl-grow-y {
+  0%   { transform: scaleY(0); opacity: 0; }
+  100% { transform: scaleY(1); opacity: .75; }
+}
+
+@keyframes rl-twinkle {
+  0%   { transform: scale(0) rotate(0deg); opacity: 0; }
+  14%  { transform: scale(1) rotate(45deg); opacity: 1; }
+  28%  { transform: scale(0) rotate(90deg); opacity: 0; }
+  100% { transform: scale(0) rotate(90deg); opacity: 0; }
+}
+
+/* ---- accessibility ---- */
+@media (prefers-reduced-motion: reduce) {
+  .rl-svg *, .rl-svg { animation: none !important; }
+  .rl-guides { display: none !important; }
+  .rl-bar > i { animation: none !important; transform: scaleX(1) !important; }
+}

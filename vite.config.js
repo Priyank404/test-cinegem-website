@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import fs from "fs";
 import path from "path";
+import mediaFolderPlugin from "./vite-plugin-media-folder.js";
 
 function saveTimelinePlugin() {
   return {
@@ -68,7 +69,7 @@ function saveTimelinePlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), saveTimelinePlugin()],
+  plugins: [react(), saveTimelinePlugin(), mediaFolderPlugin()],
 
   resolve: {
     alias: {
@@ -84,5 +85,9 @@ export default defineConfig({
     allowedHosts: true,
 
     historyApiFallback: true,
+
+    watch: {
+      ignored: ["**/*.zip", "**/*.tar.gz", "**/dist/**", "**/responsive-report/**"],
+    },
   },
 });

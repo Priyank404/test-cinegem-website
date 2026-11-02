@@ -18,29 +18,67 @@ import VantaFogBackground from '@/components/effects/VantaFogBackground'
  *                 the fixed 80px header). Used by pages that need full
  *                 viewport width and exact header-height spacing.
  */
-export function ServicePageLayout({ children, title = 'Cinegem Studio', currentPage = '', fullBleed = false }) {
+export function ServicePageLayout({
+  children,
+  title = 'Cinegem Studio',
+  currentPage = '',
+  fullBleed = false,
+  theme = 'dark',
+  hideFooter = false,
+  noScroll = false,
+  alwaysVisibleHeader = false,
+}) {
   useEffect(() => {
     document.title = `${title} — Cinegem Studio`
   }, [title])
 
+  useEffect(() => {
+    if (noScroll) {
+      const prevBodyOverflow = document.body.style.overflow
+      const prevHtmlOverflow = document.documentElement.style.overflow
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = prevBodyOverflow
+        document.documentElement.style.overflow = prevHtmlOverflow
+      }
+    }
+  }, [noScroll])
+
   return (
     <div
-      className="min-h-screen text-[#1b1c17] antialiased selection:bg-[#C5A059] selection:text-white"
-      style={{ background: '#FAF9F6' }}
+      className={
+        noScroll
+          ? 'no-scroll-layout fixed inset-0 w-screen h-screen overflow-hidden text-[#FCFBFA] antialiased selection:bg-[#C5A059] selection:text-white flex flex-col justify-between'
+          : 'min-h-screen text-[#FCFBFA] antialiased selection:bg-[#C5A059] selection:text-white'
+      }
+      style={{ background: '#0a0a0c' }}
     >
       {/* Vanta Fog Background */}
       <VantaFogBackground zIndex={0} />
 
       {/* ── Navigation ─────────────────────────────────────────────────── */}
-      <ServiceHeader currentPage={currentPage} />
+      <ServiceHeader
+        currentPage={currentPage}
+        theme={theme}
+        alwaysVisible={alwaysVisibleHeader || noScroll}
+      />
 
       {/* ── Page content ───────────────────────────────────────────────── */}
-      <main className={fullBleed ? 'pt-20' : 'pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto'}>
+      <main
+        className={
+          noScroll
+            ? 'flex-1 w-full min-h-0 overflow-hidden flex flex-col pt-16 sm:pt-20 relative z-10'
+            : fullBleed
+            ? 'pt-20'
+            : 'pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto'
+        }
+      >
         {children}
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   )
 }

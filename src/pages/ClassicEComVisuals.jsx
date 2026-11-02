@@ -1,23 +1,21 @@
 // ClassicEComVisuals.jsx
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
 
 import HeroSection from "@/components/sections/HeroSection";
-
-gsap.registerPlugin(ScrollTrigger);
+import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
+import { useDriveMedia } from "@/hooks/useDriveMedia";
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════════════════════════════ */
 
 const section1Images = [
-  { src: "/1.png", alt: "Front view", label: "Front" },
-  { src: "/2.png", alt: "Side view", label: "Side" },
-  { src: "/3.png", alt: "Angle view", label: "Angle" },
-  { src: "/4.png", alt: "Detail view", label: "Detail" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Solitaire Marquise front angle", label: "Front" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Solitaire Marquise profile", label: "Side" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Solitaire Marquise perspective", label: "Angle" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Solitaire Marquise crown detail", label: "Detail" },
 ];
 
 const section2Images = [
@@ -74,23 +72,12 @@ function ImageTile({ img, className = "" }) {
   return (
     <div
       className={`
-        reveal-right
-        relative overflow-hidden bg-[#FAF9F6]
-        border border-[#c4c7c7]/40 gallery-shadow
-        hover:-translate-y-1 transition-transform duration-300
+        relative overflow-hidden bg-transparent
+        hover:-translate-y-0.5 transition-transform duration-300
         ${className}
       `}
     >
-      <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
-      <span
-        className="
-          absolute bottom-2 left-2
-          font-[Poppins] text-[9px] tracking-[0.15em] font-light uppercase
-          px-2 py-1 bg-white/80 text-[#444748]
-        "
-      >
-        {img.label}
-      </span>
+      <img src={img.src} alt={img.alt} className="w-full h-full object-cover block" />
     </div>
   );
 }
@@ -99,25 +86,24 @@ function VideoPlayer({ videoSrc, className = "" }) {
   return (
     <div
       className={`
-        reveal-right
         relative flex items-center justify-center
-        bg-[#0d0d0d] overflow-hidden border border-[#c4c7c7]/20
+        bg-black overflow-hidden isolate
         ${className}
       `}
     >
       {videoSrc ? (
         <video
           src={videoSrc}
-          className="absolute inset-0 w-full h-full object-cover"
-          controls
-          controlsList="nodownload noplaybackrate nofullscreen"
-          disablePictureInPicture
+          className="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
+          autoPlay
+          muted
+          loop
           playsInline
         />
       ) : (
         <button
           aria-label="Play product video"
-          className="w-14 h-14 border border-white/60 bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
+          className="w-14 h-14 border border-white/60 bg-white/10 flex items-center justify-center hover:bg-white/20 transition rounded-full"
         >
           <svg
             className="w-6 h-6 text-white ml-1"
@@ -236,7 +222,7 @@ function PeekCarousel({ images, className = "" }) {
       )}
       <div
         ref={trackRef}
-        className="peek-scroll flex gap-3 overflow-x-auto snap-x snap-mandatory max-w-full px-[9%] sm:px-[16%] md:px-[22%]"
+        className="peek-scroll flex gap-1 overflow-x-auto snap-x snap-mandatory max-w-full px-[9%] sm:px-[16%] md:px-[22%]"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {images.map((img, i) => (
@@ -348,40 +334,209 @@ function MainPreviewCarousel({
    Mobile + tablet: video on top, 2×2 square image grid stacked below.
 ═══════════════════════════════════════════════════════════════════════ */
 
-function Section1({ images, videoSrc }) {
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ORIGINAL NORMAL GRID COMPONENTS (Retrieved when in normal mode)
+   Authentic wide layout (max-w-[2560px]), generous luxury gaps (gap-8, gap-4),
+   original cream-backed tiles with white pill label tags from c111c47.
+═══════════════════════════════════════════════════════════════════════ */
+
+function OriginalImageTile({ img, className = "" }) {
+  return (
+    <div
+      className={`
+        relative overflow-hidden bg-[#FAF9F6]
+        border border-[#c4c7c7]/40 gallery-shadow
+        hover:-translate-y-1 transition-transform duration-300
+        ${className}
+      `}
+    >
+      <img src={img.src} alt={img.alt} className="w-full h-full object-cover block" />
+      {img.label && (
+        <span
+          className="
+            absolute bottom-2 left-2
+            font-[Poppins] text-[9px] tracking-[0.15em] font-light uppercase
+            px-2 py-1 bg-white/80 text-[#444748]
+          "
+        >
+          {img.label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function OriginalVideoPlayer({ videoSrc, className = "" }) {
+  return (
+    <div
+      className={`
+        relative flex items-center justify-center
+        bg-[#0d0d0d] overflow-hidden border border-[#c4c7c7]/20
+        ${className}
+      `}
+    >
+      {videoSrc ? (
+        <video
+          src={videoSrc}
+          className="absolute inset-0 w-full h-full object-cover"
+          controls
+          controlsList="nodownload noplaybackrate nofullscreen"
+          disablePictureInPicture
+          playsInline
+        />
+      ) : (
+        <button
+          aria-label="Play product video"
+          className="w-14 h-14 border border-white/60 bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
+        >
+          <svg
+            className="w-6 h-6 text-white ml-1"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function OriginalSection1({ images, videoSrc }) {
   return (
     <section
       className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-0"
       style={{ minHeight: "calc(100vh - 80px)" }}
     >
       <div className="w-full max-w-[2560px] mx-auto">
-        {/* MOBILE + TABLET (<lg) — stacked: 2×2 image grid on top,
-            video below. Each grid cell gets an explicit aspect-square
-            so the tiles stay perfectly square at every viewport width,
-            independent of the grid container's own sizing. The grid
-            spans the full available width (no max-width wrapper) so
-            there's no extra empty space around it — just the gap
-            between tiles. Video is kept to a wide 16:9 rather than a
-            tall portrait crop so it doesn't eat the screen. */}
         <div className="flex flex-col gap-4 lg:hidden">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
-            {images.map((img, i) => (
-              <ImageTile key={i} img={img} className="aspect-square" />
+            {images.slice(0, 4).map((img, i) => (
+              <OriginalImageTile key={i} img={img} className="aspect-square" />
             ))}
           </div>
-
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
+          <OriginalVideoPlayer videoSrc={videoSrc} className="w-full aspect-video" />
         </div>
 
-        {/* DESKTOP (lg+) — grid is a height-driven square block
-            (h-full aspect-square) so cells stay square instead of being
-            stretched/squashed by section height. */}
         <div className="hidden lg:flex flex-row gap-8 items-center justify-center h-[75vh]">
-          <VideoPlayer videoSrc={videoSrc} className="flex-1 h-full" />
+          <OriginalVideoPlayer videoSrc={videoSrc} className="flex-1 h-full" />
           <div className="h-full aspect-square max-w-[100%] grid grid-cols-2 gap-4 shrink-0">
-            {images.map((img, i) => (
-              <ImageTile key={i} img={img} className="aspect-square" />
+            {images.slice(0, 4).map((img, i) => (
+              <OriginalImageTile key={i} img={img} className="aspect-square" />
             ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OriginalSection2({ images, videoSrc }) {
+  return (
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
+      <div className="w-full max-w-[2560px] mx-auto">
+        <div className="flex flex-col gap-4 lg:hidden">
+          <PeekCarousel images={images} />
+          <OriginalVideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10]" />
+        </div>
+
+        <div className="hidden lg:flex flex-col gap-6">
+          <div className="flex gap-4 justify-center">
+            {images.slice(0, 4).map((img, i) => (
+              <OriginalImageTile key={i} img={img} className="flex-1 aspect-square" />
+            ))}
+          </div>
+          <OriginalVideoPlayer videoSrc={videoSrc} className="w-full aspect-[21/9]" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OriginalSection3({ images = [], videoSrc }) {
+  const [hero, img2, img3, img4] = images.length >= 4 ? images : section3Images;
+
+  return (
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-16 pb-24 md:py-24">
+      <div className="w-full max-w-[2560px] mx-auto">
+        <div className="lg:hidden">
+          <MainPreviewCarousel
+            images={[hero, img2, img3, img4]}
+            videoSrc={videoSrc}
+            heightClassName="h-[72vh] sm:h-[78vh] md:h-[100vh]"
+          />
+        </div>
+
+        <div className="hidden lg:flex flex-row gap-8 items-center justify-center h-[75vh]">
+          <OriginalVideoPlayer videoSrc={videoSrc} className="w-1/2 h-full" />
+          <div className="w-1/2 h-full grid grid-cols-2 gap-4">
+            <OriginalImageTile img={hero} className="aspect-square" />
+            <OriginalImageTile img={img2} className="aspect-square" />
+            <OriginalImageTile img={img3} className="aspect-square" />
+            <OriginalImageTile img={img4} className="aspect-square" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Section1({ images, videoSrc }) {
+  return (
+    <section
+      className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10"
+      style={{ minHeight: "calc(100vh - 80px)" }}
+    >
+      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+        {/* MOBILE + TABLET (<lg) — stacked: 1:1 video on top (top corners rounded), 2x2 grid below (bottom corners rounded) */}
+        <div className="flex flex-col gap-1 lg:hidden">
+          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-square rounded-t-[12px] rounded-b-none" />
+          <div className="grid grid-cols-2 gap-1 w-full">
+            {images.slice(0, 4).map((img, i) => {
+              const cornerClass =
+                i === 2
+                  ? "rounded-bl-[12px]"
+                  : i === 3
+                  ? "rounded-br-[12px]"
+                  : "rounded-none";
+              return (
+                <ImageTile key={i} img={img} className={`aspect-square ${cornerClass}`} />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* DESKTOP (lg+) — 1:1 Video (left) + 1:1 2x2 Image Grid (right)
+            Outer 4 corners have 12px radius; all inner joints have 0 radius (sharp 90°) */}
+        <div className="hidden lg:grid grid-cols-2 gap-1 w-full items-stretch justify-center max-h-[82vh]">
+          {/* Video on left: outer left corners rounded, inner right corners sharp */}
+          <div className="w-full h-full aspect-square overflow-hidden rounded-l-[12px] rounded-r-none">
+            <VideoPlayer videoSrc={videoSrc} className="w-full h-full aspect-square rounded-l-[12px] rounded-r-none" />
+          </div>
+
+          {/* 2x2 grid on right: only outer top-right (img 1) and outer bottom-right (img 3) rounded */}
+          <div className="w-full h-full aspect-square grid grid-cols-2 grid-rows-2 gap-1">
+            {images.slice(0, 4).map((img, i) => {
+              // 0: top-left (inner joint with video & img 1) -> sharp
+              // 1: top-right (outer container corner) -> rounded-tr
+              // 2: bottom-left (inner joint with video & img 3) -> sharp
+              // 3: bottom-right (outer container corner) -> rounded-br
+              const cornerClass =
+                i === 1
+                  ? "rounded-tr-[12px] rounded-tl-none rounded-bl-none rounded-br-none"
+                  : i === 3
+                  ? "rounded-br-[12px] rounded-tl-none rounded-tr-none rounded-bl-none"
+                  : "rounded-none";
+
+              return (
+                <ImageTile
+                  key={i}
+                  img={img}
+                  className={`w-full h-full aspect-square ${cornerClass}`}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -391,33 +546,43 @@ function Section1({ images, videoSrc }) {
 
 /* ═══════════════════════════════════════════════════════════════════════
    SECTION 2 — 4-image row (top) + video strip (below)
-   Normal scroll, no forced height. Mobile: swipeable filmstrip + video —
-   visually distinct from Section 1's stack.
+   Outer 4 corners rounded; all 6 inner junctions completely square (0 radius)
 ═══════════════════════════════════════════════════════════════════════ */
 
 function Section2({ images, videoSrc }) {
   return (
-    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-16 md:py-24">
-      <div className="w-full max-w-[2560px] mx-auto">
-        {/* MOBILE / TABLET (<lg) — one-at-a-time peek carousel: the
-            active image sits centered at full slide size, the next/
-            previous image peeks in dimmed at each edge, and the arrows
-            (present only when there's somewhere left to go — no loop)
-            sit on top of the track so tapping works as well as
-            swiping. */}
-        <div className="flex flex-col gap-4 lg:hidden">
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10">
+      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+        {/* MOBILE / TABLET (<lg) */}
+        <div className="flex flex-col gap-1 lg:hidden">
           <PeekCarousel images={images} />
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10]" />
+          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10] rounded-b-[12px] rounded-t-none" />
         </div>
 
-        {/* DESKTOP — 4 equal square tiles in a row, video strip below */}
-        <div className="hidden lg:flex flex-col gap-6">
-          <div className="flex gap-4 justify-center">
-            {images.map((img, i) => (
-              <ImageTile key={i} img={img} className="flex-1 aspect-square" />
-            ))}
+        {/* DESKTOP — 4 equal square tiles in a row, video strip below
+            Row of 4: only outer top-left (img 0) and outer top-right (img 3) rounded.
+            Bottom video: only outer bottom-left and outer bottom-right rounded.
+            All inner seams are sharp 90°. */}
+        <div className="hidden lg:flex flex-col gap-1">
+          <div className="grid grid-cols-4 gap-1 w-full">
+            {images.slice(0, 4).map((img, i) => {
+              const cornerClass =
+                i === 0
+                  ? "rounded-tl-[12px] rounded-tr-none rounded-bl-none rounded-br-none"
+                  : i === 3
+                  ? "rounded-tr-[12px] rounded-tl-none rounded-bl-none rounded-br-none"
+                  : "rounded-none";
+
+              return (
+                <ImageTile
+                  key={i}
+                  img={img}
+                  className={`w-full h-full aspect-square ${cornerClass}`}
+                />
+              );
+            })}
           </div>
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[21/9]" />
+          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[21/9] rounded-b-[12px] rounded-t-none" />
         </div>
       </div>
     </section>
@@ -426,23 +591,19 @@ function Section2({ images, videoSrc }) {
 
 /* ═══════════════════════════════════════════════════════════════════════
    SECTION 3 — Portrait video (left) + 2×2 grid (right), pendant layout
-   Mobile: asymmetric hero — 1 big image, video, 3 thumbnails. Distinct
-   from both Section 1 (stack) and Section 2 (filmstrip).
+   Outer left & outer right corners rounded; inner seams sharp 90°.
 ═══════════════════════════════════════════════════════════════════════ */
 
-function Section3({ images, videoSrc }) {
-  const [hero, img2, img3, img4] = images;
+function Section3({ images = [], videoSrc }) {
+  const hero = images[0] || section3Images[0];
+  const img2 = images[1] || section3Images[1];
+  const img3 = images[2] || section3Images[2];
+  const img4 = images[3] || section3Images[3];
 
   return (
-    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-16 pb-24 md:py-24">
-      <div className="w-full max-w-[2560px] mx-auto">
-        {/* MOBILE / TABLET (<lg) — same main-preview container/arrows
-            as before (ScrollArrow, same styling), just without the
-            thumbnail strip underneath. With that strip gone, the
-            preview now fills the height it used to occupy, sized for
-            vertical pieces like pendants and chains. Video is the
-            last item in the sequence, arrow-navigable like the
-            images. No looping at either end. */}
+    <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-12">
+      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+        {/* MOBILE / TABLET (<lg) */}
         <div className="lg:hidden">
           <MainPreviewCarousel
             images={[hero, img2, img3, img4]}
@@ -451,18 +612,14 @@ function Section3({ images, videoSrc }) {
           />
         </div>
 
-        {/* DESKTOP (lg+) — single row, 5 columns: image, image, video
-            (center, emphasized), image, image. All height-driven
-            (h-full) off the same row height so nothing stretches
-            unevenly; the video gets a wider aspect ratio than the
-            square tiles so it reads as the focal point without
-            breaking the shared-height row. */}
-        <div className="hidden lg:flex flex-row gap-4 items-stretch justify-center h-[70vh]">
-          <ImageTile img={hero} className="h-full aspect-square" />
-          <ImageTile img={img2} className="h-full aspect-square" />
-          <VideoPlayer videoSrc={videoSrc} className="h-full aspect-[5/4]" />
-          <ImageTile img={img3} className="h-full aspect-square" />
-          <ImageTile img={img4} className="h-full aspect-square" />
+        {/* DESKTOP (lg+) — single row, 5 columns: image, image, video (center), image, image
+            Only outer-left of hero and outer-right of img4 are rounded! All inside are sharp. */}
+        <div className="hidden lg:flex flex-row gap-1 items-stretch justify-center h-[72vh]">
+          <ImageTile img={hero} className="h-full aspect-square rounded-l-[12px] rounded-r-none" />
+          <ImageTile img={img2} className="h-full aspect-square rounded-none" />
+          <VideoPlayer videoSrc={videoSrc} className="h-full aspect-[5/4] rounded-none" />
+          <ImageTile img={img3} className="h-full aspect-square rounded-none" />
+          <ImageTile img={img4} className="h-full aspect-square rounded-r-[12px] rounded-l-none" />
         </div>
       </div>
     </section>
@@ -481,108 +638,104 @@ export default function ClassicEComVisuals({
   eyebrow = "Product Showcase",
 }) {
   const containerRef = useRef(null);
+  const [isCleanGrid, setIsCleanGrid] = useState(false);
+
+  const {
+    items,
+    images,
+    videos,
+    total,
+    loading,
+    isFallback,
+    lastSynced,
+    refresh,
+  } = useDriveMedia("E-Com Visuals");
+
+  // Helper to categorize media item by filename / alt / code
+  const categorizeJewelry = (item) => {
+    const name = (item.name || item.src || item.alt || "").toUpperCase();
+    if (/(^BR|_BR_|BR|BRACELET|BANGLE)/.test(name)) return "bracelet";
+    if (/(^PD|_PD_|PD|PENDANT|NECKLACE|\d+P-)/.test(name)) return "necklace";
+    if (/(^RG|_RG_|RG|RING|\d+R-)/.test(name)) return "ring";
+    return "other";
+  };
+
+  // Check if images are strictly sequential numbers (e.g., 1.png .. 12.png)
+  const isNumberedSequence =
+    images.length >= 8 &&
+    images.every((img) => /^\d+\.(png|jpg|jpeg|webp)$/i.test(img.name || ""));
+
+  let dynamicSec1Images = section1Images;
+  let dynamicSec2Images = section2Images;
+  let dynamicSec3Images = section3Images;
+
+  if (isNumberedSequence) {
+    // Strictly follow 1..4, 5..8, 9..12 when user explicitly numbers them
+    dynamicSec1Images = images.slice(0, 4);
+    dynamicSec2Images = images.slice(4, 8);
+    dynamicSec3Images = images.length >= 12 ? images.slice(8, 12) : images.slice(4, 8);
+  } else if (images.length > 0) {
+    // Intelligent category-aware grouping to ensure no necklaces appear in ring or bracelet sections
+    const bracelets = images.filter((img) => categorizeJewelry(img) === "bracelet");
+    const rings = images.filter((img) => categorizeJewelry(img) === "ring");
+    const necklaces = images.filter((img) => categorizeJewelry(img) === "necklace");
+
+    // SECTION 2: 100% Pure Rings (paired Emerald cuts & curved bands)
+    const sec2Rings = [
+      ...rings.filter((r) => (r.name || "").includes("KJ01914R")),
+      ...rings.filter((r) => (r.name || "").includes("RG02")),
+      ...rings.filter((r) => !(r.name || "").includes("KJ01914R") && !(r.name || "").includes("RG02")),
+    ];
+    dynamicSec2Images = sec2Rings.length >= 4
+      ? sec2Rings.slice(0, 4)
+      : (rings.length > 0 ? rings.concat(section2Images).slice(0, 4) : section2Images);
+
+    // SECTION 1: 100% Pure Bracelets
+    const sec1Bracelets = [...bracelets];
+    if (sec1Bracelets.length === 3) {
+      sec1Bracelets.push({
+        src: "/E-com Visuals/Figaro-BR-CH-Y-V1.png",
+        alt: "Figaro Gold Bracelet",
+        label: "Bracelet",
+        name: "Figaro-BR-CH-Y-V1.png",
+      });
+    }
+    dynamicSec1Images = sec1Bracelets.length >= 4
+      ? sec1Bracelets.slice(0, 4)
+      : (bracelets.length > 0 ? bracelets.concat(section1Images).slice(0, 4) : section1Images);
+
+    // SECTION 3: 100% Pure Necklaces / Pendants
+    const sec3Necklaces = [
+      ...necklaces.filter((n) => (n.name || "").includes("PD001")),
+      ...necklaces.filter((n) => !(n.name || "").includes("PD001")),
+    ];
+    if (sec3Necklaces.length === 3) {
+      sec3Necklaces.push({
+        src: "/E-com Visuals/NP-1-YG-LS2-V2.png",
+        alt: "Rose Gold Pendant",
+        label: "Pendant",
+        name: "NP-1-YG-LS2-V2.png",
+      });
+    }
+    dynamicSec3Images = sec3Necklaces.length >= 4
+      ? sec3Necklaces.slice(0, 4)
+      : (necklaces.length > 0 ? necklaces.concat(section3Images).slice(0, 4) : section3Images);
+  }
+
+  const dynamicVideo1 = videos[0]?.src || videoSrc1;
+  const dynamicVideo2 = videos[1]?.src || videoSrc2;
+  const dynamicVideo3 = videos[2]?.src || videoSrc3;
 
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:
   //   • scrolling down past it  -> cards slide in from the RIGHT
   //   • scrolling back UP past it -> cards slide back out to the RIGHT
-  //     (same side, simply reversed — only fires on upward scroll)
-  // Scrolling further down past a section, or scrolling up into a
-  // section you haven't reached yet, does nothing ("none") — so there's
-  // no way for one section's trigger to act on another section.
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const sections = gsap.utils.toArray("section", containerRef.current);
-
-      sections.forEach((section) => {
-        // Mobile + desktop variants both exist in the DOM at once
-        // (Tailwind just toggles `hidden`), so only animate the ones
-        // actually visible at this breakpoint.
-        const cards = gsap.utils
-          .toArray(".reveal-right", section)
-          .filter((el) => el.offsetParent !== null);
-
-        if (!cards.length) return;
-
-        // Kill CSS transition on cards for the duration of any GSAP
-        // tween so the browser's CSS transition engine doesn't fight
-        // GSAP over the same properties (causes jittery motion).
-        // Restore it only when the tween is fully at rest in its
-        // "played" end-state.
-        cards.forEach((el) => {
-          el.style.transition = "none";
-          el.style.willChange = "transform, opacity, filter";
-        });
-
-        // Use `gsap.from` (not `fromTo`) so GSAP knows the "to"
-        // values are the element's natural CSS state and never loses
-        // track of them.  The previous `fromTo` + `clearProps` combo
-        // was the root cause of the overlap: clearProps stripped the
-        // inline styles GSAP was using to track end-state positions,
-        // so on a reverse → re-play cycle the "from" snapshot was
-        // stale / wrong and items piled on top of each other.
-        gsap.from(cards, {
-          opacity: 0,
-          x: 120,
-          filter: "blur(8px)",
-          duration: 0.9,
-          ease: "power3.out",
-          stagger: 0.07,
-          // Re-hand CSS transition back to the elements once the
-          // forward animation finishes so hover effects work again.
-          onComplete() {
-            cards.forEach((el) => {
-              el.style.willChange = "auto";
-              el.style.transition = "";
-            });
-          },
-          // When reversing (scrolling back up), disable the CSS
-          // transition again so it doesn't interfere with GSAP.
-          onReverseComplete() {
-            cards.forEach((el) => {
-              el.style.transition = "none";
-              el.style.willChange = "transform, opacity, filter";
-            });
-          },
-          scrollTrigger: {
-            trigger: section,
-            start: "top 85%",
-            // enter / leave / enterBack / leaveBack
-            toggleActions: "play none none reverse",
-            // Re-grab "from" snapshot when the page resizes or
-            // images finish loading and shift section heights.
-            invalidateOnRefresh: true,
-          },
-        });
-      });
-
-      // Section heights can shift slightly once images finish loading,
-      // which drifts trigger positions (most noticeable on later
-      // sections). Recalculate once everything has settled.
-      const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 300);
-      return () => window.clearTimeout(refreshId);
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
-      {/* Fixed, full-viewport Silk background — sits behind page content,
-          doesn't scroll, never intercepts clicks/scroll.
-          IMPORTANT: z-0, not a negative z-index. ServicePageLayout's
-          root div doesn't establish its own stacking context, so a
-          negative z-index here would paint BEHIND that div's own
-          background instead of just behind the content — i.e. fully
-          hidden. z-0 + the content wrapper's z-10 is enough to order
-          them correctly without that trap. */}
+      {/* Floating Toggle: Retrieve clean grid without glassy container */}
+      <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="Classic E-Commerce" />
 
-      {/* Cinematic scroll-zoom hero — entirely self-contained (own GSAP
-          context/ScrollTrigger, own cleanup) in HeroSection.jsx. Kept
-          outside `containerRef` on purpose: the effect above scans
-          `containerRef` for "section"/".reveal-right"/".theme-divider"
-          elements to drive Section 1–3's own reveal + divider animations,
-          and this keeps the hero from ever being swept into that scan. */}
+      {/* Cinematic scroll-zoom hero */}
       <HeroSection
         backgroundSrc="/4.png"
         heading={["Classic", "E-Commerce", "Visuals"]}
@@ -590,9 +743,19 @@ export default function ClassicEComVisuals({
       />
 
       <div ref={containerRef} className="relative z-10">
-        <Section1 images={section1Images} videoSrc={videoSrc1} />
-        <Section2 images={section2Images} videoSrc={videoSrc2} />
-        <Section3 images={section3Images} videoSrc={videoSrc3} />
+        {isCleanGrid ? (
+          <>
+            <OriginalSection1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
+            <OriginalSection2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
+            <OriginalSection3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+          </>
+        ) : (
+          <>
+            <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
+            <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
+            <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+          </>
+        )}
       </div>
     </ServicePageLayout>
   );

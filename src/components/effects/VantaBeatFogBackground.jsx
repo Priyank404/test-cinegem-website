@@ -45,15 +45,27 @@ function getInterpolatedFogOptions(fromRaw = {}, toRaw = {}, weight = 0) {
   const to = { ...DEFAULT_FOG_OPTIONS, ...normalizeFogOptions(toRaw) };
   const w = Math.max(0, Math.min(1, weight));
 
+  // The 3 structural sliders apply globally across all beats.
+  // Active values come from the options passed in from the panel:
+  const blurFactor = from.blurFactor ?? 0.6;
+  const rawSpeed = from.speed ?? 1.0;
+  // If speed is 0, Vanta evaluates `(speed || 1)` to 1, so 0.00001 actually freezes the fog
+  const speed = rawSpeed === 0 ? 0.00001 : rawSpeed;
+  const zoom = from.zoom ?? 0.6;
+
   return {
     ...from,
+    mouseControls: false,
+    touchControls: false,
+    gyroControls: false,
+    // Only transition colors across scroll beats
     highlightColor: lerpColor(from.highlightColor, to.highlightColor, w),
     midtoneColor: lerpColor(from.midtoneColor, to.midtoneColor, w),
     lowlightColor: lerpColor(from.lowlightColor, to.lowlightColor, w),
     baseColor: lerpColor(from.baseColor, to.baseColor, w),
-    blurFactor: lerp(from.blurFactor ?? 0.6, to.blurFactor ?? 0.6, w),
-    speed: lerp(from.speed ?? 1.0, to.speed ?? 1.0, w),
-    zoom: lerp(from.zoom ?? 0.6, to.zoom ?? 0.6, w),
+    blurFactor,
+    speed,
+    zoom,
   };
 }
 
@@ -104,12 +116,12 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       const safeFromIndex = Math.max(0, Math.min(fromIndex, optsArray.length - 1));
       const safeToIndex = Math.max(0, Math.min(toIndex, optsArray.length - 1));
 
-      const stateKey = `${safeFromIndex}_${safeToIndex}_${weight.toFixed(4)}_${optsArray.length}`;
-      if (stateKey === lastStateKeyRef.current) return;
-      lastStateKeyRef.current = stateKey;
-
       const fromOpts = optsArray[safeFromIndex] || {};
       const toOpts = optsArray[safeToIndex] || {};
+
+      const stateKey = `${safeFromIndex}_${safeToIndex}_${weight.toFixed(4)}_${fromOpts.highlightColor}_${fromOpts.midtoneColor}_${fromOpts.lowlightColor}_${fromOpts.baseColor}_${toOpts.highlightColor}_${toOpts.midtoneColor}_${toOpts.lowlightColor}_${toOpts.baseColor}_${fromOpts.blurFactor}_${fromOpts.zoom}_${fromOpts.speed}`;
+      if (stateKey === lastStateKeyRef.current) return;
+      lastStateKeyRef.current = stateKey;
 
       const interpolated = getInterpolatedFogOptions(fromOpts, toOpts, weight);
       effectRef.current.setOptions(interpolated);

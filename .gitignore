@@ -2,11 +2,8 @@ node_modules/
 dist/
 .DS_Store
 *.local
-<<<<<<< HEAD
 .env
-
-
-=======
-.env/
->>>>>>> ca5f56b2beb03c621ff592f8f95fd4933ac75cfe
+.env.*
+!.env.example
 public/
+seo-baseline/

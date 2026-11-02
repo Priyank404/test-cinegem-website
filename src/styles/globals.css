@@ -180,14 +180,11 @@ p, span, div, li, a, label, button, input, textarea {
 
   body {
     @apply bg-surface text-on-surface font-body overflow-x-hidden;
-    cursor: none;
+    cursor: default;
   }
 
-  /* Touch devices: restore default cursor */
-  @media (hover: none) {
-    body { cursor: auto; }
-    .cursor-dot,
-    .cursor-ring { display: none; }
+  a, button, [role="button"], input[type="submit"], input[type="button"], select, label {
+    cursor: pointer;
   }
 
   /* Hide scrollbar — retain scroll capability */
@@ -211,51 +208,75 @@ p, span, div, li, a, label, button, input, textarea {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Custom Cursor
+   Custom Cursor Disabled - Default Native Cursor Active
    ───────────────────────────────────────────────────────────────────────────── */
 .cursor-dot,
 .cursor-ring {
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 9999;
-  will-change: transform;
+  display: none !important;
 }
 
-.cursor-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--color-charcoal-deep);
-  border-radius: 50%;
-  transition:
-    width   0.2s var(--ease-smooth),
-    height  0.2s var(--ease-smooth),
-    background 0.2s ease;
+/* ─────────────────────────────────────────────────────────────────────────────
+   Timeline Editor & Version Control Modal Cursor Overrides
+   Restores native OS mouse pointer over editor tools and modals
+   ───────────────────────────────────────────────────────────────────────────── */
+body.timeline-modal-open,
+body.timeline-modal-open * {
+  cursor: default !important;
 }
 
-.cursor-ring {
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--color-charcoal-deep);
-  border-radius: 50%;
-  transition:
-    width        0.4s var(--ease-smooth),
-    height       0.4s var(--ease-smooth),
-    border-color 0.3s ease,
-    opacity      0.3s ease;
+body.timeline-modal-open button,
+body.timeline-modal-open [role="button"],
+body.timeline-modal-open a {
+  cursor: pointer !important;
 }
 
-body.cursor-hover .cursor-dot {
-  width: 10px;
-  height: 10px;
-  background: var(--color-champagne-gold);
+body.timeline-modal-open input[type="text"] {
+  cursor: text !important;
 }
 
-body.cursor-hover .cursor-ring {
-  width: 60px;
-  height: 60px;
-  border-color: var(--color-champagne-gold);
+body.timeline-modal-open .cursor-dot,
+body.timeline-modal-open .cursor-ring {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.timeline-version-modal,
+.timeline-version-modal * {
+  cursor: default !important;
+}
+
+.timeline-version-modal button,
+.timeline-version-modal [role="button"] {
+  cursor: pointer !important;
+}
+
+.timeline-version-modal input[type="text"] {
+  cursor: text !important;
+}
+
+.timeline-context-menu,
+.timeline-context-menu * {
+  cursor: default !important;
+}
+
+.timeline-context-menu button {
+  cursor: pointer !important;
+}
+
+.timeline-editor-root,
+.timeline-editor-root * {
+  cursor: default;
+}
+
+.timeline-editor-root button,
+.timeline-editor-root [role="button"],
+.timeline-editor-root input[type="range"] {
+  cursor: pointer;
+}
+
+.timeline-editor-root input[type="text"],
+.timeline-editor-root input[type="number"] {
+  cursor: text;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -324,6 +345,46 @@ html.lenis {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Universal Dark Glassy Container for Sections & Media Showcases */
+  .glassy-container {
+    background: rgba(14, 14, 18, 0.55);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow:
+      0 30px 100px rgba(0, 0, 0, 0.65),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 12px; /* Increased luxury spacing between glassy border and inner media */
+    overflow: hidden; /* Ensures media corners align with container border-radius */
+    box-sizing: border-box;
+    isolation: isolate;
+    transform: translateZ(0);
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .glassy-container:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 30px 100px rgba(0, 0, 0, 0.75),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Clean grid mode: retrieves the original grid layout without the glassy container wrapper (individual pages only) */
+  .no-glassy-mode .glassy-container {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
   }
 
   /* ── Buttons ── */
@@ -639,7 +700,7 @@ html.lenis {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Vault Cards — Cartier "Sound of Craft" style
+   Vault Cards — Luxury Editorial style
    ───────────────────────────────────────────────────────────────────────────── */
 
 /* Floating animation — each card gets unique timing via inline style */
@@ -960,8 +1021,9 @@ html.lenis {
 
 .hero2-static-footer .hero2-footer-top {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 32px;
   padding-bottom: 24px;
 }
@@ -1008,11 +1070,17 @@ html.lenis {
   opacity: 0.9;
 }
 
+.hero2-static-footer .hero2-footer-links-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: clamp(32px, 5vw, 64px);
+}
+
 .hero2-static-footer .hero2-footer-col {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 120px;
+  min-width: 130px;
 }
 
 .hero2-static-footer .hero2-footer-col-title {
@@ -1049,8 +1117,7 @@ html.lenis {
 }
 
 .hero2-static-footer .hero2-footer-copyright,
-.hero2-static-footer .hero2-footer-credit,
-.hero2-static-footer .hero2-footer-brand p {
+.hero2-static-footer .hero2-footer-credit {
   margin: 0;
   color: rgba(255, 255, 255, 0.4);
   font-size: 13px;
@@ -1059,11 +1126,125 @@ html.lenis {
   font-weight: 300;
 }
 
+@media (min-width: 641px) and (max-width: 1024px) {
+  .hero2-static-footer .hero2-footer-top {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 32px;
+    padding-bottom: 18px;
+  }
+  .hero2-static-footer .hero2-footer-brand {
+    flex: 1 1 260px;
+    max-width: 320px;
+  }
+  .hero2-static-footer .hero2-footer-links-grid {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: clamp(32px, 5vw, 56px);
+  }
+  .hero2-static-footer .hero2-footer-col {
+    min-width: 125px;
+    gap: 8px;
+  }
+}
+
 @media (max-width: 640px) {
   .hero2-static-footer {
-    padding: 24px 24px 16px;
+    padding: 20px 20px 16px;
   }
   .hero2-static-footer .hero2-footer-top {
-    gap: 24px;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 16px;
+  }
+  .hero2-static-footer .hero2-footer-brand {
+    max-width: 100%;
+  }
+  .hero2-static-footer .hero2-footer-links-grid {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+  }
+  .hero2-static-footer .hero2-footer-col {
+    min-width: 90px;
+    gap: 6px;
+  }
+  .hero2-static-footer .hero2-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 12px;
+  }
+}
+
+/* ─── Compact Footer in Non-Scroll Viewports (e.g. 3D Viewer) ───────── */
+.no-scroll-layout .hero2-static-footer {
+  padding: 16px 36px 12px;
+  flex-shrink: 0;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-top {
+  padding-bottom: 12px;
+  gap: 24px;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-brand {
+  gap: 8px;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-brand p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-links-grid {
+  gap: clamp(24px, 4vw, 48px);
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-col {
+  gap: 6px;
+  min-width: 110px;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-col a {
+  font-size: 13px;
+}
+
+.no-scroll-layout .hero2-static-footer .hero2-footer-bottom {
+  padding-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .no-scroll-layout .hero2-static-footer {
+    padding: 10px 16px 8px;
+  }
+  .no-scroll-layout .hero2-static-footer .hero2-footer-top {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+  .no-scroll-layout .hero2-static-footer .hero2-footer-brand p,
+  .no-scroll-layout .hero2-static-footer .hero2-cta-btn {
+    display: none;
+  }
+  .no-scroll-layout .hero2-static-footer .hero2-footer-col {
+    min-width: 80px;
+    gap: 4px;
+  }
+  .no-scroll-layout .hero2-static-footer .hero2-footer-col a {
+    font-size: 11px;
+  }
+  .no-scroll-layout .hero2-static-footer .hero2-footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 6px;
   }
 }

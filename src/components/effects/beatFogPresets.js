@@ -9,18 +9,18 @@
  * -------------------------------------------------------------------------
  */
 
-export const STORAGE_KEY = "vantaFog:beatPresets:v1";
+export const STORAGE_KEY = "vantaFog:beatPresets:v3";
 
 export const BEAT_FOG_PRESETS = [
-  // Beat 1 — idle ring: cool, soft.
+  // Beat 1 — idle ring: warm mauve/gold setting.
   {
-    highlightColor: "#8f9bff",
-    midtoneColor: "#3b3f6b",
+    highlightColor: "#897d5d",
+    midtoneColor: "#b582a2",
     lowlightColor: "#0c0d16",
-    baseColor: "#f4f5ff",
+    baseColor: "#5e2b3d",
     blurFactor: 0.6,
-    speed: 1.0,
-    zoom: 0.6,
+    speed: 1,
+    zoom: 0.96,
   },
   // Beat 2 — floor rises: warm.
   {
@@ -28,8 +28,8 @@ export const BEAT_FOG_PRESETS = [
     midtoneColor: "#cfb05c",
     lowlightColor: "#14171d",
     baseColor: "#fcfbfa",
-    blurFactor: 0.58,
-    speed: 1.2,
+    blurFactor: 0.6,
+    speed: 1.0,
     zoom: 0.6,
   },
   // Beat 3 — on-body reveal: warmer/tighter.
@@ -38,9 +38,9 @@ export const BEAT_FOG_PRESETS = [
     midtoneColor: "#c98a4b",
     lowlightColor: "#1a1208",
     baseColor: "#fff6e6",
-    blurFactor: 0.55,
-    speed: 1.1,
-    zoom: 0.7,
+    blurFactor: 0.6,
+    speed: 1.0,
+    zoom: 0.6,
   },
   // Beat 4 — demerge into cards: cool, wide.
   {
@@ -50,7 +50,7 @@ export const BEAT_FOG_PRESETS = [
     baseColor: "#eef7ff",
     blurFactor: 0.6,
     speed: 1.0,
-    zoom: 0.55,
+    zoom: 0.6,
   },
   // Beat 5 — standing spin, closing beat: dark, calm.
   {
@@ -58,8 +58,8 @@ export const BEAT_FOG_PRESETS = [
     midtoneColor: "#1c1c22",
     lowlightColor: "#000000",
     baseColor: "#08080a",
-    blurFactor: 0.65,
-    speed: 0.8,
+    blurFactor: 0.6,
+    speed: 1.0,
     zoom: 0.6,
   },
 ];
@@ -74,7 +74,16 @@ export function loadBeatFogPresets() {
     if (!raw) return BEAT_FOG_PRESETS;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length === BEAT_FOG_PRESETS.length) {
-      return parsed;
+      // Ensure global parameters (blurFactor, speed, zoom) stay synchronized across all beats
+      const globalBlur = parsed[0]?.blurFactor ?? 0.6;
+      const globalSpeed = parsed[0]?.speed ?? 1.0;
+      const globalZoom = parsed[0]?.zoom ?? 0.6;
+      return parsed.map((p) => ({
+        ...p,
+        blurFactor: globalBlur,
+        speed: globalSpeed,
+        zoom: globalZoom,
+      }));
     }
   } catch {
     // fall through to shipped defaults

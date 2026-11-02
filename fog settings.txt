@@ -1,0 +1,9 @@
+{
+  "highlightColor": "#897d5d",
+  "midtoneColor": "#b582a2",
+  "lowlightColor": "#0c0d16",
+  "baseColor": "#5e2b3d",
+  "blurFactor": 0.6,
+  "speed": 1,
+  "zoom": 0.96
+}

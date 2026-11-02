@@ -1,63 +1,124 @@
-import { useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { gsap } from 'gsap'
+import { useState, useEffect, useRef } from "react";
+import RingAssembleLoader from "./RingAssembleLoader";
 
 /**
- * Full-screen intro loader.
- * Animates a progress line and fades out on complete.
+ * LoadingScreen.jsx
+ * -------------------------------------------------------------------------
+ * Pure minimal luxury loading screen for Cinegem Studio.
  *
- * @param {{ onComplete: () => void }} props
+ * Requirements:
+ *  - Solid pitch-black (#000000), 100% opaque, zero transparency.
+ *  - Centered Cinegem Studio official logo (incorporates emblem & typography).
+ *  - Independent Ring assembly blueprint sketch animation with thin progress bar.
+ *  - Guaranteed to finish the full animation (~3.6s) before fading out.
+ * -------------------------------------------------------------------------
  */
-export function LoadingScreen({ onComplete }) {
-  const lineRef = useRef(null)
+
+export default function LoadingScreen({
+  isLoading = true,
+  progress = 0,
+  statusText = "",
+  onFinished = null,
+}) {
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
+  const [hasAnimationFinished, setHasAnimationFinished] = useState(false);
+  const hasFinishedRef = useRef(false);
+  const startTimeRef = useRef(Date.now());
+
+  // Minimum duration of 3800ms ensures the complete 3.6s animation plays gracefully
+  useEffect(() => {
+    const isDebug =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("ringdebug");
+
+    if (isDebug) {
+      setHasAnimationFinished(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setHasAnimationFinished(true);
+    }, 3800);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleAnimationComplete = () => {
+    setHasAnimationFinished(true);
+  };
 
   useEffect(() => {
-    const tl = gsap.timeline({
-      onComplete,
-      defaults: { ease: 'power3.out' },
-    })
+    // Exit occurs only when BOTH the 3D scene is loaded AND the full intro animation completes!
+    if (!isLoading && hasAnimationFinished && !hasFinishedRef.current) {
+      hasFinishedRef.current = true;
 
-    tl.to(lineRef.current, {
-      scaleX:   1,
-      duration: 1.6,
-      ease:     'power2.inOut',
-    }).to(
-      lineRef.current,
-      { opacity: 0, duration: 0.3 },
-      '-=0.1'
-    )
-  }, [onComplete])
+      const elapsed = Date.now() - startTimeRef.current;
+      const remaining = Math.max(0, 3800 - elapsed);
+
+      const triggerFade = () => {
+        setIsFadingOut(true);
+        setTimeout(() => {
+          setIsMounted(false);
+          onFinished?.();
+        }, 650);
+      };
+
+      if (remaining > 0) {
+        const t = setTimeout(triggerFade, remaining);
+        return () => clearTimeout(t);
+      } else {
+        triggerFade();
+      }
+    }
+  }, [isLoading, hasAnimationFinished, onFinished]);
+
+  // Lock body scroll while active
+  useEffect(() => {
+    if (isMounted) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMounted]);
+
+  if (!isMounted) return null;
 
   return (
-    <motion.div
-      key="loader"
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-charcoal-deep"
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+    <div
+      role="progressbar"
+      aria-label="Cinegem Studio Loading"
+      aria-live="polite"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(progress)}
+      className={`fixed inset-0 flex flex-col items-center justify-center select-none transition-opacity duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        isFadingOut
+          ? "opacity-0 pointer-events-none"
+          : "opacity-100 pointer-events-auto"
+      }`}
+      style={{
+        zIndex: 100000000,
+        backgroundColor: "#000000",
+        background: "#000000",
+      }}
     >
-      {/* Logo */}
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="font-display text-2xl tracking-[-0.04em] text-cream-soft mb-10"
-      >
-        CINEGEM
-      </motion.p>
+      {/* Center Container: Official Logo + Blueprint Ring Assemble Loader */}
+      <div className="flex flex-col items-center justify-center px-6">
+        {/* Cinegem Studio Proper Logo */}
+        <div className="relative flex items-center justify-center -mt-4 sm:-mt-6 md:-mt-8 -mb-6 sm:-mb-8 md:-mb-10">
+          <img
+            src="/Logo.png"
+            alt="Cinegem Studio"
+            className="w-48 sm:w-56 md:w-60 h-auto object-contain select-none pointer-events-none"
+          />
+        </div>
 
-      {/* Progress bar */}
-      <div className="w-48 h-px bg-cream-soft/10 overflow-hidden">
-        <div ref={lineRef} className="loader-line h-full w-full" />
+        {/* Blueprint Ring Assembly Loader + Progress Bar */}
+        <RingAssembleLoader onAnimationComplete={handleAnimationComplete} />
       </div>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.6 }}
-        className="mt-5 font-label text-label-caps text-cream-soft/30 tracking-[0.25em]"
-      >
-        The Sound of Craft
-      </motion.p>
-    </motion.div>
-  )
+    </div>
+  );
 }

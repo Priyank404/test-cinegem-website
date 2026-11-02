@@ -30,7 +30,7 @@ export function BackToVault({ className = '', light = false }) {
         <path d="M19 12H5M5 12l7-7M5 12l7 7" />
       </svg>
       <span className="font-[Poppins] text-[12px] tracking-[0.15em] font-light uppercase">
-        Back to The Vault
+        Back to Home
       </span>
     </Link>
   )

@@ -1,0 +1,747 @@
+{
+  "urlBarJitter": {
+    "pass": true,
+    "maxDeltaCy": 0.001899999999999999,
+    "profileFlips": 0,
+    "canvasCssHeightChanged": false,
+    "details": [
+      {
+        "h": 700,
+        "cy": 0.0146,
+        "profile": "portrait"
+      },
+      {
+        "h": 720,
+        "cy": 0.0128,
+        "profile": "portrait"
+      },
+      {
+        "h": 740,
+        "cy": 0.011,
+        "profile": "portrait"
+      },
+      {
+        "h": 760,
+        "cy": 0.0091,
+        "profile": "portrait"
+      },
+      {
+        "h": 780,
+        "cy": 0.0074,
+        "profile": "portrait"
+      },
+      {
+        "h": 800,
+        "cy": 0.0056,
+        "profile": "portrait"
+      },
+      {
+        "h": 820,
+        "cy": 0.004,
+        "profile": "portrait"
+      },
+      {
+        "h": 840,
+        "cy": 0.0024,
+        "profile": "portrait"
+      },
+      {
+        "h": 860,
+        "cy": 0.001,
+        "profile": "portrait"
+      },
+      {
+        "h": 880,
+        "cy": -0.0004,
+        "profile": "portrait"
+      },
+      {
+        "h": 900,
+        "cy": -0.0017,
+        "profile": "portrait"
+      },
+      {
+        "h": 920,
+        "cy": -0.0029,
+        "profile": "portrait"
+      },
+      {
+        "h": 940,
+        "cy": -0.0041,
+        "profile": "portrait"
+      },
+      {
+        "h": 960,
+        "cy": -0.0052,
+        "profile": "portrait"
+      },
+      {
+        "h": 980,
+        "cy": -0.0063,
+        "profile": "portrait"
+      },
+      {
+        "h": 1000,
+        "cy": -0.0073,
+        "profile": "portrait"
+      }
+    ]
+  },
+  "resizeSweep": {
+    "pass": true,
+    "maxNonSwitchStep": 0.017100000000000004,
+    "switchAspect": 0.956,
+    "details": [
+      {
+        "w": 1900,
+        "aspect": 2.111,
+        "profile": "landscape",
+        "cx": 0.6815,
+        "dCx": 0.007099999999999995,
+        "isSwitch": false
+      },
+      {
+        "w": 1880,
+        "aspect": 2.089,
+        "profile": "landscape",
+        "cx": 0.6888,
+        "dCx": 0.007299999999999973,
+        "isSwitch": false
+      },
+      {
+        "w": 1860,
+        "aspect": 2.067,
+        "profile": "landscape",
+        "cx": 0.6962,
+        "dCx": 0.007400000000000073,
+        "isSwitch": false
+      },
+      {
+        "w": 1840,
+        "aspect": 2.044,
+        "profile": "landscape",
+        "cx": 0.7038,
+        "dCx": 0.00759999999999994,
+        "isSwitch": false
+      },
+      {
+        "w": 1820,
+        "aspect": 2.044,
+        "profile": "landscape",
+        "cx": 0.7038,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1800,
+        "aspect": 2,
+        "profile": "landscape",
+        "cx": 0.7194,
+        "dCx": 0.015600000000000058,
+        "isSwitch": false
+      },
+      {
+        "w": 1780,
+        "aspect": 1.978,
+        "profile": "landscape",
+        "cx": 0.7275,
+        "dCx": 0.008099999999999996,
+        "isSwitch": false
+      },
+      {
+        "w": 1760,
+        "aspect": 1.956,
+        "profile": "landscape",
+        "cx": 0.7357,
+        "dCx": 0.008199999999999985,
+        "isSwitch": false
+      },
+      {
+        "w": 1740,
+        "aspect": 1.956,
+        "profile": "landscape",
+        "cx": 0.7357,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1720,
+        "aspect": 1.911,
+        "profile": "landscape",
+        "cx": 0.7528,
+        "dCx": 0.017100000000000004,
+        "isSwitch": false
+      },
+      {
+        "w": 1700,
+        "aspect": 1.889,
+        "profile": "landscape",
+        "cx": 0.7617,
+        "dCx": 0.008900000000000019,
+        "isSwitch": false
+      },
+      {
+        "w": 1680,
+        "aspect": 1.867,
+        "profile": "landscape",
+        "cx": 0.7708,
+        "dCx": 0.009099999999999997,
+        "isSwitch": false
+      },
+      {
+        "w": 1660,
+        "aspect": 1.844,
+        "profile": "landscape",
+        "cx": 0.7801,
+        "dCx": 0.009299999999999975,
+        "isSwitch": false
+      },
+      {
+        "w": 1640,
+        "aspect": 1.822,
+        "profile": "landscape",
+        "cx": 0.7896,
+        "dCx": 0.009499999999999953,
+        "isSwitch": false
+      },
+      {
+        "w": 1620,
+        "aspect": 1.8,
+        "profile": "landscape",
+        "cx": 0.7993,
+        "dCx": 0.009700000000000042,
+        "isSwitch": false
+      },
+      {
+        "w": 1600,
+        "aspect": 1.778,
+        "profile": "landscape",
+        "cx": 0.8093,
+        "dCx": 0.010000000000000009,
+        "isSwitch": false
+      },
+      {
+        "w": 1580,
+        "aspect": 1.756,
+        "profile": "landscape",
+        "cx": 0.8196,
+        "dCx": 0.010299999999999976,
+        "isSwitch": false
+      },
+      {
+        "w": 1560,
+        "aspect": 1.733,
+        "profile": "landscape",
+        "cx": 0.8301,
+        "dCx": 0.010499999999999954,
+        "isSwitch": false
+      },
+      {
+        "w": 1540,
+        "aspect": 1.711,
+        "profile": "landscape",
+        "cx": 0.8408,
+        "dCx": 0.010700000000000043,
+        "isSwitch": false
+      },
+      {
+        "w": 1520,
+        "aspect": 1.689,
+        "profile": "landscape",
+        "cx": 0.8519,
+        "dCx": 0.011099999999999999,
+        "isSwitch": false
+      },
+      {
+        "w": 1500,
+        "aspect": 1.667,
+        "profile": "landscape",
+        "cx": 0.8633,
+        "dCx": 0.011399999999999966,
+        "isSwitch": false
+      },
+      {
+        "w": 1480,
+        "aspect": 1.644,
+        "profile": "landscape",
+        "cx": 0.8749,
+        "dCx": 0.011600000000000055,
+        "isSwitch": false
+      },
+      {
+        "w": 1460,
+        "aspect": 1.622,
+        "profile": "landscape",
+        "cx": 0.8869,
+        "dCx": 0.01200000000000001,
+        "isSwitch": false
+      },
+      {
+        "w": 1440,
+        "aspect": 1.6,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0.012299999999999978,
+        "isSwitch": false
+      },
+      {
+        "w": 1420,
+        "aspect": 1.578,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1400,
+        "aspect": 1.556,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1380,
+        "aspect": 1.533,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1360,
+        "aspect": 1.511,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1340,
+        "aspect": 1.489,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1320,
+        "aspect": 1.467,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1300,
+        "aspect": 1.444,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1280,
+        "aspect": 1.422,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1260,
+        "aspect": 1.4,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1240,
+        "aspect": 1.378,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1220,
+        "aspect": 1.356,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1200,
+        "aspect": 1.333,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1180,
+        "aspect": 1.311,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1160,
+        "aspect": 1.289,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1140,
+        "aspect": 1.267,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1120,
+        "aspect": 1.244,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1100,
+        "aspect": 1.222,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1080,
+        "aspect": 1.2,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1060,
+        "aspect": 1.178,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1040,
+        "aspect": 1.156,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1020,
+        "aspect": 1.133,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 1000,
+        "aspect": 1.111,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 980,
+        "aspect": 1.089,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 960,
+        "aspect": 1.067,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 940,
+        "aspect": 1.044,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 920,
+        "aspect": 1.022,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 900,
+        "aspect": 1,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 880,
+        "aspect": 0.978,
+        "profile": "landscape",
+        "cx": 0.8992,
+        "dCx": 0,
+        "isSwitch": false
+      },
+      {
+        "w": 860,
+        "aspect": 0.956,
+        "profile": "portrait",
+        "cx": 0.1245,
+        "dCx": 0.7746999999999999,
+        "isSwitch": true
+      },
+      {
+        "w": 840,
+        "aspect": 0.933,
+        "profile": "portrait",
+        "cx": 0.1253,
+        "dCx": 0.0007999999999999952,
+        "isSwitch": false
+      },
+      {
+        "w": 820,
+        "aspect": 0.911,
+        "profile": "portrait",
+        "cx": 0.126,
+        "dCx": 0.0007000000000000062,
+        "isSwitch": false
+      },
+      {
+        "w": 800,
+        "aspect": 0.889,
+        "profile": "portrait",
+        "cx": 0.1267,
+        "dCx": 0.0007000000000000062,
+        "isSwitch": false
+      },
+      {
+        "w": 780,
+        "aspect": 0.867,
+        "profile": "portrait",
+        "cx": 0.1275,
+        "dCx": 0.0007999999999999952,
+        "isSwitch": false
+      },
+      {
+        "w": 760,
+        "aspect": 0.844,
+        "profile": "portrait",
+        "cx": 0.1282,
+        "dCx": 0.0007000000000000062,
+        "isSwitch": false
+      },
+      {
+        "w": 740,
+        "aspect": 0.822,
+        "profile": "portrait",
+        "cx": 0.1283,
+        "dCx": 0.00009999999999998899,
+        "isSwitch": false
+      },
+      {
+        "w": 720,
+        "aspect": 0.8,
+        "profile": "portrait",
+        "cx": 0.1279,
+        "dCx": 0.0003999999999999837,
+        "isSwitch": false
+      },
+      {
+        "w": 700,
+        "aspect": 0.778,
+        "profile": "portrait",
+        "cx": 0.1269,
+        "dCx": 0.0010000000000000009,
+        "isSwitch": false
+      },
+      {
+        "w": 680,
+        "aspect": 0.756,
+        "profile": "portrait",
+        "cx": 0.1254,
+        "dCx": 0.0015000000000000013,
+        "isSwitch": false
+      },
+      {
+        "w": 660,
+        "aspect": 0.733,
+        "profile": "portrait",
+        "cx": 0.1237,
+        "dCx": 0.001700000000000007,
+        "isSwitch": false
+      },
+      {
+        "w": 640,
+        "aspect": 0.711,
+        "profile": "portrait",
+        "cx": 0.1216,
+        "dCx": 0.0021000000000000046,
+        "isSwitch": false
+      },
+      {
+        "w": 620,
+        "aspect": 0.689,
+        "profile": "portrait",
+        "cx": 0.1195,
+        "dCx": 0.0021000000000000046,
+        "isSwitch": false
+      },
+      {
+        "w": 600,
+        "aspect": 0.667,
+        "profile": "portrait",
+        "cx": 0.1173,
+        "dCx": 0.0021999999999999936,
+        "isSwitch": false
+      },
+      {
+        "w": 580,
+        "aspect": 0.644,
+        "profile": "portrait",
+        "cx": 0.1151,
+        "dCx": 0.0022000000000000075,
+        "isSwitch": false
+      },
+      {
+        "w": 560,
+        "aspect": 0.622,
+        "profile": "portrait",
+        "cx": 0.1131,
+        "dCx": 0.001999999999999988,
+        "isSwitch": false
+      },
+      {
+        "w": 540,
+        "aspect": 0.6,
+        "profile": "portrait",
+        "cx": 0.1112,
+        "dCx": 0.0019000000000000128,
+        "isSwitch": false
+      },
+      {
+        "w": 520,
+        "aspect": 0.578,
+        "profile": "portrait",
+        "cx": 0.1096,
+        "dCx": 0.0015999999999999903,
+        "isSwitch": false
+      },
+      {
+        "w": 500,
+        "aspect": 0.556,
+        "profile": "portrait",
+        "cx": 0.1085,
+        "dCx": 0.0011000000000000038,
+        "isSwitch": false
+      },
+      {
+        "w": 480,
+        "aspect": 0.533,
+        "profile": "portrait",
+        "cx": 0.1079,
+        "dCx": 0.0006000000000000033,
+        "isSwitch": false
+      },
+      {
+        "w": 460,
+        "aspect": 0.511,
+        "profile": "portrait",
+        "cx": 0.1078,
+        "dCx": 0.00009999999999998899,
+        "isSwitch": false
+      },
+      {
+        "w": 440,
+        "aspect": 0.489,
+        "profile": "portrait",
+        "cx": 0.1084,
+        "dCx": 0.0005999999999999894,
+        "isSwitch": false
+      },
+      {
+        "w": 420,
+        "aspect": 0.467,
+        "profile": "portrait",
+        "cx": 0.109,
+        "dCx": 0.0006000000000000033,
+        "isSwitch": false
+      },
+      {
+        "w": 400,
+        "aspect": 0.444,
+        "profile": "portrait",
+        "cx": 0.1096,
+        "dCx": 0.0006000000000000033,
+        "isSwitch": false
+      },
+      {
+        "w": 380,
+        "aspect": 0.422,
+        "profile": "portrait",
+        "cx": 0.1103,
+        "dCx": 0.0006999999999999923,
+        "isSwitch": false
+      },
+      {
+        "w": 360,
+        "aspect": 0.4,
+        "profile": "portrait",
+        "cx": 0.1109,
+        "dCx": 0.0006000000000000033,
+        "isSwitch": false
+      },
+      {
+        "w": 340,
+        "aspect": 0.378,
+        "profile": "portrait",
+        "cx": 0.1116,
+        "dCx": 0.0007000000000000062,
+        "isSwitch": false
+      },
+      {
+        "w": 320,
+        "aspect": 0.356,
+        "profile": "portrait",
+        "cx": 0.1122,
+        "dCx": 0.0005999999999999894,
+        "isSwitch": false
+      }
+    ]
+  },
+  "touchTest": {
+    "pass": true,
+    "verticalScrollPixels": 7856,
+    "horizontalRotationDiff": 0,
+    "details": []
+  },
+  "perfTest": {
+    "fps": 55,
+    "details": ""
+  }
+}
