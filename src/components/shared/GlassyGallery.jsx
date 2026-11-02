@@ -3,13 +3,11 @@ import { createPortal } from "react-dom";
 
 /**
  * GlassyGallery
- * High-end frosted glass lightbox gallery modal for Cinegem Studio.
+ * Minimal, full-screen frosted glass lightbox gallery for Cinegem Studio.
  *
- * Props:
- *   images: Array of { src, alt, label, thumb, isVideo } or strings
- *   activeIndex: number | null (null = closed)
- *   onClose: () => void
- *   onSelect: (index: number) => void
+ * Full-bleed glassy backdrop over the page without border radius.
+ * No inner glassy box around the media.
+ * No counter or category labels.
  */
 export default function GlassyGallery({
   images = [],
@@ -23,8 +21,9 @@ export default function GlassyGallery({
   const current = isOpen ? images[activeIndex] : null;
   const currentSrc = typeof current === "string" ? current : current?.src;
   const currentAlt = typeof current === "string" ? "" : current?.alt || "";
-  const currentLabel = typeof current === "string" ? "" : current?.label || "";
-  const isVideo = typeof current === "object" && Boolean(current?.isVideo || currentSrc?.endsWith(".mp4") || currentSrc?.endsWith(".webm"));
+  const isVideo =
+    typeof current === "object" &&
+    Boolean(current?.isVideo || currentSrc?.endsWith(".mp4") || currentSrc?.endsWith(".webm"));
 
   const hasPrev = isOpen && activeIndex > 0;
   const hasNext = isOpen && activeIndex < images.length - 1;
@@ -69,37 +68,30 @@ export default function GlassyGallery({
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose?.();
       }}
-      className="fixed inset-0 z-[10000] flex flex-col items-center justify-between p-3 sm:p-6 md:p-8 bg-black/80 backdrop-blur-2xl select-none animate-fadeIn cursor-default"
+      className="fixed inset-0 z-[10000] flex flex-col items-center justify-between p-4 sm:p-6 md:p-8 select-none animate-fadeIn cursor-default rounded-none"
+      style={{
+        background: "rgba(10, 10, 16, 0.72)",
+        backdropFilter: "blur(32px) saturate(190%)",
+        WebkitBackdropFilter: "blur(32px) saturate(190%)",
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Image gallery"
     >
-      {/* ── Top Bar: Counter & Close Button ── */}
-      <div className="w-full max-w-7xl flex items-center justify-between py-2 px-2 sm:px-4 z-20">
-        <span className="font-[Poppins] text-xs md:text-sm font-light tracking-[0.2em] uppercase text-white/60">
-          <span className="text-[#C5A059] font-medium">{activeIndex + 1}</span> / {images.length}
-        </span>
+      {/* ── Top-Right Close Button ── */}
+      <button
+        onClick={onClose}
+        type="button"
+        aria-label="Close gallery"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-40 w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all cursor-pointer shadow-lg active:scale-95"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
 
-        {currentLabel && (
-          <span className="hidden sm:inline-block font-[Poppins] text-xs tracking-[0.18em] uppercase text-white/50">
-            {currentLabel}
-          </span>
-        )}
-
-        <button
-          onClick={onClose}
-          type="button"
-          aria-label="Close gallery"
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all cursor-pointer shadow-lg active:scale-95"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* ── Center Stage: Main Glass Card & Nav Arrows ── */}
-      <div className="relative flex-1 w-full max-w-7xl flex items-center justify-center min-h-0 my-2 sm:my-4">
+      {/* ── Center Stage: Clean Floating Media & Nav Arrows ── */}
+      <div className="relative flex-1 w-full max-w-7xl flex items-center justify-center min-h-0 my-auto">
         {/* Previous Button */}
         {hasPrev && (
           <button
@@ -114,36 +106,27 @@ export default function GlassyGallery({
           </button>
         )}
 
-        {/* Floating Glass Showcase Container */}
-        <div
-          className="glassy-container relative flex items-center justify-center p-2 sm:p-4 md:p-6 rounded-2xl max-w-full max-h-full overflow-hidden shadow-2xl"
-          style={{
-            background: "rgba(14, 14, 18, 0.65)",
-            backdropFilter: "blur(28px) saturate(180%)",
-            WebkitBackdropFilter: "blur(28px) saturate(180%)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {isVideo ? (
-            <video
-              key={currentSrc}
-              src={currentSrc}
-              controls
-              autoPlay
-              loop
-              playsInline
-              className="max-h-[65vh] sm:max-h-[70vh] md:max-h-[74vh] max-w-full object-contain rounded-xl select-none"
-            />
-          ) : (
-            <img
-              key={currentSrc}
-              src={currentSrc}
-              alt={currentAlt}
-              className="max-h-[65vh] sm:max-h-[70vh] md:max-h-[74vh] max-w-full object-contain rounded-xl select-none animate-fadeIn"
-            />
-          )}
-        </div>
+        {/* Direct Floating Media (No inner card box) */}
+        {isVideo ? (
+          <video
+            key={currentSrc}
+            src={currentSrc}
+            controls
+            autoPlay
+            loop
+            playsInline
+            className="max-h-[78vh] sm:max-h-[82vh] max-w-[92vw] sm:max-w-[86vw] object-contain select-none shadow-2xl rounded-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <img
+            key={currentSrc}
+            src={currentSrc}
+            alt={currentAlt}
+            className="max-h-[78vh] sm:max-h-[82vh] max-w-[92vw] sm:max-w-[86vw] object-contain select-none shadow-2xl rounded-none animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
 
         {/* Next Button */}
         {hasNext && (
@@ -160,11 +143,11 @@ export default function GlassyGallery({
         )}
       </div>
 
-      {/* ── Bottom Bar: Glassy Thumbnail Capsule Strip ── */}
+      {/* ── Bottom Bar: Clean Minimal Thumbnails (No pill capsule box) ── */}
       {images.length > 1 && (
         <div className="w-full max-w-5xl flex justify-center py-2 px-2 z-20">
           <div
-            className="flex items-center gap-2 sm:gap-3 overflow-x-auto max-w-full px-4 py-2.5 rounded-2xl bg-white/[0.05] backdrop-blur-xl border border-white/10 scrollbar-none shadow-xl"
+            className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto max-w-full px-2 py-1 scrollbar-none"
             style={{ scrollbarWidth: "none" }}
           >
             {images.map((img, i) => {
@@ -176,10 +159,10 @@ export default function GlassyGallery({
                   type="button"
                   onClick={() => onSelect?.(i)}
                   aria-label={`Jump to image ${i + 1}`}
-                  className={`relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden transition-all cursor-pointer ${
+                  className={`relative shrink-0 w-11 h-11 sm:w-13 sm:h-13 overflow-hidden transition-all cursor-pointer rounded-none ${
                     isActive
-                      ? "ring-2 ring-[#C5A059] ring-offset-1 ring-offset-black opacity-100 scale-105"
-                      : "opacity-45 hover:opacity-80 border border-white/10"
+                      ? "ring-1.5 ring-white/90 opacity-100"
+                      : "opacity-35 hover:opacity-75 border border-white/10"
                   }`}
                 >
                   <img
