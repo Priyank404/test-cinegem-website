@@ -16,6 +16,8 @@ export default function GlassyGallery({
   onSelect,
 }) {
   const overlayRef = useRef(null);
+  const activeThumbRef = useRef(null);
+  const stripRef = useRef(null);
   const isOpen = activeIndex !== null && activeIndex >= 0 && activeIndex < images.length;
 
   const current = isOpen ? images[activeIndex] : null;
@@ -60,6 +62,19 @@ export default function GlassyGallery({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose, handlePrev, handleNext]);
+
+  // Smoothly center the active preview thumbnail in the bottom strip
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = activeThumbRef.current;
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeIndex, isOpen]);
 
   if (!isOpen || !currentSrc) return null;
 
@@ -144,12 +159,19 @@ export default function GlassyGallery({
         )}
       </div>
 
-      {/* ── Bottom Bar: Clean Minimal Thumbnails (No pill capsule box) ── */}
+      {/* ── Bottom Bar: Auto-Centering Minimal Thumbnail Strip ── */}
       {images.length > 1 && (
-        <div className="w-full max-w-5xl flex justify-center py-2 px-2 z-20">
+        <div className="w-full max-w-6xl flex justify-center py-2 px-3 z-20 overflow-hidden">
           <div
-            className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto max-w-full px-2 py-1 scrollbar-none"
-            style={{ scrollbarWidth: "none" }}
+            ref={stripRef}
+            className="flex items-center gap-2.5 sm:gap-3.5 overflow-x-auto max-w-full px-10 py-2 scrollbar-none [scroll-behavior:smooth]"
+            style={{
+              scrollbarWidth: "none",
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+            }}
           >
             {images.map((img, i) => {
               const src = typeof img === "string" ? img : img.thumb || img.src;
@@ -161,13 +183,14 @@ export default function GlassyGallery({
               return (
                 <button
                   key={i}
+                  ref={isActive ? activeThumbRef : null}
                   type="button"
                   onClick={() => onSelect?.(i)}
                   aria-label={`Jump to item ${i + 1}`}
-                  className={`relative shrink-0 w-11 h-11 sm:w-13 sm:h-13 overflow-hidden transition-all cursor-pointer rounded-none ${
+                  className={`relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 overflow-hidden transition-all duration-300 cursor-pointer rounded-none ${
                     isActive
-                      ? "ring-1.5 ring-white/90 opacity-100"
-                      : "opacity-35 hover:opacity-75 border border-white/10"
+                      ? "ring-2 ring-white scale-105 opacity-100 z-10 shadow-2xl"
+                      : "opacity-40 hover:opacity-85 border border-white/15"
                   }`}
                 >
                   {isItemVideo ? (
@@ -180,7 +203,7 @@ export default function GlassyGallery({
                         className="w-full h-full object-cover select-none pointer-events-none"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-white/95" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
                       </div>
