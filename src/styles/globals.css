@@ -374,17 +374,6 @@ html.lenis {
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* Clean grid mode: retrieves the original grid layout without the glassy container wrapper (individual pages only) */
-  .no-glassy-mode .glassy-container {
-    background: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
-  }
 
   /* ── Buttons ── */
   .btn-ghost {

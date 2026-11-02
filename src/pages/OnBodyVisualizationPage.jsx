@@ -2,7 +2,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
-import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
 
@@ -549,7 +548,6 @@ export default function OnBodyVisualizationPage() {
     alt: cleanJewelryAlt(img, "On-Body"),
   }));
   const containerRef = useRef(null);
-  const [isCleanGrid, setIsCleanGrid] = useState(false);
 
   return (
     <ServicePageLayout
@@ -557,9 +555,6 @@ export default function OnBodyVisualizationPage() {
       currentPage="/onbody"
       fullBleed
     >
-      {/* Floating Toggle: Retrieve clean grid without glassy container */}
-      <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="On-Body Visualization" />
-
       <HeroSection
         backgroundSrc="/onbody-1.png"
         heading={["On-Body", "Visualization"]}
@@ -567,11 +562,7 @@ export default function OnBodyVisualizationPage() {
       />
 
       <div ref={containerRef} className="relative z-10">
-        {isCleanGrid ? (
-          <OriginalOnBodyGallery images={activeImages} />
-        ) : (
-          <GlassyOnBodyGallery images={activeImages} />
-        )}
+        <GlassyOnBodyGallery images={activeImages} />
       </div>
     </ServicePageLayout>
   );

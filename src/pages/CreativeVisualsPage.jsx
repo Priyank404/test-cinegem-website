@@ -6,7 +6,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
-import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { LightboxModal } from "@/components/shared/LightboxModal";
 import { useLightbox } from "@/hooks/useLightbox";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
@@ -703,7 +702,6 @@ export default function CreativeVisualsPage() {
 
   // Hook up Lightbox with dynamically loaded items
   const { activeIndex, openAt, close, prev, next } = useLightbox(items);
-  const [isCleanGrid, setIsCleanGrid] = useState(false);
 
   // Hero background image: pick first banner or first available image
   const heroBackgroundSrc = useMemo(() => {
@@ -731,9 +729,6 @@ export default function CreativeVisualsPage() {
 
   return (
     <ServicePageLayout title="Creative Visuals" currentPage="/creative-visuals" fullBleed>
-      {/* Floating Toggle: Retrieve clean grid without glassy container */}
-      <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="Creative Visuals" />
-
       {/* Nav bar + cinematic hero */}
       <HeroSection
         backgroundSrc={heroBackgroundSrc}
@@ -741,13 +736,12 @@ export default function CreativeVisualsPage() {
         paragraph="A cascading edit of jewellery photography and motion — an interlocking mosaic of every piece."
       />
 
-      <div className={`relative z-10 w-full overflow-x-clip pb-40 md:pb-56 ${isCleanGrid ? "px-4 sm:px-6 md:px-10 lg:px-16" : ""}`}>
+      <div className="relative z-10 w-full overflow-x-clip pb-40 md:pb-56">
         <ScrollStoryLayout
           mediaItems={items}
           images={storyImages}
           videos={videos}
           onOpen={openAt}
-          isClean={isCleanGrid}
         />
       </div>
 

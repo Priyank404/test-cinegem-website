@@ -69,4 +69,3 @@ export function GhostButton({ children, href, onClick, className, type = 'button
 
 export { DevelopmentBadge } from './DevelopmentBadge'
 export { default as VerticalDotNav, DEFAULT_HOME_SECTIONS } from './VerticalDotNav'
-export { default as RetrieveGridButton } from './RetrieveGridButton'

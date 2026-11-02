@@ -4,7 +4,6 @@ import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
 
 import HeroSection from "@/components/sections/HeroSection";
-import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
 
@@ -646,7 +645,6 @@ export default function ClassicEComVisuals({
   eyebrow = "Product Showcase",
 }) {
   const containerRef = useRef(null);
-  const [isCleanGrid, setIsCleanGrid] = useState(false);
 
   const {
     items,
@@ -740,9 +738,6 @@ export default function ClassicEComVisuals({
   //   • scrolling back UP past it -> cards slide back out to the RIGHT
   return (
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
-      {/* Floating Toggle: Retrieve clean grid without glassy container */}
-      <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="Classic E-Commerce" />
-
       {/* Cinematic scroll-zoom hero */}
       <HeroSection
         backgroundSrc="/4.png"
@@ -751,19 +746,9 @@ export default function ClassicEComVisuals({
       />
 
       <div ref={containerRef} className="relative z-10">
-        {isCleanGrid ? (
-          <>
-            <OriginalSection1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
-            <OriginalSection2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
-            <OriginalSection3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
-          </>
-        ) : (
-          <>
-            <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
-            <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
-            <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
-          </>
-        )}
+        <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
+        <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
+        <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
       </div>
     </ServicePageLayout>
   );
