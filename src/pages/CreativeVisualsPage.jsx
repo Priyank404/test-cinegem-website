@@ -723,22 +723,22 @@ export default function CreativeVisualsPage() {
 
   const [galleryIndex, setGalleryIndex] = useState(null);
 
-  // Hero background image: pick first banner or first available image
+  // Hero background image: pick first banner, hero, or 0. item
   const heroBackgroundSrc = useMemo(() => {
-    const banner = images.find((i) => {
-      const name = (i.filename || i.alt || i.src || "").toLowerCase();
-      return name.includes("banner") || name.includes("hero");
+    const banner = (items || []).find((i) => {
+      const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
+      return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
     });
     if (banner) return banner.src;
     if (images.length > 0) return images[0].src;
     return "/Creative visuals/4 Ring Banner T4 HQ_.jpg";
-  }, [images]);
+  }, [items, images]);
 
   // Separate story images so dedicated banner/hero image doesn't displace 1.png - 18.png
   const storyImages = useMemo(() => {
     const filtered = images.filter((i) => {
-      const name = (i.filename || i.alt || i.src || "").toLowerCase();
-      return !name.includes("banner") && !name.includes("hero");
+      const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
+      return !name.includes("banner") && !name.includes("hero") && !name.startsWith("0.") && !name.startsWith("0_") && !name.startsWith("0-");
     });
     const list = filtered.length > 0 ? filtered : images;
     return list.map((item) => ({

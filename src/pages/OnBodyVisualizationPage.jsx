@@ -583,6 +583,15 @@ export default function OnBodyVisualizationPage() {
     setGalleryIndex(idx !== -1 ? idx : 0);
   };
 
+  const heroBackgroundSrc = useMemo(() => {
+    const banner = (items || []).find((i) => {
+      const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
+      return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
+    });
+    if (banner) return banner.src;
+    return "/onbody-1.png";
+  }, [items]);
+
   return (
     <ServicePageLayout
       title="On-Body Visualization"
@@ -590,7 +599,7 @@ export default function OnBodyVisualizationPage() {
       fullBleed
     >
       <HeroSection
-        backgroundSrc="/onbody-1.png"
+        backgroundSrc={heroBackgroundSrc}
         heading={["On-Body", "Visualization"]}
         paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."
       />

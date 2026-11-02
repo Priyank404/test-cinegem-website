@@ -796,6 +796,15 @@ export default function ClassicEComVisuals({
     setGalleryIndex(idx !== -1 ? idx : 0);
   };
 
+  const heroBackgroundSrc = useMemo(() => {
+    const banner = (items || []).find((i) => {
+      const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
+      return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
+    });
+    if (banner) return banner.src;
+    return "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png";
+  }, [items]);
+
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:
   //   • scrolling down past it  -> cards slide in from the RIGHT
@@ -804,7 +813,7 @@ export default function ClassicEComVisuals({
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
       {/* Cinematic scroll-zoom hero */}
       <HeroSection
-        backgroundSrc="/4.png"
+        backgroundSrc={heroBackgroundSrc}
         heading={["Classic", "E-Commerce", "Visuals"]}
         paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
       />
