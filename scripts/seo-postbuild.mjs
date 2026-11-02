@@ -10,6 +10,8 @@ import { ROUTES_LIST } from '../src/seo/routes.js';
 import { buildJsonLd } from '../src/seo/schema.js';
 import {
   FAQ_TREE,
+  FAQ_CATEGORIES,
+  getConfirmedFaqCategories,
   getConfirmedFaqTree,
   getFaqCounts,
   parseInlineLinks,
@@ -56,32 +58,27 @@ function buildStaticSnapshot(route) {
     `;
   } else if (route.path === '/faq') {
     h1Text = 'Frequently Asked Questions';
-    const tree = getConfirmedFaqTree();
-    const treeHtml = tree
+    const categories = getConfirmedFaqCategories();
+    const categoriesHtml = categories
       .map((cat) => {
-        const subHtml = cat.subcategories
-          .map((sub) => {
-            const itemsHtml = sub.items
-              .map((item) => {
-                const answerHtml = parseInlineLinks(item.answer)
-                  .map((p) => (p.isLink ? `<a href="${p.url}">${p.text}</a>` : p.text))
-                  .join('');
-                return `<h4>${item.question}</h4><p>${answerHtml}</p>`;
-              })
-              .join('\n');
-            return `<h3>${sub.title}</h3>\n${itemsHtml}`;
+        const itemsHtml = cat.items
+          .map((item) => {
+            const answerHtml = parseInlineLinks(item.answer)
+              .map((p) => (p.isLink ? `<a href="${p.url}">${p.text}</a>` : p.text))
+              .join('');
+            return `<h3>${item.question}</h3><p>${answerHtml}</p>`;
           })
           .join('\n');
-        return `<h2>${cat.title}</h2><p>${cat.summary}</p>\n${subHtml}`;
+        return `<h2>${cat.title}</h2><p>${cat.summary}</p>\n${itemsHtml}`;
       })
       .join('\n');
 
     bodyHtml = `
       <p>${route.description}</p>
       <nav>
-        ${tree.map((c) => `<a href="#${c.id}">${c.title}</a>`).join('')}
+        ${categories.map((c) => `<a href="#${c.id}">${c.title}</a>`).join('')}
       </nav>
-      ${treeHtml}
+      ${categoriesHtml}
     `;
   } else if (route.path === '/classic' || route.path === '/creative-visuals' || route.path === '/onbody') {
     const serviceH1 = {
@@ -316,11 +313,9 @@ console.log(`  ✓ Written dist/_headers`);
 console.log('[seo-postbuild] Validating zero pending FAQ items in dist/...');
 const pendingItems = [];
 for (const cat of FAQ_TREE) {
-  for (const sub of cat.subcategories) {
-    for (const item of sub.items) {
-      if (item.status === 'pending') {
-        pendingItems.push(item);
-      }
+  for (const item of cat.items) {
+    if (item.status === 'pending') {
+      pendingItems.push(item);
     }
   }
 }

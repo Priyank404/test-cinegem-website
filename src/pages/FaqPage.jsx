@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ServicePageLayout } from '@/components/shared/ServicePageLayout';
 import { BackToVault } from '@/components/shared/BackToVault';
 import TrailText from '@/components/shared/TrailText';
-import { getConfirmedFaqTree, parseInlineLinks } from '@/seo/faq';
+import { getConfirmedFaqCategories, parseInlineLinks } from '@/seo/faq';
 import { CONTACT_EMAIL } from '@/seo/site';
 
 function AnswerText({ text }) {
@@ -17,7 +17,7 @@ function AnswerText({ text }) {
             <Link
               key={idx}
               to={part.url}
-              className="text-[#C5A059] underline underline-offset-4 decoration-[#C5A059]/50 hover:text-white hover:decoration-white transition-colors duration-200 font-normal"
+              className="text-white underline underline-offset-4 decoration-white/30 hover:decoration-white transition-colors duration-200 font-normal"
             >
               {part.text}
             </Link>
@@ -30,7 +30,7 @@ function AnswerText({ text }) {
 }
 
 export default function FaqPage() {
-  const tree = useMemo(() => getConfirmedFaqTree(), []);
+  const categories = useMemo(() => getConfirmedFaqCategories(), []);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Handle URL hash on mount & hashchange (open question and scroll)
@@ -65,9 +65,9 @@ export default function FaqPage() {
   }, []);
 
   const displayedCategories = useMemo(() => {
-    if (selectedCategory === 'all') return tree;
-    return tree.filter((c) => c.id === selectedCategory);
-  }, [tree, selectedCategory]);
+    if (selectedCategory === 'all') return categories;
+    return categories.filter((c) => c.id === selectedCategory);
+  }, [categories, selectedCategory]);
 
   const toggleAll = (openState) => {
     const allDetails = document.querySelectorAll('details.faq-question-item');
@@ -77,12 +77,18 @@ export default function FaqPage() {
   };
 
   return (
-    <ServicePageLayout title="FAQ" seoKey="faq" currentPage="/faq" theme="dark">
+    <ServicePageLayout
+      title="FAQ"
+      seoKey="faq"
+      currentPage="/faq"
+      theme="dark"
+      alwaysVisibleHeader={true}
+    >
       <div className="w-full text-left select-text">
-        {/* Header Header */}
+        {/* Header Typography */}
         <div className="flex flex-col items-start gap-2">
           <BackToVault light className="!mb-4" />
-          <span className="font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light text-[#C5A059]">
+          <span className="font-[Poppins] text-[10px] sm:text-[11px] tracking-[0.25em] uppercase font-light text-[#FCFBFA]/50">
             Studio Knowledge Base
           </span>
           <TrailText
@@ -100,30 +106,30 @@ export default function FaqPage() {
         {/* Unified FAQ Section in One Single Glassy Container */}
         <section className="w-full mt-10 md:mt-14" aria-label="Frequently Asked Questions">
           <div className="glassy-container p-5 sm:p-8 md:p-12 w-full">
-            {/* Tree Navigation & Controls Header */}
+            {/* Category Quick Filter Pills & Controls Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-              {/* Category Quick Filter Pills (Level 1 Navigator) */}
+              {/* Category Quick Filter Pills */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('all')}
                   className={`rounded-full border text-[11px] tracking-[0.16em] uppercase px-3.5 py-1.5 transition-colors duration-200 font-[Poppins] ${
                     selectedCategory === 'all'
-                      ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10'
-                      : 'border-white/20 text-[#FCFBFA]/70 hover:border-[#C5A059] hover:text-[#C5A059]'
+                      ? 'border-white/40 text-white bg-white/10 shadow-sm'
+                      : 'border-white/15 text-[#FCFBFA]/60 hover:border-white/30 hover:text-white bg-transparent'
                   }`}
                 >
-                  All ({tree.length})
+                  All ({categories.length})
                 </button>
-                {tree.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`rounded-full border text-[11px] tracking-[0.16em] uppercase px-3.5 py-1.5 transition-colors duration-200 font-[Poppins] ${
                       selectedCategory === cat.id
-                        ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10'
-                        : 'border-white/20 text-[#FCFBFA]/70 hover:border-[#C5A059] hover:text-[#C5A059]'
+                        ? 'border-white/40 text-white bg-white/10 shadow-sm'
+                        : 'border-white/15 text-[#FCFBFA]/60 hover:border-white/30 hover:text-white bg-transparent'
                     }`}
                   >
                     {cat.title.split('&')[0].trim()}
@@ -136,7 +142,7 @@ export default function FaqPage() {
                 <button
                   type="button"
                   onClick={() => toggleAll(true)}
-                  className="text-[#FCFBFA]/60 hover:text-[#C5A059] transition-colors duration-200 underline underline-offset-4 decoration-white/20 hover:decoration-[#C5A059]"
+                  className="text-[#FCFBFA]/60 hover:text-white transition-colors duration-200 underline underline-offset-4 decoration-white/20 hover:decoration-white"
                 >
                   Expand all
                 </button>
@@ -144,79 +150,56 @@ export default function FaqPage() {
                 <button
                   type="button"
                   onClick={() => toggleAll(false)}
-                  className="text-[#FCFBFA]/60 hover:text-[#C5A059] transition-colors duration-200 underline underline-offset-4 decoration-white/20 hover:decoration-[#C5A059]"
+                  className="text-[#FCFBFA]/60 hover:text-white transition-colors duration-200 underline underline-offset-4 decoration-white/20 hover:decoration-white"
                 >
                   Collapse all
                 </button>
               </div>
             </div>
 
-            {/* 3-Level FAQ Tree Structure */}
-            <div className="mt-8 space-y-12">
+            {/* Clean Flush FAQ List */}
+            <div className="mt-8 space-y-12 sm:space-y-16">
               {displayedCategories.map((category) => (
                 <article
                   key={category.id}
                   id={category.id}
-                  className="scroll-mt-28 relative"
+                  className="scroll-mt-28"
                   aria-labelledby={`cat-${category.id}`}
                 >
-                  {/* LEVEL 1: Category Header */}
-                  <div className="flex items-start sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                      <span className="font-[Poppins] text-[11px] tracking-[0.2em] uppercase font-light text-[#C5A059] border border-[#C5A059]/30 rounded px-2 py-0.5">
-                        {category.badge}
-                      </span>
-                      <h2
-                        id={`cat-${category.id}`}
-                        className="font-[Poppins] text-xl sm:text-2xl md:text-3xl font-semibold text-[#FCFBFA] m-0 tracking-tight"
-                      >
-                        {category.title}
-                      </h2>
-                    </div>
+                  {/* Category Header — No Index Badge, Clean Flush Left Alignment */}
+                  <div className="pb-3 border-b border-white/10">
+                    <h2
+                      id={`cat-${category.id}`}
+                      className="font-[Poppins] text-xl sm:text-2xl md:text-3xl font-medium text-[#FCFBFA] m-0 tracking-tight"
+                    >
+                      {category.title}
+                    </h2>
+                    <p className="font-[Poppins] font-light text-xs sm:text-sm text-[#FCFBFA]/70 mt-2 mb-0 max-w-3xl leading-relaxed">
+                      {category.summary}
+                    </p>
                   </div>
-                  <p className="font-[Poppins] font-light text-xs sm:text-sm text-[#FCFBFA]/70 mt-2 mb-6">
-                    {category.summary}
-                  </p>
 
-                  {/* LEVEL 2 & 3: Tree Connector Branch */}
-                  <div className="border-l-2 border-[#C5A059]/30 pl-4 sm:pl-8 ml-2 sm:ml-4 space-y-8">
-                    {category.subcategories.map((sub) => (
-                      <div key={sub.id} className="relative">
-                        {/* LEVEL 2: Subcategory Node Header */}
-                        <div className="flex items-center gap-2.5 mb-4 -ml-4 sm:-ml-8">
+                  {/* Direct Question & Answer Accordion Items (no inner subcategories, no tree connector line) */}
+                  <div className="space-y-3 mt-6">
+                    {category.items.map((item) => (
+                      <details
+                        key={item.id}
+                        id={`q-${item.id}`}
+                        className="faq-question-item group border border-white/10 hover:border-white/20 rounded-lg p-4 sm:p-5 bg-white/[0.02] transition-colors scroll-mt-28"
+                      >
+                        <summary className="font-[Poppins] font-medium text-sm sm:text-base text-[#FCFBFA] cursor-pointer list-none flex justify-between items-center gap-4 select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded">
+                          <span className="leading-snug">{item.question}</span>
                           <span
-                            className="w-2.5 h-2.5 rounded-full bg-[#C5A059] ring-4 ring-[#0a0a0c] shrink-0"
+                            className="text-[#FCFBFA]/60 group-open:text-white text-xl font-light shrink-0 transition-transform duration-200 group-open:rotate-45"
                             aria-hidden="true"
-                          />
-                          <h3 className="font-[Poppins] text-xs sm:text-[13px] font-semibold tracking-[0.18em] uppercase text-[#C5A059] m-0">
-                            {sub.title}
-                          </h3>
+                          >
+                            +
+                          </span>
+                        </summary>
+                        <div className="pb-2 pt-4 px-1 font-[Poppins] font-light text-sm sm:text-[15px] leading-relaxed text-[#FCFBFA]/85 border-t border-white/5 mt-3.5">
+                          <AnswerText text={item.answer} />
                         </div>
-
-                        {/* LEVEL 3: Question & Answer Accordion Items */}
-                        <div className="space-y-2.5 pl-2 sm:pl-4">
-                          {sub.items.map((item) => (
-                            <details
-                              key={item.id}
-                              id={`q-${item.id}`}
-                              className="faq-question-item group border border-white/10 hover:border-white/25 rounded-lg p-3.5 sm:p-4 bg-white/[0.02] transition-colors scroll-mt-28"
-                            >
-                              <summary className="font-[Poppins] font-medium text-sm sm:text-[15px] text-[#FCFBFA] cursor-pointer list-none flex justify-between items-center gap-4 select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C5A059] rounded">
-                                <span className="leading-snug">{item.question}</span>
-                                <span
-                                  className="text-[#C5A059] text-xl font-light shrink-0 transition-transform duration-200 group-open:rotate-45"
-                                  aria-hidden="true"
-                                >
-                                  +
-                                </span>
-                              </summary>
-                              <div className="pb-2 pt-3 px-1 font-[Poppins] font-light text-sm sm:text-[15px] leading-relaxed text-[#FCFBFA]/85 border-t border-white/5 mt-3">
-                                <AnswerText text={item.answer} />
-                              </div>
-                            </details>
-                          ))}
-                        </div>
-                      </div>
+                      </details>
                     ))}
                   </div>
                 </article>
@@ -231,14 +214,14 @@ export default function FaqPage() {
                 </span>
                 <Link
                   to="/inquire"
-                  className="inline-flex items-center text-[#C5A059] hover:text-white transition-colors duration-200 underline underline-offset-4 decoration-[#C5A059]/40 hover:decoration-white font-medium text-sm"
+                  className="inline-flex items-center text-white hover:text-[#FCFBFA]/80 transition-colors duration-200 underline underline-offset-4 decoration-white/30 hover:decoration-white font-medium text-sm"
                 >
                   Start a project with our studio team →
                 </Link>
               </div>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="text-xs text-[#FCFBFA]/60 hover:text-[#C5A059] transition-colors duration-200 font-light"
+                className="text-xs text-[#FCFBFA]/60 hover:text-white transition-colors duration-200 font-light"
               >
                 {CONTACT_EMAIL}
               </a>
