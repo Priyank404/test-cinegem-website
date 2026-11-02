@@ -165,21 +165,20 @@ p, span, div, li, a, label, button, input, textarea {
 
   html {
     scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* `overflow-x: hidden` on body alone doesn't clip position:fixed
-       descendants — fixed elements are positioned against the initial
-       containing block (effectively html/viewport), so if any content
-       anywhere on the page pushes past 100% width, fixed elements can
-       be dragged along with that overflow on mobile browsers instead
-       of staying pinned to the visible screen. Hiding overflow on html
-       too closes that gap. */
-    overflow-x: hidden;
+    /* Using `overflow-x: clip` prevents horizontal overflow and off-screen
+       drift on mobile browsers while preserving `position: sticky` on child
+       elements (unlike `overflow-x: hidden` which forces `overflow-y: auto`
+       and breaks sticky positioning across browsers). */
+    overflow-x: clip;
   }
 
   body {
-    @apply bg-surface text-on-surface font-body overflow-x-hidden;
+    @apply bg-surface text-on-surface font-body;
+    overflow-x: clip;
     cursor: default;
   }
 

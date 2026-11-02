@@ -233,28 +233,55 @@ function useVideoBgColor(src, customBg) {
 
 // Full-screen showcase video (Section 3 & 5)
 // Spans the full viewport width (100vw) and height (100vh).
-// Sized so video is 100% uncropped (object-contain, w-full h-full max-h-screen).
-// The canvas background matches the video edge pixels seamlessly with soft horizontal edge feathering,
-// creating a dynamic full-screen takeover without cropping and without any visible borders or space.
+// Sticks to the whole screen with a magnetic lock for an immersive showcase.
 function FullWidthVideo({ src, driftUp, bgColor }) {
+  const trackRef = useRef(null);
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
   const [offset, setOffset] = useState(0);
   const vw = useViewportWidth();
   const bgStyle = useVideoBgColor(src, bgColor);
+  const isSnappingRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!driftUp) return;
-    const el = sectionRef.current;
-    if (!el) return;
+    const track = trackRef.current;
+    if (!track) return;
 
     const onScroll = () => {
-      const rect = el.getBoundingClientRect();
+      const rect = track.getBoundingClientRect();
       const vh = window.innerHeight;
-      const total = rect.height + vh;
-      const raw = (vh - rect.top) / total;
-      const progress = Math.min(1, Math.max(0, raw));
-      setOffset(progress * -40);
+
+      if (driftUp) {
+        const total = rect.height - vh;
+        if (total > 0) {
+          const scrolled = -rect.top;
+          const progress = Math.min(1, Math.max(0, scrolled / total));
+          setOffset(progress * -40);
+        }
+      }
+
+      // Magnetic snap: when the user stops scrolling close to top: 0, lock it flush
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (isSnappingRef.current) return;
+        const currentRect = track.getBoundingClientRect();
+        // If within magnetic lock zone (-60px to 120px)
+        if (currentRect.top > -60 && currentRect.top < 120 && Math.abs(currentRect.top) > 2) {
+          isSnappingRef.current = true;
+          const targetScroll = window.scrollY + currentRect.top;
+          window.scrollTo({
+            top: targetScroll,
+            behavior: "smooth",
+          });
+          setTimeout(() => {
+            isSnappingRef.current = false;
+          }, 500);
+        }
+      }, 80);
     };
 
     onScroll();
@@ -263,40 +290,51 @@ function FullWidthVideo({ src, driftUp, bgColor }) {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [driftUp]);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0"
+    <div
+      ref={trackRef}
+      className="fullscreen-video-track relative w-full"
       style={{
-        background: bgStyle,
-        marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-        marginRight: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-        width: vw ? `${vw}px` : "100vw",
-        height: "100vh",
+        height: "190vh",
+        scrollSnapAlign: "start",
+        scrollSnapStop: "normal",
       }}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        crossOrigin="anonymous"
-        className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+      <section
+        ref={sectionRef}
+        className="sticky top-0 w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0 z-20"
         style={{
-          ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-          maskImage:
-            "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+          background: bgStyle,
+          marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
+          marginRight: vw ? `calc(50% - ${vw / 2}px)` : undefined,
+          width: vw ? `${vw}px` : "100vw",
+          height: "100vh",
         }}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      />
-    </section>
+      >
+        <video
+          ref={videoRef}
+          src={src}
+          crossOrigin="anonymous"
+          className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+          style={{
+            ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+            maskImage:
+              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+          }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      </section>
+    </div>
   );
 }
 
@@ -415,24 +453,53 @@ function OriginalVideoWithImages({ video, images, onOpen, reverse }) {
 }
 
 function OriginalFullWidthVideo({ src, driftUp }) {
+  const trackRef = useRef(null);
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
   const [offset, setOffset] = useState(0);
   const vw = useViewportWidth();
   const bgStyle = useVideoBgColor(src);
+  const isSnappingRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!driftUp) return;
-    const el = sectionRef.current;
-    if (!el) return;
+    const track = trackRef.current;
+    if (!track) return;
 
     const onScroll = () => {
-      const rect = el.getBoundingClientRect();
+      const rect = track.getBoundingClientRect();
       const vh = window.innerHeight;
-      const total = rect.height + vh;
-      const raw = (vh - rect.top) / total;
-      const progress = Math.min(1, Math.max(0, raw));
-      setOffset(progress * -40);
+
+      if (driftUp) {
+        const total = rect.height - vh;
+        if (total > 0) {
+          const scrolled = -rect.top;
+          const progress = Math.min(1, Math.max(0, scrolled / total));
+          setOffset(progress * -40);
+        }
+      }
+
+      // Magnetic snap: when the user stops scrolling close to top: 0, lock it flush
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (isSnappingRef.current) return;
+        const currentRect = track.getBoundingClientRect();
+        // If within magnetic lock zone (-60px to 120px)
+        if (currentRect.top > -60 && currentRect.top < 120 && Math.abs(currentRect.top) > 2) {
+          isSnappingRef.current = true;
+          const targetScroll = window.scrollY + currentRect.top;
+          window.scrollTo({
+            top: targetScroll,
+            behavior: "smooth",
+          });
+          setTimeout(() => {
+            isSnappingRef.current = false;
+          }, 500);
+        }
+      }, 80);
     };
 
     onScroll();
@@ -441,40 +508,51 @@ function OriginalFullWidthVideo({ src, driftUp }) {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [driftUp]);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0"
+    <div
+      ref={trackRef}
+      className="fullscreen-video-track relative w-full"
       style={{
-        background: bgStyle,
-        marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-        marginRight: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-        width: vw ? `${vw}px` : "100vw",
-        height: "100vh",
+        height: "190vh",
+        scrollSnapAlign: "start",
+        scrollSnapStop: "normal",
       }}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        crossOrigin="anonymous"
-        className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+      <section
+        ref={sectionRef}
+        className="sticky top-0 w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0 z-20"
         style={{
-          ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-          maskImage:
-            "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+          background: bgStyle,
+          marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
+          marginRight: vw ? `calc(50% - ${vw / 2}px)` : undefined,
+          width: vw ? `${vw}px` : "100vw",
+          height: "100vh",
         }}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      />
-    </section>
+      >
+        <video
+          ref={videoRef}
+          src={src}
+          crossOrigin="anonymous"
+          className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+          style={{
+            ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+            maskImage:
+              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+          }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      </section>
+    </div>
   );
 }
 
