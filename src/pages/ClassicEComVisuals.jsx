@@ -5,6 +5,8 @@ import { BackToVault } from "@/components/shared/BackToVault";
 
 import HeroSection from "@/components/sections/HeroSection";
 import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
+import SeoTextToggle from "@/components/seo/SeoTextToggle";
+import SeoTextSection from "@/components/seo/SeoTextSection";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
 
@@ -742,6 +744,7 @@ export default function ClassicEComVisuals({
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
       {/* Floating Toggle: Retrieve clean grid without glassy container */}
       <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="Classic E-Commerce" />
+      <SeoTextToggle pageName="Classic E-Commerce" />
 
       {/* Cinematic scroll-zoom hero */}
       <HeroSection
@@ -765,6 +768,8 @@ export default function ClassicEComVisuals({
           </>
         )}
       </div>
+
+      <SeoTextSection contentKey="classic" />
     </ServicePageLayout>
   );
 }

@@ -3,6 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
+import SeoTextToggle from "@/components/seo/SeoTextToggle";
+import SeoTextSection from "@/components/seo/SeoTextSection";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
 
@@ -559,6 +561,7 @@ export default function OnBodyVisualizationPage() {
     >
       {/* Floating Toggle: Retrieve clean grid without glassy container */}
       <RetrieveGridButton isClean={isCleanGrid} onToggle={setIsCleanGrid} pageName="On-Body Visualization" />
+      <SeoTextToggle pageName="On-Body Visualization" />
 
       <HeroSection
         backgroundSrc="/onbody-1.png"
@@ -573,6 +576,8 @@ export default function OnBodyVisualizationPage() {
           <GlassyOnBodyGallery images={activeImages} />
         )}
       </div>
+
+      <SeoTextSection contentKey="onbody" />
     </ServicePageLayout>
   );
 }
