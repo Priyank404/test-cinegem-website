@@ -86,34 +86,37 @@ export default function FaqPage() {
     >
       <div className="w-full text-left select-text">
         {/* Header Typography */}
-        <div className="flex flex-col items-start gap-2">
-          <BackToVault light className="!mb-4" />
+        <div className="flex flex-col items-start gap-1.5 sm:gap-2">
+          <BackToVault light className="!mb-2 sm:!mb-3" />
           <span className="font-[Poppins] text-[10px] sm:text-[11px] tracking-[0.25em] uppercase font-light text-[#FCFBFA]/50">
             Studio Knowledge Base
           </span>
           <TrailText
             open={true}
             as="h1"
-            className="font-[Poppins] font-semibold text-[32px] sm:text-[44px] md:text-[54px] text-[#FCFBFA] leading-tight tracking-tight m-0"
+            className="font-[Poppins] font-semibold text-[26px] sm:text-[36px] md:text-[44px] text-[#FCFBFA] leading-tight tracking-tight m-0"
           >
             Frequently Asked Questions
           </TrailText>
-          <p className="font-[Poppins] font-light text-sm sm:text-base text-[#FCFBFA]/85 mt-2 mb-0 max-w-2xl leading-relaxed">
+          <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/85 mt-1 sm:mt-1.5 mb-0 max-w-2xl leading-relaxed">
             Detailed guidance on high jewellery 3D CGI rendering, multi-angle e-commerce catalog suites, cinematic campaign films, and digital on-body compositing.
           </p>
         </div>
 
         {/* Unified FAQ Section in One Single Glassy Container */}
-        <section className="w-full mt-10 md:mt-14" aria-label="Frequently Asked Questions">
-          <div className="glassy-container p-5 sm:p-8 md:p-12 w-full">
+        <section className="w-full mt-6 sm:mt-8 md:mt-10" aria-label="Frequently Asked Questions">
+          <div className="glassy-container p-4 sm:p-6 md:p-8 w-full">
             {/* Category Quick Filter Pills & Controls Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-              {/* Category Quick Filter Pills */}
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4 pb-4 sm:pb-5 border-b border-white/10">
+              {/* Category Quick Filter Pills (Horizontal scrollable to avoid vertical stacking) */}
+              <div
+                className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full pb-1 lg:pb-0 scrollbar-none [scroll-behavior:smooth]"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('all')}
-                  className={`rounded-full border text-[11px] tracking-[0.16em] uppercase px-3.5 py-1.5 transition-colors duration-200 font-[Poppins] ${
+                  className={`shrink-0 whitespace-nowrap rounded-full border text-[10px] sm:text-[11px] tracking-[0.14em] uppercase px-3 py-1.5 sm:px-3.5 sm:py-1.5 transition-colors duration-200 font-[Poppins] ${
                     selectedCategory === 'all'
                       ? 'border-white/40 text-white bg-white/10 shadow-sm'
                       : 'border-white/15 text-[#FCFBFA]/60 hover:border-white/30 hover:text-white bg-transparent'
@@ -126,7 +129,7 @@ export default function FaqPage() {
                     key={cat.id}
                     type="button"
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`rounded-full border text-[11px] tracking-[0.16em] uppercase px-3.5 py-1.5 transition-colors duration-200 font-[Poppins] ${
+                    className={`shrink-0 whitespace-nowrap rounded-full border text-[10px] sm:text-[11px] tracking-[0.14em] uppercase px-3 py-1.5 sm:px-3.5 sm:py-1.5 transition-colors duration-200 font-[Poppins] ${
                       selectedCategory === cat.id
                         ? 'border-white/40 text-white bg-white/10 shadow-sm'
                         : 'border-white/15 text-[#FCFBFA]/60 hover:border-white/30 hover:text-white bg-transparent'
@@ -138,7 +141,7 @@ export default function FaqPage() {
               </div>
 
               {/* Expand / Collapse Controls */}
-              <div className="flex items-center gap-3 self-end md:self-auto shrink-0 font-[Poppins] text-xs">
+              <div className="flex items-center justify-end gap-3 shrink-0 font-[Poppins] text-[11px] sm:text-xs pt-1 lg:pt-0">
                 <button
                   type="button"
                   onClick={() => toggleAll(true)}
@@ -158,7 +161,7 @@ export default function FaqPage() {
             </div>
 
             {/* Clean Flush FAQ List */}
-            <div className="mt-8 space-y-12 sm:space-y-16">
+            <div className="mt-6 sm:mt-8 space-y-8 sm:space-y-10">
               {displayedCategories.map((category) => (
                 <article
                   key={category.id}
@@ -167,33 +170,33 @@ export default function FaqPage() {
                   aria-labelledby={`cat-${category.id}`}
                 >
                   {/* Category Header — Clean Flush Left Alignment */}
-                  <div className="pb-3 border-b border-white/10">
+                  <div className="pb-2.5 border-b border-white/10">
                     <h2
                       id={`cat-${category.id}`}
-                      className="font-[Poppins] text-xl sm:text-2xl md:text-3xl font-medium text-[#FCFBFA] m-0 tracking-tight"
+                      className="font-[Poppins] text-lg sm:text-xl md:text-2xl font-medium text-[#FCFBFA] m-0 tracking-tight"
                     >
                       {category.title}
                     </h2>
                   </div>
 
                   {/* Direct Question & Answer Accordion Items (no inner subcategories, no tree connector line) */}
-                  <div className="space-y-3 mt-6">
+                  <div className="space-y-2.5 sm:space-y-3 mt-4 sm:mt-5">
                     {category.items.map((item) => (
                       <details
                         key={item.id}
                         id={`q-${item.id}`}
-                        className="faq-question-item group border border-white/10 hover:border-white/20 rounded-lg p-4 sm:p-5 bg-white/[0.02] transition-colors scroll-mt-28"
+                        className="faq-question-item group border border-white/10 hover:border-white/20 rounded-lg p-3.5 sm:p-4 md:p-5 bg-white/[0.02] transition-colors scroll-mt-28"
                       >
-                        <summary className="font-[Poppins] font-medium text-sm sm:text-base text-[#FCFBFA] cursor-pointer list-none flex justify-between items-center gap-4 select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded">
+                        <summary className="font-[Poppins] font-medium text-xs sm:text-sm md:text-base text-[#FCFBFA] cursor-pointer list-none flex justify-between items-center gap-4 select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded">
                           <span className="leading-snug">{item.question}</span>
                           <span
-                            className="text-[#FCFBFA]/60 group-open:text-white text-xl font-light shrink-0 transition-transform duration-200 group-open:rotate-45"
+                            className="text-[#FCFBFA]/60 group-open:text-white text-lg sm:text-xl font-light shrink-0 transition-transform duration-200 group-open:rotate-45"
                             aria-hidden="true"
                           >
                             +
                           </span>
                         </summary>
-                        <div className="pb-2 pt-4 px-1 font-[Poppins] font-light text-sm sm:text-[15px] leading-relaxed text-[#FCFBFA]/85 border-t border-white/5 mt-3.5">
+                        <div className="pb-1 pt-3 px-1 font-[Poppins] font-light text-xs sm:text-sm md:text-[15px] leading-relaxed text-[#FCFBFA]/85 border-t border-white/5 mt-3">
                           <AnswerText text={item.answer} />
                         </div>
                       </details>
@@ -204,7 +207,7 @@ export default function FaqPage() {
             </div>
 
             {/* Bottom Quiet Inquire CTA */}
-            <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 font-[Poppins]">
+            <div className="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 font-[Poppins]">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <span className="text-sm text-[#FCFBFA]/70 font-light">
                   Have a specific question about your collection or CAD files?

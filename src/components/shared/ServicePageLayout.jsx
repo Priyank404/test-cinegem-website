@@ -29,6 +29,7 @@ export function ServicePageLayout({
   hideFooter = false,
   noScroll = false,
   alwaysVisibleHeader = false,
+  mainClassName = '',
 }) {
   useSeo(seoKey || currentPage)
 
@@ -67,11 +68,13 @@ export function ServicePageLayout({
       {/* ── Page content ───────────────────────────────────────────────── */}
       <main
         className={
-          noScroll
+          mainClassName
+            ? mainClassName
+            : noScroll
             ? 'flex-1 w-full min-h-0 overflow-hidden flex flex-col pt-16 sm:pt-20 relative z-10'
             : fullBleed
             ? 'pt-20'
-            : 'pt-32 md:pt-48 pb-24 px-4 md:px-20 max-w-[1440px] mx-auto'
+            : 'pt-20 sm:pt-24 md:pt-28 pb-16 md:pb-24 px-4 sm:px-6 md:px-12 lg:px-20 max-w-[1440px] mx-auto'
         }
       >
         {children}
