@@ -10,6 +10,7 @@ import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { LightboxModal } from "@/components/shared/LightboxModal";
 import { useLightbox } from "@/hooks/useLightbox";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { cleanJewelryAlt } from "@/seo/alt";
 
 // Tracks the true, scrollbar-safe viewport width
 function useViewportWidth() {
@@ -320,6 +321,8 @@ function LongImagePair({ images, onOpen }) {
                 <img
                   src={img.thumb || img.src}
                   alt={img.alt}
+                  loading="lazy"
+                  decoding="async"
                   className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
                 />
               </button>
@@ -488,6 +491,8 @@ function OriginalLongImagePair({ images, onOpen }) {
           <img
             src={img.thumb || img.src}
             alt={img.alt}
+            loading="lazy"
+            decoding="async"
             className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
           />
         </button>
@@ -639,7 +644,11 @@ export default function CreativeVisualsPage() {
       const name = (i.filename || i.alt || i.src || "").toLowerCase();
       return !name.includes("banner") && !name.includes("hero");
     });
-    return filtered.length > 0 ? filtered : images;
+    const list = filtered.length > 0 ? filtered : images;
+    return list.map((item) => ({
+      ...item,
+      alt: cleanJewelryAlt(item, "Creative Visuals"),
+    }));
   }, [images]);
 
   return (

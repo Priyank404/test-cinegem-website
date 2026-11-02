@@ -4,31 +4,32 @@ import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { cleanJewelryAlt } from "@/seo/alt";
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════════════════════════════ */
 
 const galleryImages = [
-  { src: "1.png", alt: "On-body visualization" },
-  { src: "2.png", alt: "On-body visualization" },
-  { src: "3.png", alt: "On-body visualization" },
-  { src: "4.png", alt: "On-body visualization" },
-  { src: "5.jpg", alt: "On-body visualization" },
-  { src: "6.jpg", alt: "On-body visualization" },
-  { src: "7.jpg", alt: "On-body visualization" },
-  { src: "cinegem jewellery.png", alt: "On-body visualization" },
+  { src: "1.png", alt: "Solitaire diamond ring on hand model on-body 3D render — Cinegem Studio" },
+  { src: "2.png", alt: "Marquise diamond ring side angle on finger on-body 3D render — Cinegem Studio" },
+  { src: "3.png", alt: "Diamond engagement ring perspective on hand on-body 3D render — Cinegem Studio" },
+  { src: "4.png", alt: "Solitaire yellow gold ring close-up on hand on-body 3D render — Cinegem Studio" },
+  { src: "5.jpg", alt: "Diamond drop earrings on human ear on-body 3D render — Cinegem Studio" },
+  { src: "6.jpg", alt: "Fine jewellery pendant necklace on neck model on-body 3D render — Cinegem Studio" },
+  { src: "7.jpg", alt: "Luxury tennis bracelet on wrist on-body 3D render — Cinegem Studio" },
+  { src: "cinegem jewellery.png", alt: "Luxury high jewellery suite on-body 3D visualization — Cinegem Studio" },
   {
     src: "Band Ring With Enamel Marquise-Y-V1.jpg",
-    alt: "On-body visualization",
+    alt: "Yellow gold enamel band ring with marquise diamond on hand 3D render — Cinegem Studio",
   },
   {
     src: "G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
-    alt: "On-body visualization",
+    alt: "Diamond pendant necklace in 14K yellow gold on-body 3D render — Cinegem Studio",
   },
   {
     src: "Gemini_Generated_Image_udnfihudnfihudnf.png",
-    alt: "On-body visualization",
+    alt: "Editorial fine jewellery necklace on human collarbone 3D render — Cinegem Studio",
   },
 ];
 
@@ -542,7 +543,11 @@ function GlassyOnBodyGallery({ images }) {
 
 export default function OnBodyVisualizationPage() {
   const { images: dynamicImages } = useDriveMedia("On-Body Visualization");
-  const activeImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : galleryImages;
+  const baseImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : galleryImages;
+  const activeImages = baseImages.map((img) => ({
+    ...img,
+    alt: cleanJewelryAlt(img, "On-Body"),
+  }));
   const containerRef = useRef(null);
   const [isCleanGrid, setIsCleanGrid] = useState(false);
 

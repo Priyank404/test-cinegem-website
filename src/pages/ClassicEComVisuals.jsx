@@ -6,37 +6,38 @@ import { BackToVault } from "@/components/shared/BackToVault";
 import HeroSection from "@/components/sections/HeroSection";
 import RetrieveGridButton from "@/components/ui/RetrieveGridButton";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { cleanJewelryAlt } from "@/seo/alt";
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════════════════════════════ */
 
 const section1Images = [
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Solitaire Marquise front angle", label: "Front" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Solitaire Marquise profile", label: "Side" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Solitaire Marquise perspective", label: "Angle" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Solitaire Marquise crown detail", label: "Detail" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Solitaire marquise diamond ring front view in 18K yellow gold 3D render", label: "Front" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Solitaire marquise diamond ring side profile view in 18K yellow gold 3D render", label: "Side" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Solitaire marquise diamond ring perspective angle view in 18K yellow gold 3D render", label: "Angle" },
+  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Solitaire marquise diamond ring crown detail view in 18K yellow gold 3D render", label: "Detail" },
 ];
 
 const section2Images = [
   {
     src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png",
-    alt: "Front view",
+    alt: "Marquise diamond solitaire ring front view 3D render — Cinegem Studio",
     label: "Front",
   },
   {
     src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png",
-    alt: "Side view",
+    alt: "Marquise diamond solitaire ring profile view 3D render — Cinegem Studio",
     label: "Side",
   },
   {
     src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png",
-    alt: "Angle view",
+    alt: "Marquise diamond solitaire ring perspective view 3D render — Cinegem Studio",
     label: "Angle",
   },
   {
     src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png",
-    alt: "Detail view",
+    alt: "Marquise diamond solitaire ring macro detail view 3D render — Cinegem Studio",
     label: "Detail",
   },
 ];
@@ -44,22 +45,22 @@ const section2Images = [
 const section3Images = [
   {
     src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
-    alt: "Front view",
+    alt: "Diamond pendant necklace front view in 14K yellow gold 3D render — Cinegem Studio",
     label: "Front",
   },
   {
     src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png",
-    alt: "Side view",
+    alt: "Diamond pendant necklace side view in 14K yellow gold 3D render — Cinegem Studio",
     label: "Side",
   },
   {
     src: "/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png",
-    alt: "Detail view",
+    alt: "Diamond pendant necklace detail view in rose gold 3D render — Cinegem Studio",
     label: "Detail",
   },
   {
     src: "/G7P25CLACRAW0113D00-TZPDP00005-24Y-V3-WB.png",
-    alt: "Macro view",
+    alt: "Diamond pendant necklace macro view in 24K yellow gold 3D render — Cinegem Studio",
     label: "Macro",
   },
 ];
@@ -77,7 +78,13 @@ function ImageTile({ img, className = "" }) {
         ${className}
       `}
     >
-      <img src={img.src} alt={img.alt} className="w-full h-full object-cover block" />
+      <img
+        src={img.src}
+        alt={cleanJewelryAlt(img, "Classic E-Commerce")}
+        loading="lazy"
+        decoding="async"
+        className="w-full h-full object-cover block"
+      />
     </div>
   );
 }
@@ -99,6 +106,7 @@ function VideoPlayer({ videoSrc, className = "" }) {
           muted
           loop
           playsInline
+          preload="metadata"
         />
       ) : (
         <button
