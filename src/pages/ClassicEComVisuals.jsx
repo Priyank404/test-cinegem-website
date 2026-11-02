@@ -7,6 +7,8 @@ import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
+import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
+import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
 
 const ImageClickContext = createContext(null);
 
@@ -81,23 +83,23 @@ function ImageTile({ img, className = "" }) {
         ${className}
       `}
     >
-      <img
-        src={img.src}
+      <UniversalMediaTile
+        media={img}
         alt={cleanJewelryAlt(img, "Classic E-Commerce")}
-        loading="lazy"
-        decoding="async"
         className="w-full h-full object-cover block"
       />
     </div>
   );
 }
 
-function VideoPlayer({ videoSrc, className = "" }) {
+function VideoPlayer({ videoSrc, media, className = "" }) {
   const onOpen = useContext(ImageClickContext);
+  const activeMedia = media || (typeof videoSrc === "object" ? videoSrc : { src: videoSrc, isVideo: isMediaVideo(videoSrc) });
+
   return (
     <div
       onClick={() => {
-        if (videoSrc) onOpen?.({ src: videoSrc, isVideo: true });
+        if (activeMedia) onOpen?.(activeMedia);
       }}
       className={`
         relative flex items-center justify-center
@@ -105,37 +107,21 @@ function VideoPlayer({ videoSrc, className = "" }) {
         ${className}
       `}
     >
-      {videoSrc ? (
+      {activeMedia ? (
         <>
-          <video
-            src={videoSrc}
+          <UniversalMediaTile
+            media={activeMedia}
             className="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+            videoClassName="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
+            imageClassName="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
           />
-          <div className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             <svg className="w-3.5 h-3.5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
           </div>
         </>
-      ) : (
-        <button
-          aria-label="Play product video"
-          className="w-14 h-14 border border-white/60 bg-white/10 flex items-center justify-center hover:bg-white/20 transition rounded-full"
-        >
-          <svg
-            className="w-6 h-6 text-white ml-1"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -504,7 +490,9 @@ function OriginalSection3({ images = [], videoSrc }) {
   );
 }
 
-function Section1({ images, videoSrc }) {
+function Section1({ featuredMedia, gridMedia = [], images, videoSrc }) {
+  const activeFeatured = featuredMedia || videoSrc;
+  const activeGrid = gridMedia.length > 0 ? gridMedia : (images || []);
   return (
     <section
       className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10"
@@ -513,9 +501,9 @@ function Section1({ images, videoSrc }) {
       <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE + TABLET (<lg) — stacked: 1:1 video on top (top corners rounded), 2x2 grid below (bottom corners rounded) */}
         <div className="flex flex-col gap-1 lg:hidden">
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-square rounded-t-[12px] rounded-b-none" />
+          <VideoPlayer media={activeFeatured} videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src} className="w-full aspect-square rounded-t-[12px] rounded-b-none" />
           <div className="grid grid-cols-2 gap-1 w-full">
-            {images.slice(0, 4).map((img, i) => {
+            {activeGrid.slice(0, 4).map((img, i) => {
               const cornerClass =
                 i === 2
                   ? "rounded-bl-[12px]"
@@ -534,12 +522,12 @@ function Section1({ images, videoSrc }) {
         <div className="hidden lg:grid grid-cols-2 gap-1 w-full items-stretch justify-center max-h-[82vh]">
           {/* Video on left: outer left corners rounded, inner right corners sharp */}
           <div className="w-full h-full aspect-square overflow-hidden rounded-l-[12px] rounded-r-none">
-            <VideoPlayer videoSrc={videoSrc} className="w-full h-full aspect-square rounded-l-[12px] rounded-r-none" />
+            <VideoPlayer media={activeFeatured} videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src} className="w-full h-full aspect-square rounded-l-[12px] rounded-r-none" />
           </div>
 
           {/* 2x2 grid on right: only outer top-right (img 1) and outer bottom-right (img 3) rounded */}
           <div className="w-full h-full aspect-square grid grid-cols-2 grid-rows-2 gap-1">
-            {images.slice(0, 4).map((img, i) => {
+            {activeGrid.slice(0, 4).map((img, i) => {
               // 0: top-left (inner joint with video & img 1) -> sharp
               // 1: top-right (outer container corner) -> rounded-tr
               // 2: bottom-left (inner joint with video & img 3) -> sharp
@@ -571,14 +559,16 @@ function Section1({ images, videoSrc }) {
    Outer 4 corners rounded; all 6 inner junctions completely square (0 radius)
 ═══════════════════════════════════════════════════════════════════════ */
 
-function Section2({ images, videoSrc }) {
+function Section2({ rowMedia = [], stripMedia, images, videoSrc }) {
+  const activeRow = rowMedia.length > 0 ? rowMedia : (images || []);
+  const activeStrip = stripMedia || videoSrc;
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10">
       <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE / TABLET (<lg) */}
         <div className="flex flex-col gap-1 lg:hidden">
-          <PeekCarousel images={images} />
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[16/10] rounded-b-[12px] rounded-t-none" />
+          <PeekCarousel images={activeRow} />
+          <VideoPlayer media={activeStrip} videoSrc={typeof activeStrip === "string" ? activeStrip : activeStrip?.src} className="w-full aspect-[16/10] rounded-b-[12px] rounded-t-none" />
         </div>
 
         {/* DESKTOP — 4 equal square tiles in a row, video strip below
@@ -587,7 +577,7 @@ function Section2({ images, videoSrc }) {
             All inner seams are sharp 90°. */}
         <div className="hidden lg:flex flex-col gap-1">
           <div className="grid grid-cols-4 gap-1 w-full">
-            {images.slice(0, 4).map((img, i) => {
+            {activeRow.slice(0, 4).map((img, i) => {
               const cornerClass =
                 i === 0
                   ? "rounded-tl-[12px] rounded-tr-none rounded-bl-none rounded-br-none"
@@ -604,7 +594,7 @@ function Section2({ images, videoSrc }) {
               );
             })}
           </div>
-          <VideoPlayer videoSrc={videoSrc} className="w-full aspect-[21/9] rounded-b-[12px] rounded-t-none" />
+          <VideoPlayer media={activeStrip} videoSrc={typeof activeStrip === "string" ? activeStrip : activeStrip?.src} className="w-full aspect-[21/9] rounded-b-[12px] rounded-t-none" />
         </div>
       </div>
     </section>
@@ -616,11 +606,12 @@ function Section2({ images, videoSrc }) {
    Outer left & outer right corners rounded; inner seams sharp 90°.
 ═══════════════════════════════════════════════════════════════════════ */
 
-function Section3({ images = [], videoSrc }) {
-  const hero = images[0] || section3Images[0];
-  const img2 = images[1] || section3Images[1];
-  const img3 = images[2] || section3Images[2];
-  const img4 = images[3] || section3Images[3];
+function Section3({ mediaItems = [], images = [], videoSrc }) {
+  const hero = mediaItems[0] || images[0] || section3Images[0];
+  const img2 = mediaItems[1] || images[1] || section3Images[1];
+  const centerMedia = mediaItems[2] || videoSrc;
+  const img3 = mediaItems[3] || images[2] || section3Images[2];
+  const img4 = mediaItems[4] || images[3] || section3Images[3];
 
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-12">
@@ -629,7 +620,8 @@ function Section3({ images = [], videoSrc }) {
         <div className="lg:hidden">
           <MainPreviewCarousel
             images={[hero, img2, img3, img4]}
-            videoSrc={videoSrc}
+            videoSrc={typeof centerMedia === "string" ? centerMedia : centerMedia?.src}
+            mediaCenter={centerMedia}
             heightClassName="h-[72vh] sm:h-[78vh] md:h-[100vh]"
           />
         </div>
@@ -639,7 +631,7 @@ function Section3({ images = [], videoSrc }) {
         <div className="hidden lg:flex flex-row gap-1 items-stretch justify-center h-[72vh]">
           <ImageTile img={hero} className="h-full aspect-square rounded-l-[12px] rounded-r-none" />
           <ImageTile img={img2} className="h-full aspect-square rounded-none" />
-          <VideoPlayer videoSrc={videoSrc} className="h-full aspect-[5/4] rounded-none" />
+          <VideoPlayer media={centerMedia} videoSrc={typeof centerMedia === "string" ? centerMedia : centerMedia?.src} className="h-full aspect-[5/4] rounded-none" />
           <ImageTile img={img3} className="h-full aspect-square rounded-none" />
           <ImageTile img={img4} className="h-full aspect-square rounded-r-[12px] rounded-l-none" />
         </div>
@@ -747,18 +739,56 @@ export default function ClassicEComVisuals({
   const dynamicVideo2 = videos[1]?.src || videoSrc2;
   const dynamicVideo3 = videos[2]?.src || videoSrc3;
 
+  // UNIVERSAL POSITION-BASED MEDIA RESOLUTION (Positions 1 to 15):
+  // Section 1:
+  // Position 1: Featured 1:1 box (left)
+  const pos1Media = resolveMediaForPosition(items, 1, { src: dynamicVideo1, isVideo: true, alt: "Classic E-Commerce Showcase Video 1" });
+  // Positions 2..5: 2x2 grid (right)
+  const pos2To5Media = [2, 3, 4, 5].map((pos, i) =>
+    resolveMediaForPosition(items, pos, dynamicSec1Images[i])
+  );
+
+  // Section 2:
+  // Positions 6..9: 4-image row (top)
+  const pos6To9Media = [6, 7, 8, 9].map((pos, i) =>
+    resolveMediaForPosition(items, pos, dynamicSec2Images[i])
+  );
+  // Position 10: Video strip (below)
+  const pos10Media = resolveMediaForPosition(items, 10, { src: dynamicVideo2, isVideo: true, alt: "Classic E-Commerce Turntable Video 2" });
+
+  // Section 3:
+  // Positions 11..15: 5-column row
+  const pos11Media = resolveMediaForPosition(items, 11, dynamicSec3Images[0]);
+  const pos12Media = resolveMediaForPosition(items, 12, dynamicSec3Images[1]);
+  const pos13Media = resolveMediaForPosition(items, 13, { src: dynamicVideo3, isVideo: true, alt: "Classic E-Commerce Showcase Video 3" });
+  const pos14Media = resolveMediaForPosition(items, 14, dynamicSec3Images[2]);
+  const pos15Media = resolveMediaForPosition(items, 15, dynamicSec3Images[3]);
+
   const [galleryIndex, setGalleryIndex] = useState(null);
 
   const allClassicMedia = useMemo(() => {
-    const list = [];
-    list.push(...dynamicSec1Images);
-    if (dynamicVideo1) list.push({ src: dynamicVideo1, isVideo: true, alt: "Classic E-Commerce Showcase Video 1" });
-    list.push(...dynamicSec2Images);
-    if (dynamicVideo2) list.push({ src: dynamicVideo2, isVideo: true, alt: "Classic E-Commerce Turntable Video 2" });
-    list.push(...dynamicSec3Images);
-    if (dynamicVideo3) list.push({ src: dynamicVideo3, isVideo: true, alt: "Classic E-Commerce Showcase Video 3" });
-    return list;
-  }, [dynamicSec1Images, dynamicSec2Images, dynamicSec3Images, dynamicVideo1, dynamicVideo2, dynamicVideo3]);
+    return [
+      pos1Media,
+      ...pos2To5Media,
+      ...pos6To9Media,
+      pos10Media,
+      pos11Media,
+      pos12Media,
+      pos13Media,
+      pos14Media,
+      pos15Media,
+    ].filter(Boolean);
+  }, [
+    pos1Media,
+    pos2To5Media,
+    pos6To9Media,
+    pos10Media,
+    pos11Media,
+    pos12Media,
+    pos13Media,
+    pos14Media,
+    pos15Media,
+  ]);
 
   const handleOpenMedia = (media) => {
     const targetSrc = typeof media === "string" ? media : media?.src;
@@ -781,9 +811,9 @@ export default function ClassicEComVisuals({
 
       <div ref={containerRef} className="relative z-10">
         <ImageClickContext.Provider value={handleOpenMedia}>
-          <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
-          <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
-          <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+          <Section1 featuredMedia={pos1Media} gridMedia={pos2To5Media} images={dynamicSec1Images} videoSrc={dynamicVideo1} />
+          <Section2 rowMedia={pos6To9Media} stripMedia={pos10Media} images={dynamicSec2Images} videoSrc={dynamicVideo2} />
+          <Section3 mediaItems={[pos11Media, pos12Media, pos13Media, pos14Media, pos15Media]} images={dynamicSec3Images} videoSrc={dynamicVideo3} />
         </ImageClickContext.Provider>
       </div>
 

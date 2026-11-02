@@ -9,6 +9,8 @@ import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
+import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
+import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
 
 // Tracks the true, scrollbar-safe viewport width
 function useViewportWidth() {
@@ -26,103 +28,88 @@ function useViewportWidth() {
   LAYOUT COMPONENTS
 ═══════════════════════════════════════════════════════════════════════ */
 
-// Section 1 & 2 layout: video on one side at 50% width, compact 2x2 grid on the other.
-function FullWidthVideoWithImagesBelow({ video, images, onOpen, reverse }) {
-  const vw = useViewportWidth();
-  const videoRef = useRef(null);
-  const [videoHeight, setVideoHeight] = useState(null);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    const measure = () => setVideoHeight(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
+// Section 1 & 2 layout: featured media on one side (50% width), 2-column by 4-row square grid on the other.
+// Both sides use UniversalMediaTile so any slot can be image or video based on filename position.
+// Crucially, the 8 grid items define their own aspect-square (1:1), so the container NEVER squeezes down.
+function FullWidthVideoWithImagesBelow({
+  featuredMedia,
+  gridMedia = [],
+  onOpen,
+  reverse = false,
+  // legacy aliases for backward compatibility
+  video,
+  images,
+}) {
+  const activeFeatured = featuredMedia || video;
+  const activeGrid = gridMedia && gridMedia.length > 0 ? gridMedia : (images || []);
 
   return (
     <section className="relative w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10">
       <div className="glassy-container">
         <div
-          className={`flex flex-col gap-1 md:items-start ${
+          className={`flex flex-col gap-1 md:items-stretch ${
             reverse ? "md:flex-row-reverse" : "md:flex-row"
           }`}
         >
-          {/* Video: on mobile, video is always on top (rounded-t, rounded-b-none).
-              On desktop, outer side corners are rounded (md:rounded-l or md:rounded-r), inner seam is sharp (0px) */}
+          {/* Featured media (Position 1 on left, or Position 18 on right):
+              Stretches to match the 4-row grid height. If media is 1:1, the container does NOT squeeze! */}
           <div
-            onClick={() => onOpen?.({ src: video.src, isVideo: true })}
-            className={`w-full md:w-1/2 overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none cursor-pointer ${
+            onClick={() => onOpen?.(activeFeatured)}
+            className={`w-full md:w-1/2 self-stretch min-h-0 relative overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none cursor-pointer flex items-center justify-center ${
               reverse
                 ? "md:rounded-r-[12px] md:rounded-l-none"
                 : "md:rounded-l-[12px] md:rounded-r-none"
             }`}
           >
-            <video
-              ref={videoRef}
-              src={video.src}
-              className={`block w-full h-auto [border-radius:inherit] rounded-t-[12px] rounded-b-none ${
+            <UniversalMediaTile
+              media={activeFeatured}
+              className={`w-full h-full [border-radius:inherit] rounded-t-[12px] rounded-b-none ${
                 reverse
                   ? "md:rounded-r-[12px] md:rounded-l-none"
                   : "md:rounded-l-[12px] md:rounded-r-none"
               }`}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
+              videoClassName="w-full h-full object-cover block"
+              imageClassName="w-full h-full object-cover block"
             />
           </div>
-          {/* Images: compact grid matching the video height.
-              On mobile (<md), video is on top, so top row (i=0, 1) meets video with SHARP 0px (no radius in the middle).
-              Bottom row (i=6, 7) has outer bottom corners rounded (rounded-bl, rounded-br).
-              On desktop (md+), outer corners rounded, inner seam facing video is sharp 0px. */}
-          <div
-            className="w-full md:w-1/2 grid grid-cols-2 grid-rows-4 gap-1 content-start overflow-hidden bg-transparent"
-            style={videoHeight ? { height: videoHeight } : undefined}
-          >
-            {images.slice(0, 8).map((img, i) => {
-              // 2 columns: col 0 = even indices (0, 2, 4, 6), col 1 = odd indices (1, 3, 5, 7)
-              // 4 rows: row 0 (0,1), row 1 (2,3), row 2 (4,5), row 3 (6,7)
+
+          {/* 8-cell Grid (Positions 2..9 or 10..17):
+              2 columns of true 1:1 squares (aspect-square).
+              Because each cell is aspect-square, this container dictates its own natural height
+              and is NEVER squeezed by whatever aspect ratio media is placed in the featured box! */}
+          <div className="w-full md:w-1/2 grid grid-cols-2 gap-1 content-start overflow-hidden bg-transparent">
+            {activeGrid.slice(0, 8).map((item, i) => {
               let cornerClass = "rounded-none";
 
               if (!reverse) {
-                // Video is on left on desktop:
-                // Mobile (<md): top meets video (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
+                // Featured is on left on desktop:
+                // Mobile (<md): top meets featured (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
                 // Desktop (md+): outer right has md:rounded-tr (i=1) and md:rounded-br (i=7); inner left is sharp (md:rounded-bl-none)
                 if (i === 1) cornerClass = "rounded-none md:rounded-tr-[12px]";
                 else if (i === 6) cornerClass = "rounded-bl-[12px] md:rounded-bl-none";
                 else if (i === 7) cornerClass = "rounded-br-[12px]";
               } else {
-                // Video is on right on desktop:
-                // Mobile (<md): top meets video (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
-                // Desktop (md+): outer left has md:rounded-tl (i=0) and md:rounded-bl (i=6); inner right facing video is sharp (md:rounded-br-none)
+                // Featured is on right on desktop:
+                // Mobile (<md): top meets featured (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
+                // Desktop (md+): outer left has md:rounded-tl (i=0) and md:rounded-bl (i=6); inner right facing featured is sharp (md:rounded-br-none)
                 if (i === 0) cornerClass = "rounded-none md:rounded-tl-[12px]";
                 else if (i === 6) cornerClass = "rounded-bl-[12px]";
                 else if (i === 7) cornerClass = "rounded-br-[12px] md:rounded-br-none";
               }
 
               return (
-                <button
-                  key={img.src}
-                  type="button"
-                  onClick={() => onOpen?.(img)}
-                  aria-label={`Zoom in on ${img.alt}`}
-                  className={`relative block w-full h-full cursor-pointer focus:outline-none overflow-hidden bg-transparent border-0 group ${cornerClass}`}
+                <div
+                  key={item?.src || i}
+                  className={`relative block w-full aspect-square overflow-hidden bg-transparent border-0 ${cornerClass}`}
                 >
-                  <img
-                    src={img.thumb || img.src}
-                    alt={img.alt}
-                    className="block w-full h-full object-cover"
-                    loading="lazy"
+                  <UniversalMediaTile
+                    media={item}
+                    onClick={onOpen}
+                    className={`w-full h-full aspect-square ${cornerClass}`}
+                    videoClassName="w-full h-full aspect-square object-cover block"
+                    imageClassName="w-full h-full aspect-square object-cover block"
                   />
-                </button>
+                </div>
               );
             })}
           </div>
@@ -230,18 +217,20 @@ function useVideoBgColor(src, customBg) {
   return bgStyle;
 }
 
-// Full-screen showcase video (Section 3 & 5)
+// Full-screen showcase media (Section 3 & 5)
 // Spans the full viewport width (100vw) and height (100vh).
 // Sticks to the whole screen with a magnetic lock for an immersive showcase.
-function FullWidthVideo({ src, driftUp, bgColor, onOpen }) {
+function FullWidthVideo({ src, media, driftUp, bgColor, onOpen }) {
+  const activeMedia = media || { src, isVideo: isMediaVideo(src) };
   const trackRef = useRef(null);
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
   const [offset, setOffset] = useState(0);
   const vw = useViewportWidth();
-  const bgStyle = useVideoBgColor(src, bgColor);
+  const bgStyle = useVideoBgColor(activeMedia?.src || src, bgColor);
   const isSnappingRef = useRef(false);
   const scrollTimeoutRef = useRef(null);
+  const isVideo = isMediaVideo(activeMedia);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -314,56 +303,69 @@ function FullWidthVideo({ src, driftUp, bgColor, onOpen }) {
           height: "100vh",
         }}
       >
-        <video
-          ref={videoRef}
-          src={src}
-          crossOrigin="anonymous"
-          onClick={() => onOpen?.({ src, isVideo: true })}
-          className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
-          style={{
-            ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
-            WebkitMaskImage:
-              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-            maskImage:
-              "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-          }}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={activeMedia?.src || src}
+            crossOrigin="anonymous"
+            onClick={() => onOpen?.(activeMedia)}
+            className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
+            style={{
+              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+            }}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
+        ) : (
+          <img
+            src={activeMedia?.thumb || activeMedia?.src || src}
+            alt={activeMedia?.alt || "Cinegem Studio Showcase"}
+            onClick={() => onOpen?.(activeMedia)}
+            className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
+            style={{
+              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
+            }}
+          />
+        )}
       </section>
     </div>
   );
 }
 
-// Long image pair (Section 4)
+// Long media pair (Section 4)
 function LongImagePair({ images, onOpen }) {
   return (
     <section className="relative w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10">
       <div className="glassy-container">
         <div className="flex flex-col md:flex-row gap-1">
-          {images.map((img, i) => {
+          {images.map((item, i) => {
             const cornerClass =
               i === 0
                 ? "rounded-t-[12px] md:rounded-t-none md:rounded-l-[12px] md:rounded-r-none"
                 : "rounded-b-[12px] md:rounded-b-none md:rounded-r-[12px] md:rounded-l-none";
             return (
-              <button
-                key={img.src}
-                type="button"
-                onClick={() => onOpen?.(img)}
+              <div
+                key={item?.src || i}
+                onClick={() => onOpen?.(item)}
                 className={`block ${images.length === 1 ? "w-full rounded-[12px]" : "w-full md:w-1/2"} cursor-pointer focus:outline-none group overflow-hidden bg-transparent border-0 ${images.length > 1 ? cornerClass : ""}`}
               >
-                <img
-                  src={img.thumb || img.src}
-                  alt={img.alt}
-                  loading="lazy"
-                  decoding="async"
+                <UniversalMediaTile
+                  media={item}
+                  onClick={onOpen}
                   className="block w-full h-auto"
                 />
-              </button>
+              </div>
             );
           })}
         </div>
@@ -603,31 +605,59 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
         mediaIndex: findIndex(img.src),
       }));
 
-      // Section 1: 8 images, Section 2: 8 images, Section 4: 2 images
-      const s1Images = cImages.slice(0, 8);
-      const s2Images = cImages.slice(8, 16);
-      const s4Images = cImages.slice(16, 18);
+      // Fallback media if no numbered filename override is present
+      const s1FallbackImages = cImages.slice(0, 8);
+      const s2FallbackImages = cImages.slice(8, 16);
+      const s4FallbackImages = cImages.slice(16, 18);
 
-      const v1 = getVideo(c * 4 + 0, "/Creative visuals/A6-R3-HQ.mp4");
-      const v2 = getVideo(c * 4 + 1, "/Creative visuals/KC-A01-TR1 .mp4");
-      const v3 =
+      const v1Fallback = getVideo(c * 4 + 0, "/Creative visuals/A6-R3-HQ.mp4");
+      const v2Fallback = getVideo(c * 4 + 1, "/Creative visuals/KC-A01-TR1 .mp4");
+      const v3Fallback =
         (hasDriveVideos && videos.length > c * 4 + 2) || c === 0
           ? getVideo(c * 4 + 2, "/Creative visuals/M-Video.mp4")
           : null;
-      const v4 =
+      const v4Fallback =
         (hasDriveVideos && videos.length > c * 4 + 3) || c === 0
           ? getVideo(c * 4 + 3, "/Creative visuals/360 Turntable black.mp4")
           : null;
 
+      // UNIVERSAL POSITION-BASED MEDIA RESOLUTION:
+      // Position 1: Featured Left (Section 1) — Blue Box
+      const s1Featured = resolveMediaForPosition(mediaItems, 1 + c * 22, v1Fallback);
+
+      // Positions 2..9: 8 Grid Tiles (Section 1) — Red Box is Position 2
+      const s1Grid = [2, 3, 4, 5, 6, 7, 8, 9].map((pos, i) =>
+        resolveMediaForPosition(mediaItems, pos + c * 22, s1FallbackImages[i])
+      );
+
+      // Positions 10..17: 8 Grid Tiles (Section 2)
+      const s2Grid = [10, 11, 12, 13, 14, 15, 16, 17].map((pos, i) =>
+        resolveMediaForPosition(mediaItems, pos + c * 22, s2FallbackImages[i])
+      );
+
+      // Position 18: Featured Right (Section 2)
+      const s2Featured = resolveMediaForPosition(mediaItems, 18 + c * 22, v2Fallback);
+
+      // Position 19: Full-width showcase video / image (Section 3)
+      const s3Media = resolveMediaForPosition(mediaItems, 19 + c * 22, v3Fallback);
+
+      // Positions 20, 21: Dual side-by-side media (Section 4)
+      const s4Media = [20, 21].map((pos, i) =>
+        resolveMediaForPosition(mediaItems, pos + c * 22, s4FallbackImages[i])
+      );
+
+      // Position 22: Parallax Turntable media (Section 5)
+      const s5Media = resolveMediaForPosition(mediaItems, 22 + c * 22, v4Fallback);
+
       list.push({
         cycleIndex: c,
-        s1Images,
-        s2Images,
-        s4Images,
-        v1,
-        v2,
-        v3,
-        v4,
+        s1Featured,
+        s1Grid,
+        s2Grid,
+        s2Featured,
+        s3Media,
+        s4Media,
+        s5Media,
       });
     }
     return list;
@@ -635,51 +665,40 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      {cycles.map(({ cycleIndex, s1Images, s2Images, s4Images, v1, v2, v3, v4 }) => (
+      {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2Grid, s2Featured, s3Media, s4Media, s5Media }) => (
         <div key={`cycle-${cycleIndex}`} className="flex flex-col gap-16 md:gap-24">
-          {/* Section 1: Video Left + 8 Images Right */}
-          {s1Images.length > 0 && v1 && (
-            isClean ? (
-              <OriginalVideoWithImages video={v1} images={s1Images} onOpen={onOpen} />
-            ) : (
-              <FullWidthVideoWithImagesBelow video={v1} images={s1Images} onOpen={onOpen} />
-            )
+          {/* Section 1: Featured Left (Pos 1) + 8 Grid Right (Pos 2..9) */}
+          {s1Featured && s1Grid.length > 0 && (
+            <FullWidthVideoWithImagesBelow
+              featuredMedia={s1Featured}
+              gridMedia={s1Grid}
+              onOpen={onOpen}
+            />
           )}
 
-          {/* Section 2: 8 Images Left + Video Right */}
-          {s2Images.length > 0 && v2 && (
-            isClean ? (
-              <OriginalVideoWithImages video={v2} images={s2Images} onOpen={onOpen} reverse={true} />
-            ) : (
-              <FullWidthVideoWithImagesBelow video={v2} images={s2Images} onOpen={onOpen} reverse={true} />
-            )
+          {/* Section 2: 8 Grid Left (Pos 10..17) + Featured Right (Pos 18) */}
+          {s2Featured && s2Grid.length > 0 && (
+            <FullWidthVideoWithImagesBelow
+              featuredMedia={s2Featured}
+              gridMedia={s2Grid}
+              onOpen={onOpen}
+              reverse={true}
+            />
           )}
 
-          {/* Section 3: Full-Width Showcase Video */}
-          {v3 && (
-            isClean ? (
-              <OriginalFullWidthVideo src={v3.src} />
-            ) : (
-              <FullWidthVideo src={v3.src} onOpen={onOpen} />
-            )
+          {/* Section 3: Full-Width Showcase Video / Image (Pos 19) */}
+          {s3Media && (
+            <FullWidthVideo media={s3Media} src={s3Media.src} onOpen={onOpen} />
           )}
 
-          {/* Section 4: Dual Images Side-by-Side */}
-          {s4Images.length > 0 && (
-            isClean ? (
-              <OriginalLongImagePair images={s4Images} onOpen={onOpen} />
-            ) : (
-              <LongImagePair images={s4Images} onOpen={onOpen} />
-            )
+          {/* Section 4: Dual Media Side-by-Side (Pos 20, 21) */}
+          {s4Media.length > 0 && (
+            <LongImagePair images={s4Media} onOpen={onOpen} />
           )}
 
-          {/* Section 5: Parallax Turntable Video */}
-          {v4 && (
-            isClean ? (
-              <OriginalFullWidthVideo src={v4.src} driftUp />
-            ) : (
-              <FullWidthVideo src={v4.src} driftUp onOpen={onOpen} />
-            )
+          {/* Section 5: Parallax Turntable Media (Pos 22) */}
+          {s5Media && (
+            <FullWidthVideo media={s5Media} src={s5Media.src} driftUp onOpen={onOpen} />
           )}
         </div>
       ))}
@@ -729,27 +748,40 @@ export default function CreativeVisualsPage() {
   }, [images]);
 
   const allCreativeMedia = useMemo(() => {
-    const list = [...storyImages];
-    if (videos && videos.length > 0) {
-      videos.forEach((v) => {
-        if (v && v.src && !list.some((item) => item.src === v.src)) {
-          list.push({ ...v, isVideo: true });
+    const list = [];
+    if (items && items.length > 0) {
+      items.forEach((item) => {
+        if (!list.some((existing) => existing.src === item.src)) {
+          list.push({
+            ...item,
+            isVideo: isMediaVideo(item),
+            alt: cleanJewelryAlt(item, "Creative Visuals"),
+          });
         }
       });
     } else {
-      [
-        "/Creative visuals/A6-R3-HQ.mp4",
-        "/Creative visuals/KC-A01-TR1 .mp4",
-        "/Creative visuals/M-Video.mp4",
-        "/Creative visuals/360 Turntable black.mp4",
-      ].forEach((src) => {
-        if (!list.some((item) => item.src === src)) {
-          list.push({ src, isVideo: true, alt: "Creative Visuals Motion Showcase" });
-        }
-      });
+      storyImages.forEach((img) => list.push(img));
+      if (videos && videos.length > 0) {
+        videos.forEach((v) => {
+          if (!list.some((item) => item.src === v.src)) {
+            list.push({ ...v, isVideo: true });
+          }
+        });
+      } else {
+        [
+          "/Creative visuals/A6-R3-HQ.mp4",
+          "/Creative visuals/KC-A01-TR1 .mp4",
+          "/Creative visuals/M-Video.mp4",
+          "/Creative visuals/360 Turntable black.mp4",
+        ].forEach((src) => {
+          if (!list.some((item) => item.src === src)) {
+            list.push({ src, isVideo: true, alt: "Creative Visuals Motion Showcase" });
+          }
+        });
+      }
     }
     return list;
-  }, [storyImages, videos]);
+  }, [items, storyImages, videos]);
 
   const handleOpenMedia = (media) => {
     const targetSrc = typeof media === "string" ? media : media?.src;

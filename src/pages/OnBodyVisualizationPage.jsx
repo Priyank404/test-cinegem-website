@@ -5,6 +5,8 @@ import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
+import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
+import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
 
 const ImageClickContext = createContext(null);
 
@@ -133,23 +135,24 @@ function chunk(images, size) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 function OriginalTile({ img, width, height }) {
+  const onOpen = useContext(ImageClickContext);
   return (
     <div
+      onClick={() => onOpen?.(img)}
       className="
         shrink-0
         relative overflow-hidden bg-[#FAF9F6]
         border border-[#c4c7c7]/40 gallery-shadow
         hover:-translate-y-1 transition-all duration-300
+        cursor-pointer
       "
       style={{ width, height }}
     >
-      <img
-        src={img.src}
-        alt={img.alt}
-        loading="lazy"
-        decoding="async"
+      <UniversalMediaTile
+        media={img}
         className="block w-full h-full object-contain object-center"
-        style={{ transform: "translateZ(0)", backfaceVisibility: "hidden" }}
+        imageClassName="block w-full h-full object-contain object-center"
+        videoClassName="block w-full h-full object-contain object-center"
       />
     </div>
   );
@@ -300,12 +303,11 @@ function GlassyTile({ img, width, height, cornerClass = "", cornerStyle = {} }) 
         ...cornerStyle,
       }}
     >
-      <img
-        src={img.src}
-        alt={img.alt}
-        loading="lazy"
-        decoding="async"
+      <UniversalMediaTile
+        media={img}
         className={`block w-full h-full object-cover object-center ${cornerClass}`}
+        imageClassName={`block w-full h-full object-cover object-center ${cornerClass}`}
+        videoClassName={`block w-full h-full object-cover object-center ${cornerClass}`}
         style={{
           transform: "translateZ(0)",
           backfaceVisibility: "hidden",
@@ -545,12 +547,21 @@ function GlassyOnBodyGallery({ images }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
-  const { images: dynamicImages, videos: dynamicVideos } = useDriveMedia("On-Body Visualization");
-  const baseImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : galleryImages;
-  const activeImages = baseImages.map((img) => ({
-    ...img,
-    alt: cleanJewelryAlt(img, "On-Body"),
-  }));
+  const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useDriveMedia("On-Body Visualization");
+  const mediaPool = (dynamicItems && dynamicItems.length > 0) ? dynamicItems : (dynamicImages || []);
+  const basePool = mediaPool.length > 0 ? mediaPool : galleryImages;
+
+  // Resolve media by position (1, 2, 3...)
+  const activeImages = useMemo(() => {
+    return basePool.map((fallbackItem, i) => {
+      const resolved = resolveMediaForPosition(mediaPool, i + 1, fallbackItem);
+      return {
+        ...resolved,
+        alt: cleanJewelryAlt(resolved, "On-Body"),
+      };
+    });
+  }, [basePool, mediaPool]);
+
   const containerRef = useRef(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
 
