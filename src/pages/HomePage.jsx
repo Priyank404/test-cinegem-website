@@ -1246,6 +1246,9 @@ export default function HomePage() {
 
   return (
     <div className="hero2-page">
+      <h1 className="sr-only">Cinegem Studio — jewellery 3D rendering and cinematic CGI</h1>
+      <p className="sr-only">Cinegem Studio creates photorealistic jewellery renders, cinematic CGI animation and on-body visualization for luxury jewellery brands.</p>
+
       {/* Cinematic Luxury Loading Screen — completes only when 3D ring & assets are loaded */}
       <LoadingScreen
         isLoading={isLoading}
