@@ -57,7 +57,8 @@ function FullWidthVideoWithImagesBelow({ video, images, onOpen, reverse }) {
           {/* Video: on mobile, video is always on top (rounded-t, rounded-b-none).
               On desktop, outer side corners are rounded (md:rounded-l or md:rounded-r), inner seam is sharp (0px) */}
           <div
-            className={`w-full md:w-1/2 overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none ${
+            onClick={() => onOpen?.({ src: video.src, isVideo: true })}
+            className={`w-full md:w-1/2 overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none cursor-pointer ${
               reverse
                 ? "md:rounded-r-[12px] md:rounded-l-none"
                 : "md:rounded-l-[12px] md:rounded-r-none"
@@ -232,7 +233,7 @@ function useVideoBgColor(src, customBg) {
 // Full-screen showcase video (Section 3 & 5)
 // Spans the full viewport width (100vw) and height (100vh).
 // Sticks to the whole screen with a magnetic lock for an immersive showcase.
-function FullWidthVideo({ src, driftUp, bgColor }) {
+function FullWidthVideo({ src, driftUp, bgColor, onOpen }) {
   const trackRef = useRef(null);
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
@@ -317,7 +318,8 @@ function FullWidthVideo({ src, driftUp, bgColor }) {
           ref={videoRef}
           src={src}
           crossOrigin="anonymous"
-          className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+          onClick={() => onOpen?.({ src, isVideo: true })}
+          className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
           style={{
             ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
             WebkitMaskImage:
@@ -535,7 +537,8 @@ function OriginalFullWidthVideo({ src, driftUp }) {
           ref={videoRef}
           src={src}
           crossOrigin="anonymous"
-          className="block w-full h-full max-h-screen max-w-full object-contain select-none"
+          onClick={() => onOpen?.({ src, isVideo: true })}
+          className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
           style={{
             ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
             WebkitMaskImage:
@@ -657,7 +660,7 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
             isClean ? (
               <OriginalFullWidthVideo src={v3.src} />
             ) : (
-              <FullWidthVideo src={v3.src} />
+              <FullWidthVideo src={v3.src} onOpen={onOpen} />
             )
           )}
 
@@ -675,7 +678,7 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
             isClean ? (
               <OriginalFullWidthVideo src={v4.src} driftUp />
             ) : (
-              <FullWidthVideo src={v4.src} driftUp />
+              <FullWidthVideo src={v4.src} driftUp onOpen={onOpen} />
             )
           )}
         </div>
@@ -725,9 +728,32 @@ export default function CreativeVisualsPage() {
     }));
   }, [images]);
 
-  const handleOpenImage = (img) => {
-    const targetSrc = typeof img === "string" ? img : img?.src;
-    const idx = storyImages.findIndex((item) => item.src === targetSrc);
+  const allCreativeMedia = useMemo(() => {
+    const list = [...storyImages];
+    if (videos && videos.length > 0) {
+      videos.forEach((v) => {
+        if (v && v.src && !list.some((item) => item.src === v.src)) {
+          list.push({ ...v, isVideo: true });
+        }
+      });
+    } else {
+      [
+        "/Creative visuals/A6-R3-HQ.mp4",
+        "/Creative visuals/KC-A01-TR1 .mp4",
+        "/Creative visuals/M-Video.mp4",
+        "/Creative visuals/360 Turntable black.mp4",
+      ].forEach((src) => {
+        if (!list.some((item) => item.src === src)) {
+          list.push({ src, isVideo: true, alt: "Creative Visuals Motion Showcase" });
+        }
+      });
+    }
+    return list;
+  }, [storyImages, videos]);
+
+  const handleOpenMedia = (media) => {
+    const targetSrc = typeof media === "string" ? media : media?.src;
+    const idx = allCreativeMedia.findIndex((item) => item.src === targetSrc);
     setGalleryIndex(idx !== -1 ? idx : 0);
   };
 
@@ -745,13 +771,13 @@ export default function CreativeVisualsPage() {
           mediaItems={items}
           images={storyImages}
           videos={videos}
-          onOpen={handleOpenImage}
+          onOpen={handleOpenMedia}
         />
       </div>
 
       {/* Glassy Gallery Modal */}
       <GlassyGallery
-        images={storyImages}
+        images={allCreativeMedia}
         activeIndex={galleryIndex}
         onClose={() => setGalleryIndex(null)}
         onSelect={setGalleryIndex}

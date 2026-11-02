@@ -93,24 +93,35 @@ function ImageTile({ img, className = "" }) {
 }
 
 function VideoPlayer({ videoSrc, className = "" }) {
+  const onOpen = useContext(ImageClickContext);
   return (
     <div
+      onClick={() => {
+        if (videoSrc) onOpen?.({ src: videoSrc, isVideo: true });
+      }}
       className={`
         relative flex items-center justify-center
-        bg-black overflow-hidden isolate
+        bg-black overflow-hidden isolate cursor-pointer group
         ${className}
       `}
     >
       {videoSrc ? (
-        <video
-          src={videoSrc}
-          className="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        />
+        <>
+          <video
+            src={videoSrc}
+            className="absolute inset-0 w-full h-full object-cover [border-radius:inherit]"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+          <div className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg className="w-3.5 h-3.5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          </div>
+        </>
       ) : (
         <button
           aria-label="Play product video"
@@ -738,13 +749,20 @@ export default function ClassicEComVisuals({
 
   const [galleryIndex, setGalleryIndex] = useState(null);
 
-  const allClassicImages = useMemo(() => {
-    return [...dynamicSec1Images, ...dynamicSec2Images, ...dynamicSec3Images];
-  }, [dynamicSec1Images, dynamicSec2Images, dynamicSec3Images]);
+  const allClassicMedia = useMemo(() => {
+    const list = [];
+    list.push(...dynamicSec1Images);
+    if (dynamicVideo1) list.push({ src: dynamicVideo1, isVideo: true, alt: "Classic E-Commerce Showcase Video 1" });
+    list.push(...dynamicSec2Images);
+    if (dynamicVideo2) list.push({ src: dynamicVideo2, isVideo: true, alt: "Classic E-Commerce Turntable Video 2" });
+    list.push(...dynamicSec3Images);
+    if (dynamicVideo3) list.push({ src: dynamicVideo3, isVideo: true, alt: "Classic E-Commerce Showcase Video 3" });
+    return list;
+  }, [dynamicSec1Images, dynamicSec2Images, dynamicSec3Images, dynamicVideo1, dynamicVideo2, dynamicVideo3]);
 
-  const handleOpenImage = (img) => {
-    const targetSrc = typeof img === "string" ? img : img?.src;
-    const idx = allClassicImages.findIndex((item) => item.src === targetSrc);
+  const handleOpenMedia = (media) => {
+    const targetSrc = typeof media === "string" ? media : media?.src;
+    const idx = allClassicMedia.findIndex((item) => item.src === targetSrc);
     setGalleryIndex(idx !== -1 ? idx : 0);
   };
 
@@ -762,7 +780,7 @@ export default function ClassicEComVisuals({
       />
 
       <div ref={containerRef} className="relative z-10">
-        <ImageClickContext.Provider value={handleOpenImage}>
+        <ImageClickContext.Provider value={handleOpenMedia}>
           <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
           <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
           <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
@@ -771,7 +789,7 @@ export default function ClassicEComVisuals({
 
       {/* Glassy Gallery Modal */}
       <GlassyGallery
-        images={allClassicImages}
+        images={allClassicMedia}
         activeIndex={galleryIndex}
         onClose={() => setGalleryIndex(null)}
         onSelect={setGalleryIndex}

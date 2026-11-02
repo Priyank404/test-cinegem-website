@@ -22,8 +22,9 @@ export default function GlassyGallery({
   const currentSrc = typeof current === "string" ? current : current?.src;
   const currentAlt = typeof current === "string" ? "" : current?.alt || "";
   const isVideo =
-    typeof current === "object" &&
-    Boolean(current?.isVideo || currentSrc?.endsWith(".mp4") || currentSrc?.endsWith(".webm"));
+    typeof current === "object"
+      ? Boolean(current?.isVideo || current?.type === "video" || currentSrc?.match(/\.(mp4|webm)($|\?)/i))
+      : Boolean(currentSrc?.match(/\.(mp4|webm)($|\?)/i));
 
   const hasPrev = isOpen && activeIndex > 0;
   const hasNext = isOpen && activeIndex < images.length - 1;
@@ -152,25 +153,46 @@ export default function GlassyGallery({
           >
             {images.map((img, i) => {
               const src = typeof img === "string" ? img : img.thumb || img.src;
+              const isItemVideo =
+                typeof img === "object"
+                  ? Boolean(img?.isVideo || img?.type === "video" || src?.match(/\.(mp4|webm)($|\?)/i))
+                  : Boolean(src?.match(/\.(mp4|webm)($|\?)/i));
               const isActive = i === activeIndex;
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => onSelect?.(i)}
-                  aria-label={`Jump to image ${i + 1}`}
+                  aria-label={`Jump to item ${i + 1}`}
                   className={`relative shrink-0 w-11 h-11 sm:w-13 sm:h-13 overflow-hidden transition-all cursor-pointer rounded-none ${
                     isActive
                       ? "ring-1.5 ring-white/90 opacity-100"
                       : "opacity-35 hover:opacity-75 border border-white/10"
                   }`}
                 >
-                  <img
-                    src={src}
-                    alt=""
-                    className="w-full h-full object-cover select-none"
-                    loading="lazy"
-                  />
+                  {isItemVideo ? (
+                    <div className="w-full h-full relative bg-neutral-900 flex items-center justify-center">
+                      <video
+                        src={src}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover select-none pointer-events-none"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white/90" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={src}
+                      alt=""
+                      className="w-full h-full object-cover select-none"
+                      loading="lazy"
+                    />
+                  )}
                 </button>
               );
             })}

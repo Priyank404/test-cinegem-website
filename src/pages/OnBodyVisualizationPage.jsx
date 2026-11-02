@@ -1,5 +1,5 @@
 // OnBodyVisualizationPage.jsx
-import { useEffect, useLayoutEffect, useRef, useState, createContext, useContext } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo, createContext, useContext } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
@@ -545,7 +545,7 @@ function GlassyOnBodyGallery({ images }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
-  const { images: dynamicImages } = useDriveMedia("On-Body Visualization");
+  const { images: dynamicImages, videos: dynamicVideos } = useDriveMedia("On-Body Visualization");
   const baseImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : galleryImages;
   const activeImages = baseImages.map((img) => ({
     ...img,
@@ -554,9 +554,21 @@ export default function OnBodyVisualizationPage() {
   const containerRef = useRef(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
 
-  const handleOpenImage = (img) => {
-    const targetSrc = typeof img === "string" ? img : img?.src;
-    const idx = activeImages.findIndex((item) => item.src === targetSrc);
+  const allOnBodyMedia = useMemo(() => {
+    const list = [...activeImages];
+    if (dynamicVideos && dynamicVideos.length > 0) {
+      dynamicVideos.forEach((v) => {
+        if (v && v.src && !list.some((item) => item.src === v.src)) {
+          list.push({ ...v, isVideo: true });
+        }
+      });
+    }
+    return list;
+  }, [activeImages, dynamicVideos]);
+
+  const handleOpenMedia = (media) => {
+    const targetSrc = typeof media === "string" ? media : media?.src;
+    const idx = allOnBodyMedia.findIndex((item) => item.src === targetSrc);
     setGalleryIndex(idx !== -1 ? idx : 0);
   };
 
@@ -573,14 +585,14 @@ export default function OnBodyVisualizationPage() {
       />
 
       <div ref={containerRef} className="relative z-10">
-        <ImageClickContext.Provider value={handleOpenImage}>
+        <ImageClickContext.Provider value={handleOpenMedia}>
           <GlassyOnBodyGallery images={activeImages} />
         </ImageClickContext.Provider>
       </div>
 
       {/* Glassy Gallery Modal */}
       <GlassyGallery
-        images={activeImages}
+        images={allOnBodyMedia}
         activeIndex={galleryIndex}
         onClose={() => setGalleryIndex(null)}
         onSelect={setGalleryIndex}
