@@ -69,7 +69,7 @@ function buildStaticSnapshot(route) {
             return `<h3>${item.question}</h3><p>${answerHtml}</p>`;
           })
           .join('\n');
-        return `<h2>${cat.title}</h2><p>${cat.summary}</p>\n${itemsHtml}`;
+        return `<h2>${cat.title}</h2>\n${itemsHtml}`;
       })
       .join('\n');
 

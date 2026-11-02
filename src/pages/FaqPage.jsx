@@ -166,7 +166,7 @@ export default function FaqPage() {
                   className="scroll-mt-28"
                   aria-labelledby={`cat-${category.id}`}
                 >
-                  {/* Category Header — No Index Badge, Clean Flush Left Alignment */}
+                  {/* Category Header — Clean Flush Left Alignment */}
                   <div className="pb-3 border-b border-white/10">
                     <h2
                       id={`cat-${category.id}`}
@@ -174,9 +174,6 @@ export default function FaqPage() {
                     >
                       {category.title}
                     </h2>
-                    <p className="font-[Poppins] font-light text-xs sm:text-sm text-[#FCFBFA]/70 mt-2 mb-0 max-w-3xl leading-relaxed">
-                      {category.summary}
-                    </p>
                   </div>
 
                   {/* Direct Question & Answer Accordion Items (no inner subcategories, no tree connector line) */}
