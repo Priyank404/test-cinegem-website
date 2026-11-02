@@ -99,7 +99,7 @@ export default function FaqPage() {
             Frequently Asked Questions
           </TrailText>
           <p className="font-[Poppins] font-light text-sm sm:text-base text-[#FCFBFA]/85 mt-2 mb-0 max-w-2xl leading-relaxed">
-            Detailed guidance on high jewellery 3D path-tracing, multi-angle e-commerce catalog suites, cinematic campaign CGI, and digital on-body compositing.
+            Detailed guidance on high jewellery 3D CGI rendering, multi-angle e-commerce catalog suites, cinematic campaign films, and digital on-body compositing.
           </p>
         </div>
 

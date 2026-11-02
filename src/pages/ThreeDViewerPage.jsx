@@ -33,7 +33,7 @@ export default function ThreeDViewerPage() {
           </h1>
 
           <p className="font-[Poppins] font-light text-[11px] sm:text-xs md:text-sm text-[#FCFBFA]/80 max-w-md sm:max-w-lg leading-relaxed">
-            We are engineering a real-time WebGL customizer featuring live metal swapping, physically-based diamond refraction, and interactive raycasting controls.
+            We are engineering a real-time interactive 3D configurator featuring live precious metal switching, optical diamond refraction, and 360° tactile controls.
           </p>
 
           <div className="w-full max-w-md p-3 sm:p-4 my-0.5 sm:my-1 border border-white/15 bg-black/40 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col items-center gap-2">
@@ -43,7 +43,7 @@ export default function ThreeDViewerPage() {
               </svg>
             </div>
             <h2 className="font-[Poppins] font-semibold text-base sm:text-lg text-[#FCFBFA]">
-              WebGL Engine in Development
+              Interactive 3D Engine in Development
             </h2>
             <p className="font-[Poppins] font-light text-[10px] sm:text-xs text-[#FCFBFA]/70 leading-relaxed max-w-xs">
               Our 3D studio engine will allow users to customize carat sizes, metal alloys, and gemstone cuts directly in high definition.

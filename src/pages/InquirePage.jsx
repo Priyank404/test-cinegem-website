@@ -156,7 +156,7 @@ export default function InquirePage() {
             </h1>
             
             <p className="font-[Poppins] font-light text-[13px] sm:text-[14px] md:text-[15px] leading-[1.6] text-[#FCFBFA]/90 max-w-lg animate-fade-up">
-              We translate the structural perfection of your finest collections into high-fidelity WebGL sliders, photorealistic rendering grids, and cinematic animations. Complete the brief and our studio team will align on your project.
+              We translate the structural perfection of your finest collections into interactive 3D sliders, photorealistic rendering grids, and cinematic animations. Complete the brief and our studio team will align on your project.
             </p>
             
             <div className="h-px bg-white/20 my-1 max-w-sm animate-fade-up" />

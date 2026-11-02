@@ -22,8 +22,8 @@ export const FAQ_CATEGORIES = [
       },
       {
         id: 'what-rendering-engine-do-you-use',
-        question: 'What rendering technology powers Cinegem’s photorealistic jewelry imagery?',
-        answer: 'Our production pipeline is anchored on OctaneRender, an unbiased, spectrally correct GPU path-tracing engine. Octane computes true photon transport, caustics, and multi-bounce light behavior within precious metals and gemstones. By pairing GPU acceleration with proprietary shader calibration, we reproduce authentic metal anisotropy, micro-roughness, and the complex internal reflection internal to fine diamond pavilion cuts.',
+        question: 'What visual pipeline powers Cinegem’s photorealistic jewelry imagery?',
+        answer: 'Our studio operates a proprietary, physically calibrated optical rendering pipeline engineered specifically for high jewellery. It accurately simulates true photon transport, dispersion caustics, and multi-bounce light interaction within precious metals and gemstones. By combining specialized optical physics with gemological expertise, we reproduce authentic metal micro-surfacing, true anisotropy, and the intricate internal reflection unique to fine diamond cuts.',
         status: 'confirmed',
       },
       {
@@ -117,13 +117,13 @@ export const FAQ_CATEGORIES = [
   },
   {
     id: 'viewer',
-    title: 'Interactive 3D WebGL Engine',
+    title: 'Interactive 3D Engine',
     summary: 'Next-generation real-time 3D diamond customization directly within the browser.',
     items: [
       {
         id: 'what-is-the-cinegem-interactive-3d-viewer',
-        question: 'What is the upcoming Cinegem Interactive 3D WebGL viewer and how will it work?',
-        answer: 'Our in-development [Interactive 3D Viewer](/3d-viewer) brings desktop-grade jewelry visualization directly into mobile and desktop web browsers without plugins. Utilizing custom WebGL / Three.js shaders, clients can rotate rings in real-time 360° space, toggle between 18K yellow gold, rose gold, and platinum, and observe real-time diamond refractions with instant tactile responsiveness.',
+        question: 'What is the upcoming Cinegem Interactive 3D viewer and how will it work?',
+        answer: 'Our in-development [Interactive 3D Viewer](/3d-viewer) brings studio-grade jewelry visualization directly into mobile and desktop web browsers without external plugins or downloads. Clients and collectors can smoothly rotate creations in real-time 360° space, toggle between 18K yellow gold, rose gold, and platinum, and observe authentic diamond refractions with instant tactile responsiveness.',
         status: 'confirmed',
       },
       {
@@ -142,7 +142,7 @@ export const FAQ_CATEGORIES = [
       {
         id: 'how-do-we-start-a-jewelry-rendering-project',
         question: 'How do we commission a new project with Cinegem Studio?',
-        answer: 'Getting started is straightforward. Submit your project requirements through our [Inquiry Form](/inquire) or email our team directly at [hello@cinegemstudio.com](mailto:hello@cinegemstudio.com). Provide details regarding the number of pieces, desired services (Classic E-Commerce, Creative Campaign, or On-Body), timeline targets, and available CAD assets. We will respond with a tailored proposal and production roadmap.',
+        answer: 'Getting started is straightforward. Submit your project requirements through our [Inquiry Form](/inquire) or email our team directly at [info@cinegemstudio.com](mailto:info@cinegemstudio.com). Provide details regarding the number of pieces, desired services (Classic E-Commerce, Creative Campaign, or On-Body), timeline targets, and available CAD assets. We will respond with a tailored proposal and production roadmap.',
         status: 'confirmed',
       },
       {

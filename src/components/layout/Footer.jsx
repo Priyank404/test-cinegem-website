@@ -43,7 +43,7 @@ export function Footer() {
               >
                 Behance
               </a>
-              <a href="mailto:hello@cinegemstudio.com">Email</a>
+              <a href="mailto:info@cinegemstudio.com">Email</a>
             </div>
           </div>
         </div>

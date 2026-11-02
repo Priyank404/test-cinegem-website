@@ -15,7 +15,7 @@ export const SITE_URL = resolveSiteUrl();
 export const SITE_NAME = 'Cinegem Studio';
 export const DEFAULT_OG_IMAGE = '/4.png';
 export const LOGO_PATH = '/logo-white.png';
-export const CONTACT_EMAIL = 'hello@cinegemstudio.com';
+export const CONTACT_EMAIL = 'info@cinegemstudio.com';
 
 export const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg==',

@@ -73,7 +73,7 @@ export const ROUTES = {
     key: 'threeDViewer',
     path: '/3d-viewer',
     title: 'Interactive 3D Jewellery Viewer (Coming Soon) — Cinegem',
-    description: 'A real-time WebGL jewellery customizer from Cinegem Studio is in development.',
+    description: 'A real-time interactive 3D jewellery customizer from Cinegem Studio is in development.',
     indexable: false,
     ogImage: DEFAULT_OG_IMAGE,
     breadcrumbName: '3D Viewer',

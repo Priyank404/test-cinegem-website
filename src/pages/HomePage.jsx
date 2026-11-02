@@ -1727,7 +1727,7 @@ export default function HomePage() {
             Interactive 3D Viewer
           </h2>
           <p className="font-[Poppins] font-light text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 whitespace-normal">
-            Real-time WebGL customizer with dynamic metal switching, diamond refraction, and interactive raycasting controls. Launching soon.
+            Real-time interactive 3D configurator with dynamic precious metal switching, diamond refraction, and 360° inspection controls. Launching soon.
           </p>
           <div className="btn-primary inline-flex items-center gap-2 py-2.5 px-5 text-[11px] font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit mt-1">
             EXPLORE →
@@ -1781,7 +1781,7 @@ export default function HomePage() {
                 >
                   Behance
                 </a>
-                <a href="mailto:hello@cinegemstudio.com">Email</a>
+                <a href="mailto:info@cinegemstudio.com">Email</a>
               </div>
             </div>
           </div>

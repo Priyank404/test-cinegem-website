@@ -3,7 +3,7 @@
 
 ---
 
-## 1. Contact Email Discrepancy
+## 1. Contact Email Discrepancy — RESOLVED (Confirmed: info@cinegemstudio.com)
 * **Current status in codebase:**
   * Inquiry form fallback: `info@cinegemstudio.com` (in `src/constants/inquire.js`)
   * Website footers: `hello@cinegemstudio.com` (in `src/components/layout/Footer.jsx` and `HomePage.jsx`)
@@ -12,7 +12,7 @@
   2. Is there an official domain address (such as `contact@cinegem.studio` or `inquire@cinegem.studio`) configured on Google Workspace / Cloudflare Email Routing?
 * **Sentence that would use this:**
   > `"For direct private inquiries and bespoke high jewellery proposals, contact hello@cinegemstudio.com."`
-* **JSON-LD Schema impacted:** `Organization.email` (currently set to `hello@cinegemstudio.com`).
+* **JSON-LD Schema impacted:** `Organization.email` (now updated to `info@cinegemstudio.com`).
 
 ---
 

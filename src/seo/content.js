@@ -5,7 +5,7 @@ export const SEO_CONTENT = {
   classic: {
     kicker: 'Studio Notes',
     heading: 'Jewellery Rendering for Online Catalogues',
-    intro: 'Premium product imagery and video for luxury jewellery brands. Each piece is shown from front, side, angled and detail views, rendered in OctaneRender with studio lighting that keeps metal, stones and settings true to the design.',
+    intro: 'Premium product imagery and video for luxury jewellery brands. Each piece is shown from front, side, angled and detail views, rendered with studio lighting that keeps metal, stones and settings true to the design.',
     deliverables: [
       'Multi-angle stills for every piece',
       'Product video alongside the stills',
@@ -23,7 +23,7 @@ export const SEO_CONTENT = {
   creative: {
     kicker: 'Studio Notes',
     heading: 'Cinematic Jewellery CGI & Creative Visuals',
-    intro: 'An edit of jewellery stills and motion for campaigns: considered camera moves, controlled light and reflections that show a piece the way a collection story needs it shown. Rendered in OctaneRender.',
+    intro: 'An edit of jewellery stills and motion for campaigns: considered camera moves, controlled light and reflections that show a piece the way a collection story needs it shown.',
     deliverables: [
       'Editorial stills for campaigns',
       'Cinematic motion sequences',
