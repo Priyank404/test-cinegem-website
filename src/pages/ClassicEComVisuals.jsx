@@ -1,11 +1,14 @@
 // ClassicEComVisuals.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, createContext, useContext } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import { BackToVault } from "@/components/shared/BackToVault";
 
 import HeroSection from "@/components/sections/HeroSection";
+import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
+
+const ImageClickContext = createContext(null);
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
@@ -69,11 +72,12 @@ const section3Images = [
 ═══════════════════════════════════════════════════════════════════════ */
 
 function ImageTile({ img, className = "" }) {
+  const onOpen = useContext(ImageClickContext);
   return (
     <div
+      onClick={() => onOpen?.(img)}
       className={`
-        relative overflow-hidden bg-transparent
-        hover:-translate-y-0.5 transition-transform duration-300
+        relative overflow-hidden bg-transparent cursor-pointer
         ${className}
       `}
     >
@@ -732,6 +736,18 @@ export default function ClassicEComVisuals({
   const dynamicVideo2 = videos[1]?.src || videoSrc2;
   const dynamicVideo3 = videos[2]?.src || videoSrc3;
 
+  const [galleryIndex, setGalleryIndex] = useState(null);
+
+  const allClassicImages = useMemo(() => {
+    return [...dynamicSec1Images, ...dynamicSec2Images, ...dynamicSec3Images];
+  }, [dynamicSec1Images, dynamicSec2Images, dynamicSec3Images]);
+
+  const handleOpenImage = (img) => {
+    const targetSrc = typeof img === "string" ? img : img?.src;
+    const idx = allClassicImages.findIndex((item) => item.src === targetSrc);
+    setGalleryIndex(idx !== -1 ? idx : 0);
+  };
+
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:
   //   • scrolling down past it  -> cards slide in from the RIGHT
@@ -746,10 +762,20 @@ export default function ClassicEComVisuals({
       />
 
       <div ref={containerRef} className="relative z-10">
-        <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
-        <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
-        <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+        <ImageClickContext.Provider value={handleOpenImage}>
+          <Section1 images={dynamicSec1Images} videoSrc={dynamicVideo1} />
+          <Section2 images={dynamicSec2Images} videoSrc={dynamicVideo2} />
+          <Section3 images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+        </ImageClickContext.Provider>
       </div>
+
+      {/* Glassy Gallery Modal */}
+      <GlassyGallery
+        images={allClassicImages}
+        activeIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+        onSelect={setGalleryIndex}
+      />
     </ServicePageLayout>
   );
 }

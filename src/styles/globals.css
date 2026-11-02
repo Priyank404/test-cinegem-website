@@ -440,11 +440,10 @@ html.lenis {
 }
 
 .gallery-image-hover {
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  transition: box-shadow 0.5s ease;
 }
 
 .gallery-image-hover:hover {
-  transform: scale(1.02) translateY(-4px);
   box-shadow: 0 50px 100px -20px rgba(18, 18, 18, 0.12);
 }
 
@@ -764,8 +763,16 @@ html.lenis {
 }
 
 .vault-card__image--hovered {
-  transform: scale(1.06);
-  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: none;
+}
+
+/* Prevent image scale/size increase on hover across entire site */
+img:hover,
+button:hover img,
+a:hover img,
+.group:hover img,
+.vault-card:hover img {
+  transform: none !important;
 }
 
 /* Service label chip — bottom-right glass panel (compact) */

@@ -6,8 +6,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
-import { LightboxModal } from "@/components/shared/LightboxModal";
-import { useLightbox } from "@/hooks/useLightbox";
+import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
 
@@ -112,14 +111,14 @@ function FullWidthVideoWithImagesBelow({ video, images, onOpen, reverse }) {
                 <button
                   key={img.src}
                   type="button"
-                  onClick={() => onOpen(img.mediaIndex)}
+                  onClick={() => onOpen?.(img)}
                   aria-label={`Zoom in on ${img.alt}`}
                   className={`relative block w-full h-full cursor-pointer focus:outline-none overflow-hidden bg-transparent border-0 group ${cornerClass}`}
                 >
                   <img
                     src={img.thumb || img.src}
                     alt={img.alt}
-                    className="block w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="block w-full h-full object-cover"
                     loading="lazy"
                   />
                 </button>
@@ -352,7 +351,7 @@ function LongImagePair({ images, onOpen }) {
               <button
                 key={img.src}
                 type="button"
-                onClick={() => onOpen?.(img.mediaIndex)}
+                onClick={() => onOpen?.(img)}
                 className={`block ${images.length === 1 ? "w-full rounded-[12px]" : "w-full md:w-1/2"} cursor-pointer focus:outline-none group overflow-hidden bg-transparent border-0 ${images.length > 1 ? cornerClass : ""}`}
               >
                 <img
@@ -360,7 +359,7 @@ function LongImagePair({ images, onOpen }) {
                   alt={img.alt}
                   loading="lazy"
                   decoding="async"
-                  className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                  className="block w-full h-auto"
                 />
               </button>
             );
@@ -433,14 +432,14 @@ function OriginalVideoWithImages({ video, images, onOpen, reverse }) {
             <button
               key={img.src}
               type="button"
-              onClick={() => onOpen(img.mediaIndex)}
+              onClick={() => onOpen?.(img)}
               aria-label={`Zoom in on ${img.alt}`}
               className="relative block w-full h-full cursor-pointer focus:outline-none overflow-hidden group"
             >
               <img
                 src={img.thumb || img.src}
                 alt={img.alt}
-                className="block w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="block w-full h-full object-cover"
                 loading="lazy"
               />
             </button>
@@ -562,7 +561,7 @@ function OriginalLongImagePair({ images, onOpen }) {
         <button
           key={img.src}
           type="button"
-          onClick={() => onOpen?.(img.mediaIndex)}
+          onClick={() => onOpen?.(img)}
           className="block w-full md:w-1/2 cursor-pointer focus:outline-none overflow-hidden group"
         >
           <img
@@ -570,7 +569,7 @@ function OriginalLongImagePair({ images, onOpen }) {
             alt={img.alt}
             loading="lazy"
             decoding="async"
-            className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+            className="block w-full h-auto"
           />
         </button>
       ))}
@@ -700,8 +699,7 @@ export default function CreativeVisualsPage() {
     refresh,
   } = useDriveMedia("Creative visuals");
 
-  // Hook up Lightbox with dynamically loaded items
-  const { activeIndex, openAt, close, prev, next } = useLightbox(items);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 
   // Hero background image: pick first banner or first available image
   const heroBackgroundSrc = useMemo(() => {
@@ -727,6 +725,12 @@ export default function CreativeVisualsPage() {
     }));
   }, [images]);
 
+  const handleOpenImage = (img) => {
+    const targetSrc = typeof img === "string" ? img : img?.src;
+    const idx = storyImages.findIndex((item) => item.src === targetSrc);
+    setGalleryIndex(idx !== -1 ? idx : 0);
+  };
+
   return (
     <ServicePageLayout title="Creative Visuals" currentPage="/creative-visuals" fullBleed>
       {/* Nav bar + cinematic hero */}
@@ -741,17 +745,16 @@ export default function CreativeVisualsPage() {
           mediaItems={items}
           images={storyImages}
           videos={videos}
-          onOpen={openAt}
+          onOpen={handleOpenImage}
         />
       </div>
 
-      {/* Lightbox Modal */}
-      <LightboxModal
-        images={items.map((m) => ({ src: m.full || m.src, alt: m.alt, isVideo: m.type === "video" }))}
-        activeIndex={activeIndex}
-        onClose={close}
-        onPrev={prev}
-        onNext={next}
+      {/* Glassy Gallery Modal */}
+      <GlassyGallery
+        images={storyImages}
+        activeIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+        onSelect={setGalleryIndex}
       />
     </ServicePageLayout>
   );

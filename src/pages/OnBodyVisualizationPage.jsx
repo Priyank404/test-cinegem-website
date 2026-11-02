@@ -1,9 +1,12 @@
 // OnBodyVisualizationPage.jsx
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, createContext, useContext } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
+import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
 import { cleanJewelryAlt } from "@/seo/alt";
+
+const ImageClickContext = createContext(null);
 
 /* ═══════════════════════════════════════════════════════════════════════
    DATA
@@ -281,13 +284,14 @@ function OriginalOnBodyGallery({ images }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 function GlassyTile({ img, width, height, cornerClass = "", cornerStyle = {} }) {
+  const onOpen = useContext(ImageClickContext);
   return (
     <div
+      onClick={() => onOpen?.(img)}
       className={`
         shrink-0
         relative overflow-hidden isolate bg-[#0d0d10]
-        gallery-shadow
-        hover:-translate-y-0.5 transition-all duration-300
+        gallery-shadow cursor-pointer
         ${cornerClass}
       `}
       style={{
@@ -548,6 +552,13 @@ export default function OnBodyVisualizationPage() {
     alt: cleanJewelryAlt(img, "On-Body"),
   }));
   const containerRef = useRef(null);
+  const [galleryIndex, setGalleryIndex] = useState(null);
+
+  const handleOpenImage = (img) => {
+    const targetSrc = typeof img === "string" ? img : img?.src;
+    const idx = activeImages.findIndex((item) => item.src === targetSrc);
+    setGalleryIndex(idx !== -1 ? idx : 0);
+  };
 
   return (
     <ServicePageLayout
@@ -562,8 +573,18 @@ export default function OnBodyVisualizationPage() {
       />
 
       <div ref={containerRef} className="relative z-10">
-        <GlassyOnBodyGallery images={activeImages} />
+        <ImageClickContext.Provider value={handleOpenImage}>
+          <GlassyOnBodyGallery images={activeImages} />
+        </ImageClickContext.Provider>
       </div>
+
+      {/* Glassy Gallery Modal */}
+      <GlassyGallery
+        images={activeImages}
+        activeIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+        onSelect={setGalleryIndex}
+      />
     </ServicePageLayout>
   );
 }

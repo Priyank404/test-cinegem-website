@@ -1511,7 +1511,7 @@ export default function HomePage() {
           <img
             src={beat4Image?.src || "/Gemini_Generated_Image_udnfihudnfihudnf.png"}
             alt={beat4Image?.alt || "On-Body Visualization Showcase"}
-            className="beat4-media group-hover:scale-105 transition-transform duration-700"
+            className="beat4-media transition-opacity duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
             <span className="text-[#C5A059] font-label text-[10px] tracking-[0.3em] uppercase font-semibold block mb-2">
