@@ -36,11 +36,11 @@ function SeoTextContent({ contentKey }) {
   return (
     <section
       aria-labelledby="seo-studio-notes-heading"
-      className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-10 pb-8 md:pt-14 md:pb-10 bg-[#0a0a0c]/70 backdrop-blur-md select-text transition-opacity duration-300"
+      className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-5 pb-5 md:pt-6 md:pb-6 bg-[#0a0a0c]/70 backdrop-blur-md select-text transition-opacity duration-300"
     >
-      <div className="mx-auto max-w-[1920px] 2xl:max-w-[2040px] border-t border-white/10 pt-8 md:pt-10 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10">
+      <div className="mx-auto max-w-[1920px] 2xl:max-w-[2040px] border-t border-white/10 pt-4 md:pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
         {/* Left Column (5 cols) */}
-        <div className="md:col-span-5 text-left flex flex-col gap-2">
+        <div className="md:col-span-5 text-left flex flex-col gap-1.5">
           <span className="font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light text-[#C5A059]">
             {content.kicker || 'Studio Notes'}
           </span>
@@ -53,13 +53,13 @@ function SeoTextContent({ contentKey }) {
         </div>
 
         {/* Right Column (7 cols) */}
-        <div className="md:col-span-7 text-left flex flex-col gap-3">
+        <div className="md:col-span-7 text-left flex flex-col gap-2">
           <p className="font-[Poppins] font-light text-sm leading-relaxed text-[#FCFBFA]/80 m-0">
             {content.intro}
           </p>
 
           {content.deliverables && content.deliverables.length > 0 && (
-            <ul className="space-y-1.5 m-0 p-0 list-none">
+            <ul className="space-y-1 m-0 p-0 list-none">
               {content.deliverables.map((item, idx) => (
                 <li
                   key={idx}
@@ -84,7 +84,7 @@ function SeoTextContent({ contentKey }) {
           {content.links && content.links.length > 0 && (
             <nav
               aria-label="Related studio links"
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-white/5 font-[Poppins]"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1.5 border-t border-white/5 font-[Poppins]"
             >
               {content.links.map((link, idx) => {
                 if (link.isFaq) {
