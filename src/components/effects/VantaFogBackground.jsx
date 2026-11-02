@@ -26,13 +26,13 @@ const vantaFog = typeof FOG === "function" ? FOG : FOG.default;
 // Neutral defaults — matches vantajs.com's own FOG defaults so an
 // unconfigured instance looks like the stock effect.
 export const DEFAULT_FOG_OPTIONS = {
-  highlightColor: "#ffffff",
-  midtoneColor: "#8f9bff",
-  lowlightColor: "#1b1b2f",
-  baseColor: "#0c0d16",
+  highlightColor: "#897d5d",
+  midtoneColor: "#b582a2",
+  lowlightColor: "#0c0d16",
+  baseColor: "#5e2b3d",
   blurFactor: 0.6,
-  speed: 1.0,
-  zoom: 0.6,
+  speed: 1,
+  zoom: 0.96,
   mouseControls: false,
   touchControls: false,
   gyroControls: false,

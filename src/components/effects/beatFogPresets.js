@@ -9,7 +9,7 @@
  * -------------------------------------------------------------------------
  */
 
-export const STORAGE_KEY = "vantaFog:beatPresets:v3";
+export const STORAGE_KEY = "vantaFog:beatPresets:v4";
 
 export const BEAT_FOG_PRESETS = [
   // Beat 1 — idle ring: warm mauve/gold setting.
