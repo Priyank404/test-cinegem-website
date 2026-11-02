@@ -584,13 +584,13 @@ export default function OnBodyVisualizationPage() {
   };
 
   const heroBackgroundSrc = useMemo(() => {
-    const banner = (items || []).find((i) => {
+    const banner = (dynamicItems || []).find((i) => {
       const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
       return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
     });
     if (banner) return banner.src;
     return "/onbody-1.png";
-  }, [items]);
+  }, [dynamicItems]);
 
   return (
     <ServicePageLayout
