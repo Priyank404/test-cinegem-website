@@ -41,6 +41,7 @@
 ## 4. Technical Deliverables & Production Capabilities
 * **Current status in codebase:**
   * Live copy uses only conservative, verifiable facts (no fabricated turnarounds, prices, or resolutions).
+  * **Pending confirmation:** 360° wording in /classic title and description (temporarily retained in meta tags, removed from visible copy until confirmed).
 * **Questions for owner:**
   1. **Accepted CAD formats:** Can we advertise Rhino (`.3dm`), MatrixGold, STL, STEP, and OBJ?
   2. **Deliverable video formats:** Do you supply 360° video spins as standard with e-commerce packages, and in which codecs (ProRes, H.264 MP4, WebM)?

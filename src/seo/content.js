@@ -1,36 +1,19 @@
-// content.js — Light SEO copy definitions for service pages
+// content.js — Slim verified SEO copy definitions for service pages (footer notes)
 // Plain ESM: safe for both client components and scripts/seo-postbuild.mjs.
 
 export const SEO_CONTENT = {
   classic: {
     kicker: 'Studio Notes',
-    h1Text: 'Classic E-Commerce Visuals',
-    heading: 'Jewellery Rendering for E-Commerce & 360° Turntable Visuals',
-    intro: 'Precision catalog renders crafted directly from your CAD files. We sculpt studio lighting to reveal metal purity, prong architecture, and gemstone cut symmetry for digital boutiques and wholesale presentations.',
-    deliverablesTitle: 'What You Receive',
+    heading: 'Jewellery Rendering for Online Catalogues',
+    intro: 'Premium product imagery and video for luxury jewellery brands. Each piece is shown from front, side, angled and detail views, rendered in OctaneRender with studio lighting that keeps metal, stones and settings true to the design.',
     deliverables: [
-      'Pure white and neutral backdrop catalog stills for e-commerce listings',
-      'Smooth 360° video turntable loops ready for web stores and social media',
-      'Extreme macro detail frames showing hallmarks, settings, and stone facets',
-      'Consistent multi-piece angle suites for cohesive jewelry collection displays',
+      'Multi-angle stills for every piece',
+      'Product video alongside the stills',
+      'A consistent look across a whole collection',
     ],
-    processTitle: 'How It Works',
-    process: 'Send your master 3D CAD files (.3dm, STL). We refine geometry bevels, apply physically based gold, platinum, and gemstone materials, configure balanced studio illumination, and deliver production-ready imagery.',
-    faqs: [
-      {
-        question: 'Which CAD formats are supported for e-commerce renders?',
-        answer: 'We work with industry-standard 3D CAD formats including Rhino (.3dm), MatrixGold, STL, and STEP geometry files.',
-      },
-      {
-        question: 'Can you generate metal alloy variations from one model?',
-        answer: 'Yes. Once a master 3D CAD piece is prepared, we can render 18K yellow gold, rose gold, white gold, and platinum variations without rebuilding the scene.',
-      },
-      {
-        question: 'Are 360-degree turntable loops compatible with Shopify and web browsers?',
-        answer: 'Yes. We deliver web-optimized MP4 and WebM video loops that integrate directly into Shopify, WooCommerce, and custom luxury e-commerce platforms.',
-      },
-    ],
+    process: 'Share your 3D model and brief, and we handle materials, lighting and rendering.',
     links: [
+      { label: 'More answers in the FAQ', to: '/faq#classic', isFaq: true },
       { label: 'Creative Visuals', to: '/creative-visuals' },
       { label: 'On-Body Visualization', to: '/onbody' },
       { label: 'Start a Project', to: '/inquire' },
@@ -39,33 +22,16 @@ export const SEO_CONTENT = {
 
   creative: {
     kicker: 'Studio Notes',
-    h1Text: 'Creative Visuals',
-    heading: 'Cinematic Jewellery CGI & Motion Animation for Luxury Campaigns',
-    intro: 'Atmospheric brand films and editorial stills engineered for high jewellery launches. We combine dynamic camera choreography, micro light sweeps, and raytraced caustics to turn fine jewelry design into moving visual art.',
-    deliverablesTitle: 'What You Receive',
+    heading: 'Cinematic Jewellery CGI & Creative Visuals',
+    intro: 'An edit of jewellery stills and motion for campaigns: considered camera moves, controlled light and reflections that show a piece the way a collection story needs it shown. Rendered in OctaneRender.',
     deliverables: [
-      'Cinematic motion sequences with shallow focal depth and volumetric atmosphere',
-      'High-resolution editorial stills tailored for campaign hero banners and print',
-      'Social-first vertical formats (9:16) for luxury Instagram and digital boutique reels',
-      'Bespoke lighting direction accentuating diamond brilliance and precious metals',
+      'Editorial stills for campaigns',
+      'Cinematic motion sequences',
+      'Visuals directed around your collection',
     ],
-    processTitle: 'How It Works',
-    process: 'Starting from your collection narrative and CAD data, we storyboard key camera motions, sculpt custom lighting environments in OctaneRender, choreograph focal shifts, and output seamless motion masters.',
-    faqs: [
-      {
-        question: 'How do you capture diamond fire and gemstone reflections in animation?',
-        answer: 'We compute spectral light dispersion and optical refraction through physically accurate raytracing, ensuring gemstone brilliance and facet fire match genuine stones.',
-      },
-      {
-        question: 'Can creative motion assets be formatted for social media and display screens?',
-        answer: 'Yes. We output master deliverables in 16:9 widescreen, 1:1 square, and 9:16 vertical framing for digital boutiques, web headers, and mobile feeds.',
-      },
-      {
-        question: 'What is required to begin a creative CGI animation project?',
-        answer: 'Your collection CAD files alongside any visual moodboard or campaign reference. We handle shader preparation, scene composition, and final cinematic rendering.',
-      },
-    ],
+    process: 'Tell us the mood and the pieces, and we build the scene around them.',
     links: [
+      { label: 'More answers in the FAQ', to: '/faq#creative', isFaq: true },
       { label: 'Classic E-Commerce', to: '/classic' },
       { label: 'On-Body Visualization', to: '/onbody' },
       { label: 'Start a Project', to: '/inquire' },
@@ -74,33 +40,16 @@ export const SEO_CONTENT = {
 
   onbody: {
     kicker: 'Studio Notes',
-    h1Text: 'On-Body Visualization',
-    heading: 'Photorealistic On-Body Jewellery Visualization & Digital Compositing',
-    intro: 'Place your rings, necklaces, bracelets, and earrings in authentic human context without coordinating a physical photoshoot. We ensure anatomically precise scale, authentic contact shadows, and natural skin interaction.',
-    deliverablesTitle: 'What You Receive',
+    heading: 'On-Body Jewellery Visualization',
+    intro: 'Photorealistic on-model composites that place your pieces in context without a photoshoot, with believable scale, contact shadows and skin interaction.',
     deliverables: [
-      'High-fidelity on-model composites for rings, earrings, pendants, and bracelets',
-      'Accurate millimeter scale mapping calibrated against real anatomy',
-      'Realistic skin subsurface lighting and specular reflection interaction',
-      'Diverse skin tones and model positions tailored to your jewelry brand identity',
+      'Rings, earrings, pendants and bracelets shown on the body',
+      'Scale that reads correctly at a glance',
+      'Visuals that sit alongside your existing imagery',
     ],
-    processTitle: 'How It Works',
-    process: 'Your 3D CAD assets are calibrated to real-world metric dimensions and composited into curated high-resolution photography. We match focal length, ambient lighting, and contact occlusion for seamless realism.',
-    faqs: [
-      {
-        question: 'How do you ensure correct scale on human models?',
-        answer: 'We calibrate the CAD file millimeters directly to reference measurements of human anatomy, ensuring accurate proportions for ring finger widths and necklace drops.',
-      },
-      {
-        question: 'Why choose on-body 3D visualization over traditional model photoshoots?',
-        answer: 'On-body CGI eliminates casting logistics, sample shipping insurance, travel delays, and studio booking overhead while enabling easy metal color swaps later.',
-      },
-      {
-        question: 'Can on-body visuals match existing brand photography styles?',
-        answer: 'Yes. We calibrate lighting direction, contrast, and color balance to align harmoniously with your existing brand imagery and editorial lookbooks.',
-      },
-    ],
+    process: 'Send the piece and the look you want, and we composite it into place.',
     links: [
+      { label: 'More answers in the FAQ', to: '/faq#onbody', isFaq: true },
       { label: 'Classic E-Commerce', to: '/classic' },
       { label: 'Creative Visuals', to: '/creative-visuals' },
       { label: 'Start a Project', to: '/inquire' },
