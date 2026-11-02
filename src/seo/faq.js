@@ -116,9 +116,9 @@ export const FAQ_CATEGORIES = [
     ],
   },
   {
-    id: 'viewer',
-    title: 'Interactive 3D Engine',
-    summary: 'Next-generation real-time 3D diamond customization directly within the browser.',
+    id: 'others',
+    title: 'Others',
+    summary: 'Interactive 3D engine, turnaround timelines, confidentiality NDAs, and project commissioning.',
     items: [
       {
         id: 'what-is-the-cinegem-interactive-3d-viewer',
@@ -132,13 +132,6 @@ export const FAQ_CATEGORIES = [
         answer: 'We are currently onboarding select jewelry maisons and e-commerce partners for private beta demonstrations and pilot integrations. If you would like to showcase your flagship collection through an interactive real-time configurator, please reach out via our [Inquiry Form](/inquire) and note your interest in the 3D Engine.',
         status: 'confirmed',
       },
-    ],
-  },
-  {
-    id: 'workflow',
-    title: 'Production Workflow & Commissioning',
-    summary: 'Onboarding requirements, confidentiality protocols, turnaround schedules, and pricing.',
-    items: [
       {
         id: 'how-do-we-start-a-jewelry-rendering-project',
         question: 'How do we commission a new project with Cinegem Studio?',
@@ -148,7 +141,7 @@ export const FAQ_CATEGORIES = [
       {
         id: 'what-is-the-standard-production-timeline',
         question: 'What is the typical production timeline for an e-commerce catalog or creative campaign?',
-        answer: 'Production timelines depend on collection volume and visual scope. Typically, a standard Classic E-Commerce suite for 5–10 pieces is delivered within 4 to 7 business days from CAD validation. Creative campaign films and bespoke motion choreography typically take 1 to 3 weeks, including animatic review, lighting approval, and final 4K rendering.',
+        answer: 'Typically, a standard Classic E-Commerce suite for 5–10 pieces is delivered within 4 to 7 business days from CAD validation. Creative campaign films and bespoke motion choreography typically take 1 to 3 weeks, including animatic review, lighting approval, and final 4K rendering.',
         status: 'confirmed',
       },
       {

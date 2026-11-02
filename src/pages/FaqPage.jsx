@@ -29,6 +29,14 @@ function AnswerText({ text }) {
   );
 }
 
+const QUICK_SELECT_LABELS = {
+  studio: 'Studio',
+  classic: 'Classic E-Commerce',
+  creative: 'Cinematic Creative Visuals',
+  onbody: 'On-Body Visuals',
+  others: 'Others',
+};
+
 export default function FaqPage() {
   const categories = useMemo(() => getConfirmedFaqCategories(), []);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -36,8 +44,12 @@ export default function FaqPage() {
   // Handle URL hash on mount & hashchange (open question and scroll)
   useEffect(() => {
     const handleHash = () => {
-      const hash = window.location.hash.replace(/^#/, '');
+      let hash = window.location.hash.replace(/^#/, '');
       if (!hash) return;
+
+      if (hash === 'viewer' || hash === 'workflow') {
+        hash = 'others';
+      }
 
       const targetQuestionId = hash.startsWith('q-') ? hash : `q-${hash}`;
       const questionEl = document.getElementById(targetQuestionId);
@@ -135,7 +147,7 @@ export default function FaqPage() {
                         : 'border-white/15 text-[#FCFBFA]/60 hover:border-white/30 hover:text-white bg-transparent'
                     }`}
                   >
-                    {cat.title.split('&')[0].trim()}
+                    {QUICK_SELECT_LABELS[cat.id] || cat.title.split('&')[0].trim()}
                   </button>
                 ))}
               </div>
