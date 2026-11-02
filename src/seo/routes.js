@@ -59,6 +59,16 @@ export const ROUTES = {
     schemaType: 'Service',
     serviceName: 'Jewellery Rendering Project Inquiry',
   },
+  faq: {
+    key: 'faq',
+    path: '/faq',
+    title: 'FAQ — Jewellery Rendering Questions — Cinegem',
+    description: "Answers about Cinegem Studio's jewellery rendering, cinematic CGI animation, on-body visualization and how to start a project.",
+    indexable: true,
+    ogImage: DEFAULT_OG_IMAGE,
+    breadcrumbName: 'FAQ',
+    schemaType: 'WebPage',
+  },
   threeDViewer: {
     key: 'threeDViewer',
     path: '/3d-viewer',

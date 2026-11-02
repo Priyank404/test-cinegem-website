@@ -8,6 +8,7 @@ import { CustomCursor }        from '@/components/ui/CustomCursor'
 import ClassicEComVisuals      from './pages/ClassicEComVisuals'
 import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
 import ThreeDViewerPage        from '@/pages/ThreeDViewerPage'
+import FaqPage                 from '@/pages/FaqPage'
 import NotFound                from '@/pages/NotFound'
 
 function ScrollToTop() {
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/inquire"          element={<InquirePage />} />
         <Route path="/classic"          element={<ClassicEComVisuals />} />
         <Route path="/creative-visuals" element={<CreativeVisualsPage />} />
+        <Route path="/faq"              element={<FaqPage />} />
         <Route path="/3d-viewer"        element={<ThreeDViewerPage />} />
         <Route path="/3dviewer"         element={<Navigate to="/3d-viewer" replace />} />
         <Route path="*"                 element={<NotFound />} />

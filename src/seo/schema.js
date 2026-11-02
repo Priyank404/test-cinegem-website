@@ -28,14 +28,17 @@ export function buildJsonLd(route) {
 
   const graph = [organization, website];
 
-  if (route.schemaType === 'Service' && route.path !== '/') {
-    const service = {
-      '@type': 'Service',
-      '@id': `${SITE_URL}${route.path}/#service`,
-      name: route.serviceName || route.title,
-      description: route.description,
-      provider: { '@id': `${SITE_URL}/#organization` },
-    };
+  if (route.path !== '/') {
+    if (route.schemaType === 'Service') {
+      const service = {
+        '@type': 'Service',
+        '@id': `${SITE_URL}${route.path}/#service`,
+        name: route.serviceName || route.title,
+        description: route.description,
+        provider: { '@id': `${SITE_URL}/#organization` },
+      };
+      graph.push(service);
+    }
 
     const breadcrumbs = {
       '@type': 'BreadcrumbList',
@@ -55,7 +58,7 @@ export function buildJsonLd(route) {
       ],
     };
 
-    graph.push(service, breadcrumbs);
+    graph.push(breadcrumbs);
   }
 
   return {
