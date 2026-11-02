@@ -11,9 +11,11 @@ export default function SeoTextToggle({ pageName = '' }) {
   }, []);
 
   // Global build-time kill switch: VITE_SEO_TEXT_BUTTON=false hides the button
-  const buttonEnabled =
-    (typeof process !== 'undefined' && process.env && process.env.VITE_SEO_TEXT_BUTTON !== 'false') &&
-    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SEO_TEXT_BUTTON !== 'false');
+  const envVal =
+    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SEO_TEXT_BUTTON) ??
+    (typeof process !== 'undefined' && process.env && process.env.VITE_SEO_TEXT_BUTTON);
+
+  const buttonEnabled = envVal !== 'false';
 
   if (!buttonEnabled) return null;
   if (!mounted || typeof document === 'undefined') return null;
