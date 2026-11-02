@@ -28,6 +28,7 @@ export function Footer() {
             <div className="hero2-footer-col">
               <span className="hero2-footer-col-title">Connect</span>
               <Link to="/inquire">Inquiries</Link>
+              <Link to="/faq">FAQ</Link>
               <a
                 href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
                 target="_blank"
