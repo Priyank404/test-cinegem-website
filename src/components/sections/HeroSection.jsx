@@ -106,7 +106,7 @@ export default function HeroSection({
             playsInline
             preload="auto"
             onError={() => setMediaFailed(true)}
-            className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
+            className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)] transition-opacity duration-500 ease-out"
           />
         ) : (
           <img

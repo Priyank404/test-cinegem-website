@@ -22,18 +22,64 @@ const STATIC_FALLBACK_ITEMS = [
   { type: "image", src: "/Creative visuals/R4-L2-Y-V4.png", alt: "Creative CGI jewellery" },
 ];
 
+// In-memory cache + persistent sessionStorage cache (prevents fallback image flash on refresh)
+const driveCache = new Map();
+
+function getCachedMedia(folderIdentifier) {
+  if (driveCache.has(folderIdentifier)) {
+    return driveCache.get(folderIdentifier);
+  }
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const raw = window.sessionStorage.getItem(`cinegem_drive_${folderIdentifier}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          driveCache.set(folderIdentifier, parsed);
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function setCachedMedia(folderIdentifier, data) {
+  if (!data || !Array.isArray(data.items)) return;
+  driveCache.set(folderIdentifier, data);
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      window.sessionStorage.setItem(
+        `cinegem_drive_${folderIdentifier}`,
+        JSON.stringify({
+          items: data.items,
+          images: data.images,
+          videos: data.videos,
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }
+}
+
 /**
  * useDriveMedia hook
  * Automatically fetches images & videos directly from Google Drive using the folder ID configured in .env.
  * Automatically synchronizes on window focus and a 30s background interval so new Drive uploads reflect automatically.
+ * Implements instant cache hydration so on page refresh it immediately renders the real media with zero fallback flash.
  */
 export function useDriveMedia(folderIdentifier = "Creative visuals") {
-  const [items, setItems] = useState([]);
-  const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedMedia(folderIdentifier);
+
+  const [items, setItems] = useState(() => cached?.items || []);
+  const [images, setImages] = useState(() => cached?.images || []);
+  const [videos, setVideos] = useState(() => cached?.videos || []);
+  const [loading, setLoading] = useState(() => !cached);
   const [error, setError] = useState(null);
-  const [lastSynced, setLastSynced] = useState(null);
+  const [lastSynced, setLastSynced] = useState(() => (cached ? new Date() : null));
   const [isFallback, setIsFallback] = useState(false);
   const isMounted = useRef(true);
 
@@ -48,6 +94,7 @@ export function useDriveMedia(folderIdentifier = "Creative visuals") {
       if (!isMounted.current) return;
 
       if (driveData && driveData.items && driveData.items.length > 0) {
+        setCachedMedia(folderIdentifier, driveData);
         setItems(driveData.items);
         setImages(driveData.images);
         setVideos(driveData.videos);
