@@ -2,7 +2,7 @@
 // Plain ESM: NO JSX, NO `@/` alias, NO `import.meta.env`.
 // Shared between src/pages/FaqPage.jsx and scripts/seo-postbuild.mjs.
 
-export const FAQ_SECTIONS = [
+export const CONFIRMED_FAQ_SECTIONS = [
   {
     id: 'studio',
     title: 'The studio',
@@ -25,18 +25,6 @@ export const FAQ_SECTIONS = [
         answer: 'Our renders are produced with OctaneRender, a GPU path-tracing renderer.',
         status: 'confirmed',
       },
-      {
-        id: 'who-do-you-work-with',
-        question: 'Who do you work with?',
-        answer: 'Jewellery brands, designers and retailers who need jewellery shown at its best without a physical shoot.',
-        status: 'pending',
-      },
-      {
-        id: 'where-is-the-studio-based',
-        question: 'Where is the studio based?',
-        answer: '[ANSWER REQUIRED FROM OWNER: Surat, India? Confirm before using.]',
-        status: 'pending',
-      },
     ],
   },
   {
@@ -55,24 +43,6 @@ export const FAQ_SECTIONS = [
         answer: 'Multi-angle stills for each piece, together with product video. See the examples on the [Classic E-Commerce](/classic) page.',
         status: 'confirmed',
       },
-      {
-        id: 'which-file-formats-do-you-accept',
-        question: 'Which file formats do you accept?',
-        answer: 'We work from 3D files such as Rhino (.3dm), STL and STEP.',
-        status: 'pending',
-      },
-      {
-        id: 'can-the-same-piece-be-shown-in-different-metals-or-stones',
-        question: 'Can the same piece be shown in different metals or stones?',
-        answer: 'Yes. Once a piece is set up, metal and stone variations can be rendered without rebuilding the scene.',
-        status: 'pending',
-      },
-      {
-        id: 'do-you-provide-360-turntable-videos',
-        question: 'Do you provide 360° turntable videos?',
-        answer: '[OWNER TO CONFIRM: yes/no, and which formats]',
-        status: 'pending',
-      },
     ],
   },
   {
@@ -85,18 +55,6 @@ export const FAQ_SECTIONS = [
         answer: 'An edit of jewellery stills and motion for campaigns. See the full selection on the [Creative Visuals](/creative-visuals) page.',
         status: 'confirmed',
       },
-      {
-        id: 'what-do-you-need-from-me-to-begin',
-        question: 'What do you need from me to begin?',
-        answer: 'Your piece or collection as 3D files, plus any moodboard or campaign reference you have.',
-        status: 'pending',
-      },
-      {
-        id: 'can-the-visuals-be-formatted-for-social-and-screens',
-        question: 'Can the visuals be formatted for social and screens?',
-        answer: '[OWNER TO CONFIRM: ratios and sizes delivered]',
-        status: 'pending',
-      },
     ],
   },
   {
@@ -108,24 +66,6 @@ export const FAQ_SECTIONS = [
         question: 'What is on-body visualization?',
         answer: 'Photorealistic on-model composites that place your pieces in context without a photoshoot. See the [On-Body Visualization](/onbody) page.',
         status: 'confirmed',
-      },
-      {
-        id: 'how-do-you-get-the-scale-right',
-        question: 'How do you get the scale right?',
-        answer: '[OWNER TO CONFIRM how scale is calibrated]',
-        status: 'pending',
-      },
-      {
-        id: 'why-use-on-body-visuals-instead-of-a-model-shoot',
-        question: 'Why use on-body visuals instead of a model shoot?',
-        answer: 'They avoid casting, studio booking and sample shipping, and the same piece can be updated later.',
-        status: 'pending',
-      },
-      {
-        id: 'can-the-look-match-our-existing-brand-photography',
-        question: 'Can the look match our existing brand photography?',
-        answer: 'Yes, lighting and colour are matched to your existing imagery.',
-        status: 'pending',
       },
     ],
   },
@@ -157,43 +97,119 @@ export const FAQ_SECTIONS = [
         answer: 'Use the [inquiry form](/inquire): your name, email, company and a short brief. We will come back to you on the details.',
         status: 'confirmed',
       },
-      {
-        id: 'can-i-contact-you-directly',
-        question: 'Can I contact you directly?',
-        answer: 'Yes. Email [CONFIRMED_EMAIL] or use the inquiry form.',
-        status: 'pending',
-      },
-      {
-        id: 'do-you-sign-ndas',
-        question: 'Do you sign NDAs?',
-        answer: '[OWNER TO CONFIRM]',
-        status: 'pending',
-      },
-      {
-        id: 'how-long-does-a-project-take',
-        question: 'How long does a project take?',
-        answer: '[OWNER TO CONFIRM]',
-        status: 'pending',
-      },
-      {
-        id: 'what-does-a-project-cost',
-        question: 'What does a project cost?',
-        answer: '[OWNER TO CONFIRM]',
-        status: 'pending',
-      },
     ],
   },
 ];
+
+const PENDING_FAQ_ITEMS_BY_SECTION = {
+  studio: [
+    {
+      id: 'who-do-you-work-with',
+      question: 'Who do you work with?',
+      answer: 'Jewellery brands, designers and retailers who need jewellery shown at its best without a physical shoot.',
+      status: 'pending',
+    },
+    {
+      id: 'where-is-the-studio-based',
+      question: 'Where is the studio based?',
+      answer: '[ANSWER REQUIRED FROM OWNER: Surat, India? Confirm before using.]',
+      status: 'pending',
+    },
+  ],
+  classic: [
+    {
+      id: 'which-file-formats-do-you-accept',
+      question: 'Which file formats do you accept?',
+      answer: 'We work from 3D files such as Rhino (.3dm), STL and STEP.',
+      status: 'pending',
+    },
+    {
+      id: 'can-the-same-piece-be-shown-in-different-metals-or-stones',
+      question: 'Can the same piece be shown in different metals or stones?',
+      answer: 'Yes. Once a piece is set up, metal and stone variations can be rendered without rebuilding the scene.',
+      status: 'pending',
+    },
+    {
+      id: 'do-you-provide-360-turntable-videos',
+      question: 'Do you provide 360° turntable videos?',
+      answer: '[OWNER TO CONFIRM: yes/no, and which formats]',
+      status: 'pending',
+    },
+  ],
+  creative: [
+    {
+      id: 'what-do-you-need-from-me-to-begin',
+      question: 'What do you need from me to begin?',
+      answer: 'Your piece or collection as 3D files, plus any moodboard or campaign reference you have.',
+      status: 'pending',
+    },
+    {
+      id: 'can-the-visuals-be-formatted-for-social-and-screens',
+      question: 'Can the visuals be formatted for social and screens?',
+      answer: '[OWNER TO CONFIRM: ratios and sizes delivered]',
+      status: 'pending',
+    },
+  ],
+  onbody: [
+    {
+      id: 'how-do-you-get-the-scale-right',
+      question: 'How do you get the scale right?',
+      answer: '[OWNER TO CONFIRM how scale is calibrated]',
+      status: 'pending',
+    },
+    {
+      id: 'why-use-on-body-visuals-instead-of-a-model-shoot',
+      question: 'Why use on-body visuals instead of a model shoot?',
+      answer: 'They avoid casting, studio booking and sample shipping, and the same piece can be updated later.',
+      status: 'pending',
+    },
+    {
+      id: 'can-the-look-match-our-existing-brand-photography',
+      question: 'Can the look match our existing brand photography?',
+      answer: 'Yes, lighting and colour are matched to your existing imagery.',
+      status: 'pending',
+    },
+  ],
+  viewer: [],
+  start: [
+    {
+      id: 'can-i-contact-you-directly',
+      question: 'Can I contact you directly?',
+      answer: 'Yes. Email [CONFIRMED_EMAIL] or use the inquiry form.',
+      status: 'pending',
+    },
+    {
+      id: 'do-you-sign-ndas',
+      question: 'Do you sign NDAs?',
+      answer: '[OWNER TO CONFIRM]',
+      status: 'pending',
+    },
+    {
+      id: 'how-long-does-a-project-take',
+      question: 'How long does a project take?',
+      answer: '[OWNER TO CONFIRM]',
+      status: 'pending',
+    },
+    {
+      id: 'what-does-a-project-cost',
+      question: 'What does a project cost?',
+      answer: '[OWNER TO CONFIRM]',
+      status: 'pending',
+    },
+  ],
+};
+
+export const FAQ_SECTIONS = CONFIRMED_FAQ_SECTIONS.map((section) => ({
+  ...section,
+  items: [...section.items, ...(PENDING_FAQ_ITEMS_BY_SECTION[section.id] || [])],
+}));
 
 /**
  * Returns sections with only confirmed items.
  * Drops any sections that have 0 confirmed items.
  */
 export function getConfirmedFaqSections() {
-  return FAQ_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => item.status === 'confirmed'),
-  })).filter((section) => section.items.length > 0);
+  return CONFIRMED_FAQ_SECTIONS;
 }
 
 /**

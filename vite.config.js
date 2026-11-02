@@ -68,8 +68,19 @@ function saveTimelinePlugin() {
   };
 }
 
+function stripPendingFaqPlugin() {
+  return {
+    name: "strip-pending-faq",
+    transform(code, id) {
+      if (id.replace(/\\/g, '/').endsWith('src/seo/faq.js')) {
+        return code.replace(/\{[^{}]*status:\s*['"]pending['"][^{}]*\},?/g, '');
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), saveTimelinePlugin(), mediaFolderPlugin()],
+  plugins: [react(), saveTimelinePlugin(), mediaFolderPlugin(), stripPendingFaqPlugin()],
 
   resolve: {
     alias: {

@@ -9,6 +9,12 @@ import { SITE_URL, SITE_NAME, LOGO_PATH } from '../src/seo/site.js';
 import { ROUTES_LIST } from '../src/seo/routes.js';
 import { buildJsonLd } from '../src/seo/schema.js';
 import { SEO_CONTENT } from '../src/seo/content.js';
+import {
+  FAQ_SECTIONS,
+  getConfirmedFaqSections,
+  getFaqCounts,
+  parseInlineLinks,
+} from '../src/seo/faq.js';
 
 const DIST_DIR = path.resolve('dist');
 const TEMPLATE_PATH = path.join(DIST_DIR, 'index.html');
@@ -46,19 +52,47 @@ function buildStaticSnapshot(route) {
         <a href="/classic">Classic E-Commerce</a>
         <a href="/creative-visuals">Creative Visuals</a>
         <a href="/onbody">On-Body Visualization</a>
+        <a href="/faq">FAQ</a>
         <a href="/inquire">Start a Project</a>
       </nav>
     `;
+  } else if (route.path === '/faq') {
+    h1Text = 'Frequently Asked Questions';
+    const confirmedSections = getConfirmedFaqSections();
+    const categoriesHtml = confirmedSections
+      .map((section) => {
+        const itemsHtml = section.items
+          .map((item) => {
+            const answerHtml = parseInlineLinks(item.answer)
+              .map((p) => (p.isLink ? `<a href="${p.url}">${p.text}</a>` : p.text))
+              .join('');
+            return `<h3>${item.question}</h3><p>${answerHtml}</p>`;
+          })
+          .join('\n');
+        return `<h2>${section.title}</h2>\n${itemsHtml}`;
+      })
+      .join('\n');
+
+    bodyHtml = `
+      <p>${route.description}</p>
+      <nav>
+        ${confirmedSections.map((s) => `<a href="#${s.id}">${s.title}</a>`).join('')}
+      </nav>
+      ${categoriesHtml}
+    `;
   } else if (content) {
-    h1Text = content.h1Text;
+    const serviceH1 = {
+      classic: 'Classic E-Commerce Visuals',
+      creative: 'Creative Visuals',
+      onbody: 'On-Body Visualization',
+    };
+    h1Text = serviceH1[route.key] || route.breadcrumbName;
     bodyHtml = `
       <h2>${content.heading}</h2>
       <p>${content.intro}</p>
-      <h3>${content.deliverablesTitle}</h3>
       <ul>
         ${content.deliverables.map((d) => `<li>${d}</li>`).join('')}
       </ul>
-      <h3>${content.processTitle}</h3>
       <p>${content.process}</p>
       <nav>
         ${content.links.map((l) => `<a href="${l.to}">${l.label}</a>`).join('')}
@@ -73,6 +107,7 @@ function buildStaticSnapshot(route) {
         <a href="/classic">Classic E-Commerce</a>
         <a href="/creative-visuals">Creative Visuals</a>
         <a href="/onbody">On-Body Visualization</a>
+        <a href="/faq">FAQ</a>
       </nav>
     `;
   } else if (route.path === '/3d-viewer') {
@@ -81,6 +116,7 @@ function buildStaticSnapshot(route) {
       <p>${route.description}</p>
       <nav>
         <a href="/">Home</a>
+        <a href="/faq">FAQ</a>
         <a href="/inquire">Start a Project</a>
       </nav>
     `;
@@ -162,6 +198,10 @@ function renderRouteHtml(route) {
   return html;
 }
 
+// Print FAQ Counts
+const faqCounts = getFaqCounts();
+console.log(`[seo-postbuild] FAQ: ${faqCounts.confirmed} confirmed, ${faqCounts.pending} pending`);
+
 console.log('[seo-postbuild] Processing static HTML snapshots...');
 
 // 1. Generate HTML for each route
@@ -217,6 +257,7 @@ const routeSourceFiles = {
   creative: 'src/pages/CreativeVisualsPage.jsx',
   onbody: 'src/pages/OnBodyVisualizationPage.jsx',
   inquire: 'src/pages/InquirePage.jsx',
+  faq: 'src/pages/FaqPage.jsx',
 };
 
 const sitemapEntries = indexableRoutes
@@ -237,8 +278,8 @@ ${sitemapEntries}
 </urlset>
 `;
 
-if (indexableRoutes.length !== 5) {
-  throw new Error(`Sitemap must contain exactly 5 URLs, found ${indexableRoutes.length}`);
+if (indexableRoutes.length !== 6) {
+  throw new Error(`Sitemap must contain exactly 6 URLs, found ${indexableRoutes.length}`);
 }
 fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapXml, 'utf8');
 console.log(`  ✓ Written dist/sitemap.xml (${indexableRoutes.length} URLs)`);
@@ -267,5 +308,48 @@ https://:project.pages.dev/*
 `;
 fs.writeFileSync(path.join(DIST_DIR, '_headers'), headersTxt, 'utf8');
 console.log(`  ✓ Written dist/_headers`);
+
+// 7. Validate: No pending FAQ item appears anywhere in dist/
+console.log('[seo-postbuild] Validating zero pending FAQ items in dist/...');
+const pendingItems = [];
+for (const section of FAQ_SECTIONS) {
+  for (const item of section.items) {
+    if (item.status === 'pending') {
+      pendingItems.push(item);
+    }
+  }
+}
+
+function scanDirForPending(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      scanDirForPending(fullPath);
+    } else if (entry.name.endsWith('.html') || entry.name.endsWith('.js')) {
+      const content = fs.readFileSync(fullPath, 'utf8');
+      for (const item of pendingItems) {
+        if (content.includes(item.question)) {
+          throw new Error(
+            `Pending FAQ question found in ${path.relative(process.cwd(), fullPath)}: "${item.question}"`
+          );
+        }
+        if (
+          item.answer &&
+          item.answer.length > 25 &&
+          !item.answer.startsWith('[') &&
+          content.includes(item.answer)
+        ) {
+          throw new Error(
+            `Pending FAQ answer found in ${path.relative(process.cwd(), fullPath)}: "${item.answer}"`
+          );
+        }
+      }
+    }
+  }
+}
+
+scanDirForPending(DIST_DIR);
+console.log('  ✓ Verified zero pending FAQ items anywhere in dist/');
 
 console.log('[seo-postbuild] Post-build completed successfully with 100% verification.');
