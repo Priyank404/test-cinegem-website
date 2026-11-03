@@ -1368,7 +1368,7 @@ export default function HomePage() {
                   <div className="glassy-video-container">
                     <video
                       ref={beat2VideoRef}
-                      src={beat2Video?.src || "/E-com%20Visuals/solitaire-high-polish-yellow-marquise-video.mp4"}
+                      src={beat2Video?.src || ""}
                       preload="auto"
                       loop
                       muted
@@ -1470,7 +1470,7 @@ export default function HomePage() {
                   <div className="glassy-video-container">
                     <video
                       ref={beat3VideoRef}
-                      src={beat3Video?.src || "/Creative%20visuals/A6-R3-HQ.mp4"}
+                      src={beat3Video?.src || ""}
                       preload="auto"
                       loop
                       muted
@@ -1509,7 +1509,7 @@ export default function HomePage() {
           className="beat4-box-overlay group cursor-pointer block text-decoration-none relative overflow-hidden"
         >
           <img
-            src={beat4Image?.src || "/Gemini_Generated_Image_udnfihudnfihudnf.png"}
+            src={beat4Image?.src || ""}
             alt={beat4Image?.alt || "On-Body Visualization Showcase"}
             className="beat4-media transition-opacity duration-700"
           />

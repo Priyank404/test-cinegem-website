@@ -3,24 +3,7 @@ import { fetchDriveFolderMedia } from "@/services/googleDriveService";
 import { parseDriveFolderId } from "@/config/googleDriveConfig";
 
 // Embedded static fallback items in case network/offline
-const STATIC_FALLBACK_ITEMS = [
-  { type: "image", src: "/Creative visuals/4 Ring Banner T4 HQ_.jpg", alt: "Enamel marquise band ring, hero angle" },
-  { type: "video", src: "/Creative visuals/360 Turntable black.mp4", alt: "360 Turntable" },
-  { type: "video", src: "/Creative visuals/A6-R3-HQ.mp4", alt: "CGI Jewellery Motion" },
-  { type: "image", src: "/Creative visuals/RG01-Y-B-V2.png", alt: "Cinegem signature jewellery still" },
-  { type: "video", src: "/Creative visuals/B4 ANimated.mp4", alt: "Editorial animation" },
-  { type: "image", src: "/Creative visuals/Beauty.png", alt: "Jewellery beauty shot" },
-  { type: "video", src: "/Creative visuals/E commerce 1 with Music.mp4", alt: "Jewellery showcase" },
-  { type: "image", src: "/Creative visuals/Earring 1 YG BlackBG V0000.png", alt: "Earring collection" },
-  { type: "image", src: "/Creative visuals/Earring 1 YG BlackBG V0001.png", alt: "Two-tone gold ring" },
-  { type: "image", src: "/Creative visuals/SR-B-9-Y-V1.png", alt: "Gold pendant, front view" },
-  { type: "video", src: "/Creative visuals/Multishot Brown.mp4", alt: "Gold chain necklace" },
-  { type: "video", src: "/Creative visuals/M-Video.mp4", alt: "Pendant detail" },
-  { type: "image", src: "/Creative visuals/NB-1 LO R.png", alt: "Hidden-halo ring" },
-  { type: "image", src: "/Creative visuals/NP-1-YG-LS2-V2.png", alt: "Rose gold pendant" },
-  { type: "image", src: "/Creative visuals/R1-L2-P1-SB-Y-V4.png", alt: "Diamond bracelet" },
-  { type: "image", src: "/Creative visuals/R4-L2-Y-V4.png", alt: "Creative CGI jewellery" },
-];
+const STATIC_FALLBACK_ITEMS = [];
 
 // In-memory cache + persistent sessionStorage cache (prevents fallback image flash on refresh)
 const driveCache = new Map();
