@@ -17,7 +17,7 @@ export const DRIVE_FOLDER_IDS = {
   creativeVisuals:
     import.meta.env.VITE_CREATIVE_VISUALS_FOLDER_ID ||
     import.meta.env.VITE_CREATIVE_IMAGE_URL ||
-    "1ZiU5sda-gbZCnkc_E_FEtw6c0RSYVPHT",
+    "1WJ6W3J4OWBJ4Rp3D914HZYO7hJ-6nejo",
 
   // Classic E-Commerce Visuals (/classic)
   ecomVisuals:
