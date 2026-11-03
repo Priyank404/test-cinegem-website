@@ -603,6 +603,7 @@ export default function OnBodyVisualizationPage() {
         backgroundSrc={heroBackgroundSrc}
         heading={["On-Body", "Visualization"]}
         paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."
+        theme="dark-text"
       />
 
       <div ref={containerRef} className="relative z-10">

@@ -796,6 +796,7 @@ export default function CreativeVisualsPage() {
         backgroundSrc={heroBackgroundSrc}
         heading={["Creative", "Visuals"]}
         paragraph="A cascading edit of jewellery photography and motion — an interlocking mosaic of every piece."
+        theme="light-text"
       />
 
       <div className="relative z-10 w-full overflow-x-clip pb-40 md:pb-56">

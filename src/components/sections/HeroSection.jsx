@@ -1,13 +1,10 @@
 // HeroSection.jsx
 //
-// Cinematic scroll-zoom hero, styled after motion.dev's "Scroll Zoom Hero"
-// example (https://examples.motion.dev/react/scroll-zoom-hero) but built
-// with GSAP + ScrollTrigger to match the rest of this codebase — no
-// Framer/Motion for React involved.
-//
-// Fully self-contained: registers its own ScrollTrigger plugin and runs
-// its own gsap.context/cleanup, so it can be dropped into any page without
-// depending on a parent's animation setup.
+// Cinematic scroll-zoom hero with intelligent automatic contrast adaptation.
+// When the hero media has a white/light background (e.g. Classic E-Commerce),
+// the text adapts to deep luxury charcoal (#121212) so it never blends in.
+// When the background is dark (e.g. Creative Visuals), it adapts to crisp white (#FCFBFA).
+// An explicit `theme` prop ('dark-text' | 'light-text' | 'auto') can also be passed.
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -18,15 +15,16 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function HeroSection({
   backgroundSrc = "",
-  // Array of lines — each one trails in as its own line. Pass a different
-  // array per page, e.g. ["Creative", "Images"].
   heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
+  // theme: 'auto' | 'dark-text' (deep charcoal for light/white backgrounds) | 'light-text' (crisp white for dark backgrounds)
+  theme = "auto",
 }) {
   const heroRef = useRef(null);
   const bgRef = useRef(null);
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [detectedDarkText, setDetectedDarkText] = useState(false);
 
   const isVideo = isMediaVideo(backgroundSrc);
 
@@ -36,9 +34,55 @@ export default function HeroSection({
     }
   }, [backgroundSrc]);
 
+  // Automatic luminance sampling in the bottom-left corner where text sits
   useEffect(() => {
-    // Respect reduced-motion preferences — show the finished (settled)
-    // state as a static scene instead of scrubbing it.
+    if (theme !== "auto" || !backgroundSrc || isVideo) return;
+
+    let isMounted = true;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = backgroundSrc;
+    img.onload = () => {
+      if (!isMounted) return;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 16;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Sample the bottom-left region of the image
+        const sx = 0;
+        const sy = Math.floor(img.naturalHeight * 0.6);
+        const sw = Math.floor(img.naturalWidth * 0.5);
+        const sh = Math.floor(img.naturalHeight * 0.4);
+
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 16, 16);
+        const imgData = ctx.getImageData(0, 0, 16, 16).data;
+        let totalL = 0;
+        for (let i = 0; i < imgData.length; i += 4) {
+          totalL +=
+            0.299 * imgData[i] +
+            0.587 * imgData[i + 1] +
+            0.114 * imgData[i + 2];
+        }
+        const avgL = totalL / (imgData.length / 4);
+        // If average luminance in bottom-left > 130, background is light -> use dark text
+        setDetectedDarkText(avgL > 130);
+      } catch {
+        // Fallback gracefully
+      }
+    };
+
+    return () => {
+      isMounted = false;
+    };
+  }, [backgroundSrc, theme, isVideo]);
+
+  const isDarkText =
+    theme === "dark-text" || (theme === "auto" && detectedDarkText);
+
+  useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const ctx = gsap.context(() => {
@@ -48,15 +92,9 @@ export default function HeroSection({
             trigger: heroRef.current,
             start: "top top",
             end: "bottom top",
-            scrub: true, // 1:1 with scroll position — no snapping, no lag
+            scrub: true,
           },
         })
-        // Background: slow zoom + rising blur/darken + slight upward drift.
-        // scale/y are handled by GSAP's own transform engine (GPU-accelerated
-        // translate3d/scale under the hood); `filter` is a single tween with
-        // two functions — GSAP interpolates every number embedded in the
-        // string positionally, so blur and brightness animate together in
-        // one tween without needing a filter plugin.
         .fromTo(
           bgRef.current,
           { scale: 1, y: 0, filter: "blur(0px) brightness(1)" },
@@ -68,7 +106,6 @@ export default function HeroSection({
           },
           0,
         )
-        // Copy: fades/rises/scales down slightly as the image takes over.
         .fromTo(
           contentRef.current,
           { opacity: 1, y: 0, scale: 1 },
@@ -85,7 +122,6 @@ export default function HeroSection({
       ref={heroRef}
       className="relative z-10 w-full h-[100svh] min-h-[480px] -mt-20 overflow-hidden bg-[#0d0d0d]"
     >
-      {/* Background media (image or video) — clean natural display without extra dark gradient veil */}
       {!mediaFailed && backgroundSrc ? (
         isVideo ? (
           <video
@@ -106,6 +142,7 @@ export default function HeroSection({
             ref={bgRef}
             src={backgroundSrc}
             alt=""
+            crossOrigin="anonymous"
             onError={() => {
               if (backgroundSrc) setMediaFailed(true);
             }}
@@ -119,8 +156,7 @@ export default function HeroSection({
         />
       )}
 
-      {/* Content — pinned to the bottom-left at every breakpoint, never
-          centered. */}
+      {/* Content — pinned to the bottom-left */}
       <div
         ref={contentRef}
         className="
@@ -136,7 +172,11 @@ export default function HeroSection({
           itemAs="div"
           open={true}
           splitBy="lines"
-          className="font-[Poppins] font-semibold text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]"
+          className={`font-[Poppins] font-semibold leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 transition-colors duration-300 ${
+            isDarkText
+              ? "text-[#121212] drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]"
+              : "text-[#FCFBFA] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]"
+          }`}
         >
           {heading}
         </TrailText>
@@ -147,7 +187,11 @@ export default function HeroSection({
           open={true}
           splitBy="words"
           delay={300}
-          className="font-[Poppins] font-light text-white/90 text-sm sm:text-base leading-relaxed max-w-md drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
+          className={`font-[Poppins] font-normal text-sm sm:text-base leading-relaxed max-w-md transition-colors duration-300 ${
+            isDarkText
+              ? "text-[#2a2a2c]"
+              : "text-[#FCFBFA]/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+          }`}
         >
           {paragraph}
         </TrailText>

@@ -816,6 +816,7 @@ export default function ClassicEComVisuals({
         backgroundSrc={heroBackgroundSrc}
         heading={["Classic", "E-Commerce", "Visuals"]}
         paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
+        theme="dark-text"
       />
 
       <div ref={containerRef} className="relative z-10">
