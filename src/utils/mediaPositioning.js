@@ -4,7 +4,7 @@
 // based on filename convention (e.g., 1.mp4, 1.png, 02.jpg, 3_ring.mp4)
 // while gracefully falling back to default media order when files are unnumbered.
 
-const VIDEO_EXTENSIONS = new Set([
+export const VIDEO_EXTENSIONS = new Set([
   '.mp4',
   '.webm',
   '.mov',
@@ -12,6 +12,29 @@ const VIDEO_EXTENSIONS = new Set([
   '.avi',
   '.ogv',
   '.mkv',
+  '.mpg',
+  '.mpeg',
+  '.3gp',
+  '.flv',
+  '.wmv',
+  '.ts',
+  '.m2ts',
+]);
+
+export const IMAGE_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.avif',
+  '.gif',
+  '.svg',
+  '.bmp',
+  '.tiff',
+  '.tif',
+  '.ico',
+  '.heic',
+  '.heif',
 ]);
 
 /**
@@ -111,3 +134,4 @@ export function resolveMediaForPosition(mediaList = [], position = 1, defaultFal
 
   return null;
 }
+

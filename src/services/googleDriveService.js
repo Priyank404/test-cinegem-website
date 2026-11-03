@@ -6,6 +6,7 @@ import {
   DEFAULT_DRIVE_FOLDERS,
   parseDriveFolderId,
 } from "@/config/googleDriveConfig";
+import { isMediaVideo } from "@/utils/mediaPositioning";
 
 const VIDEO_MIMES = new Set([
   "video/mp4",
@@ -14,6 +15,11 @@ const VIDEO_MIMES = new Set([
   "video/x-matroska",
   "video/webm",
   "video/mpeg",
+  "video/ogg",
+  "video/3gpp",
+  "video/x-flv",
+  "video/x-ms-wmv",
+  "video/mp2t",
 ]);
 
 /**
@@ -91,7 +97,10 @@ export async function fetchDriveFolderMedia(folderIdentifier, apiKey = GOOGLE_DR
   );
 
   const items = rawFiles.map((file) => {
-    const isVideo = VIDEO_MIMES.has(file.mimeType) || file.mimeType.startsWith("video/");
+    const isVideo =
+      VIDEO_MIMES.has(file.mimeType) ||
+      file.mimeType?.startsWith("video/") ||
+      isMediaVideo(file.name);
     const baseName = file.name.replace(/\.[^/.]+$/, "");
     const cleanAlt = baseName.replace(/[_-]+/g, " ").trim();
 

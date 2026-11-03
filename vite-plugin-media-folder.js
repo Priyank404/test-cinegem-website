@@ -4,8 +4,8 @@
 import fs from "fs";
 import path from "path";
 
-const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg"]);
-const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".avi"]);
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg", ".bmp", ".tiff", ".tif", ".ico", ".heic", ".heif"]);
+const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".avi", ".ogv", ".mkv", ".mpg", ".mpeg", ".3gp", ".flv", ".wmv", ".ts", ".m2ts"]);
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 

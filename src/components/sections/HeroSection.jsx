@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import TrailText from "@/components/shared/TrailText";
+import { isMediaVideo } from "@/utils/mediaPositioning";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,12 +31,7 @@ export default function HeroSection({
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
 
-  const isVideo = typeof backgroundSrc === "string" && (
-    backgroundSrc.endsWith(".mp4") ||
-    backgroundSrc.endsWith(".webm") ||
-    backgroundSrc.endsWith(".ogg") ||
-    backgroundSrc.endsWith(".mov")
-  );
+  const isVideo = isMediaVideo(backgroundSrc);
 
   useEffect(() => {
     // Respect reduced-motion preferences — show the finished (settled)

@@ -676,7 +676,7 @@ export default function ClassicEComVisuals({
   // Check if images are strictly sequential numbers (e.g., 1.png .. 12.png)
   const isNumberedSequence =
     images.length >= 8 &&
-    images.every((img) => /^\d+\.(png|jpg|jpeg|webp)$/i.test(img.name || ""));
+    images.every((img) => /^\d+\.(png|jpg|jpeg|webp|avif|gif|svg|bmp|tiff|tif|ico|heic|heif)$/i.test(img.name || ""));
 
   let dynamicSec1Images = section1Images;
   let dynamicSec2Images = section2Images;

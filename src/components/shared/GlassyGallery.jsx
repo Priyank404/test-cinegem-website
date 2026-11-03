@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { isMediaVideo } from "@/utils/mediaPositioning";
 
 /**
  * GlassyGallery
@@ -23,10 +24,7 @@ export default function GlassyGallery({
   const current = isOpen ? images[activeIndex] : null;
   const currentSrc = typeof current === "string" ? current : current?.src;
   const currentAlt = typeof current === "string" ? "" : current?.alt || "";
-  const isVideo =
-    typeof current === "object"
-      ? Boolean(current?.isVideo || current?.type === "video" || currentSrc?.match(/\.(mp4|webm)($|\?)/i))
-      : Boolean(currentSrc?.match(/\.(mp4|webm)($|\?)/i));
+  const isVideo = isMediaVideo(current);
 
   const hasPrev = isOpen && activeIndex > 0;
   const hasNext = isOpen && activeIndex < images.length - 1;
@@ -175,10 +173,7 @@ export default function GlassyGallery({
           >
             {images.map((img, i) => {
               const src = typeof img === "string" ? img : img.thumb || img.src;
-              const isItemVideo =
-                typeof img === "object"
-                  ? Boolean(img?.isVideo || img?.type === "video" || src?.match(/\.(mp4|webm)($|\?)/i))
-                  : Boolean(src?.match(/\.(mp4|webm)($|\?)/i));
+              const isItemVideo = isMediaVideo(img);
               const isActive = i === activeIndex;
               return (
                 <button
