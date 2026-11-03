@@ -2,7 +2,8 @@
 //
 // Cinematic scroll-zoom hero with intelligent automatic contrast adaptation.
 // When the hero media has a white/light background (e.g. Classic E-Commerce),
-// the text adapts to deep luxury charcoal (#121212) so it never blends in.
+// the text adapts to a refined whitish-silver grey palette (#858890 / #555860) so it
+// never blends with white while avoiding harsh black.
 // When the background is dark (e.g. Creative Visuals), it adapts to crisp white (#FCFBFA).
 // An explicit `theme` prop ('dark-text' | 'light-text' | 'auto') can also be passed.
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +18,7 @@ export default function HeroSection({
   backgroundSrc = "",
   heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
-  // theme: 'auto' | 'dark-text' (deep charcoal for light/white backgrounds) | 'light-text' (crisp white for dark backgrounds)
+  // theme: 'auto' | 'dark-text' (whitish-silver grey for light backgrounds) | 'light-text' (crisp white for dark backgrounds)
   theme = "auto",
 }) {
   const heroRef = useRef(null);
@@ -67,7 +68,7 @@ export default function HeroSection({
             0.114 * imgData[i + 2];
         }
         const avgL = totalL / (imgData.length / 4);
-        // If average luminance in bottom-left > 130, background is light -> use dark text
+        // If average luminance in bottom-left > 130, background is light -> use silver grey text
         setDetectedDarkText(avgL > 130);
       } catch {
         // Fallback gracefully
@@ -174,7 +175,7 @@ export default function HeroSection({
           splitBy="lines"
           className={`font-[Poppins] font-semibold leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 transition-colors duration-300 ${
             isDarkText
-              ? "text-[#121212] drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]"
+              ? "text-[#858890]"
               : "text-[#FCFBFA] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]"
           }`}
         >
@@ -189,7 +190,7 @@ export default function HeroSection({
           delay={300}
           className={`font-[Poppins] font-normal text-sm sm:text-base leading-relaxed max-w-md transition-colors duration-300 ${
             isDarkText
-              ? "text-[#2a2a2c]"
+              ? "text-[#555860]"
               : "text-[#FCFBFA]/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
           }`}
         >
