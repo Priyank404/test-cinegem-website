@@ -802,8 +802,8 @@ export default function ClassicEComVisuals({
       return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
     });
     if (banner) return banner.src;
-    return "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png";
-  }, [items]);
+    return images[0]?.src || items[0]?.src || "";
+  }, [items, images]);
 
   // Each section's cards/video animate independently of every other
   // section, bound only to that section's own "top 85%" line:

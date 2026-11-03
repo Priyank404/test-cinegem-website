@@ -17,9 +17,7 @@ import { isMediaVideo } from "@/utils/mediaPositioning";
 gsap.registerPlugin(ScrollTrigger);
 
 export default function HeroSection({
-  // TODO: once /hero.jpg exists in /public, this default is all you need to
-  // change — everything else (sizing, crop, animation) just works as-is.
-  backgroundSrc = "/hero.jpg",
+  backgroundSrc = "",
   // Array of lines — each one trails in as its own line. Pass a different
   // array per page, e.g. ["Creative", "Images"].
   heading = ["Classic", "E-Commerce", "Visuals"],
@@ -27,11 +25,16 @@ export default function HeroSection({
 }) {
   const heroRef = useRef(null);
   const bgRef = useRef(null);
-  const overlayRef = useRef(null);
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
 
   const isVideo = isMediaVideo(backgroundSrc);
+
+  useEffect(() => {
+    if (backgroundSrc) {
+      setMediaFailed(false);
+    }
+  }, [backgroundSrc]);
 
   useEffect(() => {
     // Respect reduced-motion preferences — show the finished (settled)
@@ -60,16 +63,9 @@ export default function HeroSection({
           {
             scale: 1.45,
             y: -60,
-            filter: "blur(18px) brightness(0.55)",
+            filter: "blur(18px) brightness(0.65)",
             ease: "none",
           },
-          0,
-        )
-        // Overlay: gradient stays the same shape, just deepens overall.
-        .fromTo(
-          overlayRef.current,
-          { opacity: 0.55 },
-          { opacity: 1, ease: "none" },
           0,
         )
         // Copy: fades/rises/scales down slightly as the image takes over.
@@ -89,9 +85,8 @@ export default function HeroSection({
       ref={heroRef}
       className="relative z-10 w-full h-[100svh] min-h-[480px] -mt-20 overflow-hidden bg-[#0d0d0d]"
     >
-      {/* Background media (image or video) — falls back to a dark gradient (rather than a
-          broken-image icon) until backgroundSrc is actually in /public. */}
-      {!mediaFailed ? (
+      {/* Background media (image or video) — clean natural display without extra dark gradient veil */}
+      {!mediaFailed && backgroundSrc ? (
         isVideo ? (
           <video
             ref={bgRef}
@@ -101,7 +96,9 @@ export default function HeroSection({
             muted
             playsInline
             preload="auto"
-            onError={() => setMediaFailed(true)}
+            onError={() => {
+              if (backgroundSrc) setMediaFailed(true);
+            }}
             className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)] transition-opacity duration-500 ease-out"
           />
         ) : (
@@ -109,27 +106,18 @@ export default function HeroSection({
             ref={bgRef}
             src={backgroundSrc}
             alt=""
-            onError={() => setMediaFailed(true)}
+            onError={() => {
+              if (backgroundSrc) setMediaFailed(true);
+            }}
             className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
           />
         )
       ) : (
         <div
           ref={bgRef}
-          className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#2a1f1f] via-[#1a1414] to-[#0d0d0d] will-change-transform [transform:translateZ(0)]"
+          className="absolute inset-0 w-full h-full bg-[#0d0d0d] will-change-transform [transform:translateZ(0)]"
         />
       )}
-
-      {/* Dark gradient overlay — lighter at top, heavier at bottom, and
-          deepens overall while scrolling (see the timeline above). */}
-      <div
-        ref={overlayRef}
-        className="absolute inset-0 will-change-[opacity]"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.75))",
-        }}
-      />
 
       {/* Content — pinned to the bottom-left at every breakpoint, never
           centered. */}
@@ -148,7 +136,7 @@ export default function HeroSection({
           itemAs="div"
           open={true}
           splitBy="lines"
-          className="font-[Poppins] font-semibold text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5"
+          className="font-[Poppins] font-semibold text-white leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]"
         >
           {heading}
         </TrailText>
@@ -159,7 +147,7 @@ export default function HeroSection({
           open={true}
           splitBy="words"
           delay={300}
-          className="font-[Poppins] font-light text-white/80 text-sm sm:text-base leading-relaxed max-w-md"
+          className="font-[Poppins] font-light text-white/90 text-sm sm:text-base leading-relaxed max-w-md drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
         >
           {paragraph}
         </TrailText>

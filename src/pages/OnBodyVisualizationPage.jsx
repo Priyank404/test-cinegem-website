@@ -4,6 +4,7 @@ import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { DRIVE_FOLDER_IDS } from "@/config/googleDriveConfig";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
 import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
@@ -547,7 +548,7 @@ function GlassyOnBodyGallery({ images }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
-  const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useDriveMedia("On-Body Visualization");
+  const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useDriveMedia(DRIVE_FOLDER_IDS.onBody);
   const mediaPool = (dynamicItems && dynamicItems.length > 0) ? dynamicItems : (dynamicImages || []);
   const basePool = mediaPool.length > 0 ? mediaPool : galleryImages;
 
@@ -589,8 +590,8 @@ export default function OnBodyVisualizationPage() {
       return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
     });
     if (banner) return banner.src;
-    return "/onbody-1.png";
-  }, [dynamicItems]);
+    return dynamicImages[0]?.src || dynamicItems[0]?.src || (galleryImages[0]?.src ? "/" + galleryImages[0]?.src : "");
+  }, [dynamicItems, dynamicImages]);
 
   return (
     <ServicePageLayout
