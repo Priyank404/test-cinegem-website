@@ -9,58 +9,58 @@
  * -------------------------------------------------------------------------
  */
 
-export const STORAGE_KEY = "vantaFog:beatPresets:v4";
+export const STORAGE_KEY = "vantaFog:beatPresets:v5";
 
 export const BEAT_FOG_PRESETS = [
-  // Beat 1 — idle ring: warm mauve/gold setting.
+  // Beat 1 ? idle ring: warm mauve/gold setting.
   {
-    highlightColor: "#897d5d",
-    midtoneColor: "#b582a2",
-    lowlightColor: "#0c0d16",
-    baseColor: "#5e2b3d",
-    blurFactor: 0.6,
-    speed: 1,
-    zoom: 0.96,
+      "highlightColor": "#897d5d",
+      "midtoneColor": "#b582a2",
+      "lowlightColor": "#0c0d16",
+      "baseColor": "#5e2b3d",
+      "blurFactor": 0.6,
+      "speed": 1,
+      "zoom": 0.96
   },
-  // Beat 2 — floor rises: warm.
+  // Beat 2 ? floor rises: warm mauve/gold setting.
   {
-    highlightColor: "#b6778d",
-    midtoneColor: "#cfb05c",
-    lowlightColor: "#14171d",
-    baseColor: "#fcfbfa",
-    blurFactor: 0.6,
-    speed: 1.0,
-    zoom: 0.6,
+      "highlightColor": "#897d5d",
+      "midtoneColor": "#b582a2",
+      "lowlightColor": "#0c0d16",
+      "baseColor": "#5e2b3d",
+      "blurFactor": 0.6,
+      "speed": 1,
+      "zoom": 0.96
   },
-  // Beat 3 — on-body reveal: warmer/tighter.
+  // Beat 3 ? on-body reveal: warm mauve/gold setting.
   {
-    highlightColor: "#ffd88e",
-    midtoneColor: "#c98a4b",
-    lowlightColor: "#1a1208",
-    baseColor: "#fff6e6",
-    blurFactor: 0.6,
-    speed: 1.0,
-    zoom: 0.6,
+      "highlightColor": "#897d5d",
+      "midtoneColor": "#b582a2",
+      "lowlightColor": "#0c0d16",
+      "baseColor": "#5e2b3d",
+      "blurFactor": 0.6,
+      "speed": 1,
+      "zoom": 0.96
   },
-  // Beat 4 — demerge into cards: cool, wide.
+  // Beat 4 ? demerge into cards: warm mauve/gold setting.
   {
-    highlightColor: "#8ecbff",
-    midtoneColor: "#3d6a8f",
-    lowlightColor: "#0a1420",
-    baseColor: "#eef7ff",
-    blurFactor: 0.6,
-    speed: 1.0,
-    zoom: 0.6,
+      "highlightColor": "#897d5d",
+      "midtoneColor": "#b582a2",
+      "lowlightColor": "#0c0d16",
+      "baseColor": "#5e2b3d",
+      "blurFactor": 0.6,
+      "speed": 1,
+      "zoom": 0.96
   },
-  // Beat 5 — standing spin, closing beat: dark, calm.
+  // Beat 5 ? standing spin, closing beat: warm mauve/gold setting.
   {
-    highlightColor: "#3a3a44",
-    midtoneColor: "#1c1c22",
-    lowlightColor: "#000000",
-    baseColor: "#08080a",
-    blurFactor: 0.6,
-    speed: 1.0,
-    zoom: 0.6,
+      "highlightColor": "#897d5d",
+      "midtoneColor": "#b582a2",
+      "lowlightColor": "#0c0d16",
+      "baseColor": "#5e2b3d",
+      "blurFactor": 0.6,
+      "speed": 1,
+      "zoom": 0.96
   },
 ];
 
