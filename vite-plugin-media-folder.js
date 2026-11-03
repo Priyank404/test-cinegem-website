@@ -246,7 +246,7 @@ export default function mediaFolderPlugin() {
           }
 
           const targetUrl = isVideo
-            ? `https://drive.google.com/uc?export=download&id=${id}`
+            ? `https://drive.google.com/uc?export=download&confirm=t&id=${id}`
             : `https://drive.google.com/thumbnail?id=${id}&sz=${sz}`;
 
           const fetchHeaders = {};
@@ -254,28 +254,47 @@ export default function mediaFolderPlugin() {
             fetchHeaders.Range = req.headers.range;
           }
 
+          const BLOCKED_HEADERS = new Set([
+            "cache-control",
+            "content-security-policy",
+            "x-content-security-policy",
+            "cross-origin-opener-policy",
+            "cross-origin-embedder-policy",
+            "cross-origin-resource-policy",
+            "content-disposition",
+          ]);
+
           fetch(targetUrl, { headers: fetchHeaders })
             .then(async (driveRes) => {
               res.statusCode = driveRes.status;
               for (const [key, val] of driveRes.headers.entries()) {
-                if (key.toLowerCase() !== "cache-control") {
+                const lower = key.toLowerCase();
+                if (!BLOCKED_HEADERS.has(lower)) {
                   res.setHeader(key, val);
                 }
               }
               res.setHeader("Cache-Control", "public, max-age=86400");
               res.setHeader("Access-Control-Allow-Origin", "*");
+              res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+              res.setHeader("Access-Control-Allow-Headers", "Range, Accept");
+              res.setHeader("Content-Disposition", "inline");
+              res.setHeader("Accept-Ranges", "bytes");
 
               const stream = driveRes.body;
               if (stream) {
                 const reader = stream.getReader();
                 async function pump() {
-                  const { done, value } = await reader.read();
-                  if (done) {
+                  try {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                      res.end();
+                      return;
+                    }
+                    res.write(value);
+                    await pump();
+                  } catch {
                     res.end();
-                    return;
                   }
-                  res.write(value);
-                  await pump();
                 }
                 return pump();
               } else {
