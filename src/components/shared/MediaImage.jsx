@@ -21,7 +21,6 @@ export function MediaImage({
   const altText = alt || item.alt || item.name || "";
   const loading = priority ? "eager" : "lazy";
   const decoding = priority ? "sync" : "async";
-  const fetchPriority = priority ? "high" : "auto";
 
   const avifSrcSet = item.srcSet?.avifString || (Array.isArray(item.srcSet?.avif) ? item.srcSet.avif.map(([u, w]) => `${u} ${w}w`).join(", ") : null);
   const webpSrcSet = item.srcSet?.webpString || (Array.isArray(item.srcSet?.webp) ? item.srcSet.webp.map(([u, w]) => `${u} ${w}w`).join(", ") : null);
@@ -45,7 +44,7 @@ export function MediaImage({
         height={height}
         loading={loading}
         decoding={decoding}
-        fetchpriority={priority ? "high" : undefined}
+        fetchPriority={priority ? "high" : undefined}
         className={className}
         onLoad={() => setLoaded(true)}
         {...rest}

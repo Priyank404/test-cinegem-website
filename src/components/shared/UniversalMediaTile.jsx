@@ -1,7 +1,7 @@
 // src/components/shared/UniversalMediaTile.jsx
 // Flexible media tile that automatically renders either an optimized <MediaImage /> or a <video />
 // depending on the media format assigned to this position, with zero format reservation.
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { isMediaVideo, normalizeMediaItem } from '@/utils/mediaPositioning';
 import MediaImage from '@/components/shared/MediaImage';
 
@@ -38,12 +38,8 @@ export function UniversalMediaTile({
   }, []);
 
   const item = normalizeMediaItem(media, alt);
-  if (!item || (!item.src && !item.full && !item.thumb)) {
-    return <div className={`bg-black/20 ${className}`} style={style} />;
-  }
-
   const isVideo = isMediaVideo(item);
-  const videoSrc = (useLowResVideo && item.srcLow) ? item.srcLow : (item.src || item.full);
+  const videoSrc = (useLowResVideo && item?.srcLow) ? item.srcLow : (item?.src || item?.full);
 
   // Auto-play safety for videos
   useEffect(() => {
@@ -56,6 +52,10 @@ export function UniversalMediaTile({
       }
     }
   }, [isVideo, videoSrc, autoPlay, activeVideoRef]);
+
+  if (!item || (!item.src && !item.full && !item.thumb)) {
+    return <div className={`bg-black/20 ${className}`} style={style} />;
+  }
 
   const defaultMediaClass = 'block w-full h-full object-cover';
 

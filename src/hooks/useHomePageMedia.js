@@ -107,11 +107,11 @@ export function useHomePageMedia() {
         }
 
         homeCache = {
-          beat2Images: newB2Imgs.length > 0 ? newB2Imgs : beat2Images,
-          beat2Video: newB2Vid || beat2Video,
-          beat3Images: newB3Imgs.length > 0 ? newB3Imgs : beat3Images,
-          beat3Video: newB3Vid || beat3Video,
-          beat4Image: newB4Img || beat4Image,
+          beat2Images: newB2Imgs,
+          beat2Video: newB2Vid,
+          beat3Images: newB3Imgs,
+          beat3Video: newB3Vid,
+          beat4Image: newB4Img,
         };
 
         setLoading(false);
