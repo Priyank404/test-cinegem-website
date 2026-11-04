@@ -509,6 +509,7 @@ export default function RingHero({
   const idlePhaseRef = useRef(0);
   const lastMotionFrameRef = useRef(0);
   const lastMotionTimeRef = useRef(0);
+  const settleFramesRef = useRef(0);
 
   // Keep the ref current and re-apply immediately
   useEffect(() => {
@@ -1076,14 +1077,6 @@ export default function RingHero({
     };
     window.__ringProfile = viewport.profile;
 
-    function get1080pPixelRatio(w) {
-      const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const targetW = w || (typeof window !== "undefined" ? window.innerWidth : 1920);
-      // Cap at 1.0 (or scale down if screen width exceeds 1920 so render buffer width is <= 1920)
-      const max1080pDpr = Math.min(1.0, 1920 / Math.max(1, targetW));
-      return Math.min(dpr, max1080pDpr);
-    }
-
     function applyViewport() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (!w || !h || (w === viewport.w && h === viewport.h)) return;
@@ -1100,10 +1093,13 @@ export default function RingHero({
         camera.updateProjectionMatrix();
       }
       if (renderer) {
-        renderer.setPixelRatio(get1080pPixelRatio(w));
+        renderer.setPixelRatio(
+          Math.min(window.devicePixelRatio, viewport.profile === "landscape" ? 2 : 1.5)
+        );
         renderer.setSize(w, h, false);
       }
       composer?.setSize(w, h);
+      settleFramesRef.current = 0;
     }
 
     scene = new THREE.Scene();
@@ -1128,7 +1124,9 @@ export default function RingHero({
       powerPreference: "high-performance",
     });
     renderer.setSize(window.innerWidth, window.innerHeight, !RESPONSIVE_V2);
-    renderer.setPixelRatio(get1080pPixelRatio(window.innerWidth));
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
+    );
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1157,7 +1155,7 @@ export default function RingHero({
     function buildComposer() {
       const w = viewport.w || canvas.clientWidth || window.innerWidth;
       const h = viewport.h || canvas.clientHeight || window.innerHeight;
-      const msaa = 2;
+      const msaa = RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4;
       const composerTarget = new THREE.WebGLRenderTarget(w, h, {
         type: THREE.HalfFloatType,
         samples: msaa,
@@ -1174,7 +1172,7 @@ export default function RingHero({
       };
 
       bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(Math.floor(w / 2), Math.floor(h / 2)),
+        new THREE.Vector2(w, h),
         bCfg.intensity ?? 0.035,
         bCfg.radius ?? 0.28,
         bCfg.threshold ?? 0.96
@@ -2403,10 +2401,23 @@ export default function RingHero({
         const isRingDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("ringdebug");
         const isMobileAtmosphereAlwaysOn =
           RESPONSIVE_V2 && viewport.profile === "portrait" && localFrame <= 128;
+
+        // Video sections: Beat 2 (Classic E-Commerce, frames ~24-65) & Beat 3 (Creative Visuals, frames ~68-115)
+        // In these sections, disable atmosphere float and pause 3D rendering when stationary so videos stream at full 60 FPS
+        const inVideoSection = localFrame >= 24 && localFrame <= 118;
+
         const targetWeight =
-          !isRingDebug && experimentalAtmosphere && (isMobileAtmosphereAlwaysOn || isStill) && beatRangeFactor > 0.001
+          !isRingDebug &&
+          experimentalAtmosphere &&
+          !inVideoSection &&
+          (isMobileAtmosphereAlwaysOn || isStill) &&
+          beatRangeFactor > 0.001
             ? beatRangeFactor
             : 0.0;
+
+        if (inVideoSection) {
+          atmosphereWeightRef.current = 0;
+        }
 
         // Snappy, clean ease-out when scrolling begins (~0.12s); graceful luxury ease-in when at rest (~0.5s)
         const easeSpeed = targetWeight > atmosphereWeightRef.current ? 2.5 : 9.0;
@@ -2579,6 +2590,17 @@ export default function RingHero({
           }
         }
 
+        // ── Demand-driven render in video sections ─────────────────────────
+        if (inVideoSection && isStill && atmosphereWeightRef.current <= 0.005) {
+          if (settleFramesRef.current >= 5) {
+            // Ring has completely settled in 4K resolution; pause rendering to free 100% GPU for smooth video
+            return;
+          }
+          settleFramesRef.current += 1;
+        } else {
+          settleFramesRef.current = 0;
+        }
+
         // ── Render ────────────────────────────────────────────────────────
         if (composer) composer.render(dt);
         else if (renderer && scene && camera) renderer.render(scene, camera);
@@ -2647,6 +2669,7 @@ export default function RingHero({
       }
       renderer?.setSize(w, h);
       composer?.setSize(w, h);
+      settleFramesRef.current = 0;
     }
 
     if (RESPONSIVE_V2) {
