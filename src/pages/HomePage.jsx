@@ -47,7 +47,7 @@ import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 import TimelineEditor from "@/components/three/TimelineEditor";
 import { metalPresets } from "@/components/three/metalMaterials";
-import PerfDevHud, { usePerfFlags } from "@/components/dev/PerfDevHud";
+import { usePerfFlags } from "@/components/dev/PerfDevHud";
 import "./HeroPage2.css";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import VerticalDotNav, {
@@ -1614,7 +1614,6 @@ export default function HomePage() {
           drifts from the ring's own scroll position. (The old particle/
           shader BeatBackground layer has been removed — this is now the
           only background layer.) */}
-      <PerfDevHud />
       {shouldStart3D && !perfFlags.nofog && (
         <VantaBeatFogBackground
           ref={vantaBeatRef}
@@ -2035,7 +2034,7 @@ export default function HomePage() {
               <span className="hero2-logo">Cinegem Studio</span>
               <p>
                 High jewellery rendering, photorealistic 3D visualization, and
-                cinematic animation for the world's finest maisons.
+                cinematic animation for the world&apos;s finest maisons.
               </p>
               <Link to="/inquire" className="hero2-cta-btn">
                 Inquire →
@@ -2925,8 +2924,8 @@ function MaterialDevPanel({
       <div
         style={{ marginTop: 10, fontSize: 10, opacity: 0.5, lineHeight: 1.4 }}
       >
-        Set metal/gem HDR URLs to different files to confirm they don't affect
-        each other. Rotation/scale/power/gamma match your 3D viewer's dev
+        Set metal/gem HDR URLs to different files to confirm they don&apos;t affect
+        each other. Rotation/scale/power/gamma match your 3D viewer&apos;s dev
         controls — 100/100/100 and 0° are neutral.
       </div>
     </div>
