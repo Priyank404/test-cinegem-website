@@ -1076,6 +1076,14 @@ export default function RingHero({
     };
     window.__ringProfile = viewport.profile;
 
+    function get1080pPixelRatio(w) {
+      const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const targetW = w || (typeof window !== "undefined" ? window.innerWidth : 1920);
+      // Cap at 1.0 (or scale down if screen width exceeds 1920 so render buffer width is <= 1920)
+      const max1080pDpr = Math.min(1.0, 1920 / Math.max(1, targetW));
+      return Math.min(dpr, max1080pDpr);
+    }
+
     function applyViewport() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (!w || !h || (w === viewport.w && h === viewport.h)) return;
@@ -1092,9 +1100,7 @@ export default function RingHero({
         camera.updateProjectionMatrix();
       }
       if (renderer) {
-        renderer.setPixelRatio(
-          Math.min(window.devicePixelRatio, viewport.profile === "landscape" ? 2 : 1.5)
-        );
+        renderer.setPixelRatio(get1080pPixelRatio(w));
         renderer.setSize(w, h, false);
       }
       composer?.setSize(w, h);
@@ -1122,9 +1128,7 @@ export default function RingHero({
       powerPreference: "high-performance",
     });
     renderer.setSize(window.innerWidth, window.innerHeight, !RESPONSIVE_V2);
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
-    );
+    renderer.setPixelRatio(get1080pPixelRatio(window.innerWidth));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1153,7 +1157,7 @@ export default function RingHero({
     function buildComposer() {
       const w = viewport.w || canvas.clientWidth || window.innerWidth;
       const h = viewport.h || canvas.clientHeight || window.innerHeight;
-      const msaa = RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4;
+      const msaa = 2;
       const composerTarget = new THREE.WebGLRenderTarget(w, h, {
         type: THREE.HalfFloatType,
         samples: msaa,
@@ -1170,7 +1174,7 @@ export default function RingHero({
       };
 
       bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(w, h),
+        new THREE.Vector2(Math.floor(w / 2), Math.floor(h / 2)),
         bCfg.intensity ?? 0.035,
         bCfg.radius ?? 0.28,
         bCfg.threshold ?? 0.96

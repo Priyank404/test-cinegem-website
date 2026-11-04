@@ -103,6 +103,8 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     effectRef.current = vantaFog({
       el,
       THREE,
+      scale: 3,
+      scaleMobile: 4,
       ...initialOpts,
     });
 
