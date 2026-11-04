@@ -103,24 +103,51 @@ The following files were flagged during Knip / dependency analysis as having zer
 
 ---
 
-## 7. Next Steps for Upload & Deployment
+## 7. Upload & Live Verification Results
 
-All 22 media assets are built, hashed, and ready in `.media-out/`. To push them to your Cloudflare R2 bucket:
+The upload was executed via `npm run media:upload` with **186 objects synced** to Cloudflare R2 bucket `cinegem-media`.
 
-1. Create `.env.media.local` from `.env.media.local.example` with your Cloudflare R2 credentials:
-   ```ini
-   R2_ACCOUNT_ID=<your-cloudflare-account-id>
-   R2_BUCKET=<your-bucket-name>
-   R2_ACCESS_KEY_ID=<your-access-key-id>
-   R2_SECRET_ACCESS_KEY=<your-secret-access-key>
-   R2_PUBLIC_BASE_URL=https://media.cinegemstudio.com
-   CORS_ORIGINS=https://cinegemstudio.com,https://www.cinegemstudio.com,http://localhost:5173
-   ```
-2. Upload to R2:
-   ```powershell
-   npm run media:upload
-   ```
-3. Run automated verification:
-   ```powershell
-   npm run media:verify
-   ```
+### Verification Suite Results (`npm run media:verify`):
+
+| Check | Target | Result | Status |
+| :--- | :--- | :--- | :--- |
+| **Manifest [home]** | `https://media.cinegemstudio.com/manifests/home.json` | HTTP 200, valid JSON (11 items) | ✅ PASS |
+| **Manifest [creative-visuals]** | `https://media.cinegemstudio.com/manifests/creative-visuals.json` | HTTP 200, valid JSON (2 items) | ✅ PASS |
+| **Manifest [classic]** | `https://media.cinegemstudio.com/manifests/classic.json` | HTTP 200, valid JSON (6 items) | ✅ PASS |
+| **Manifest [onbody]** | `https://media.cinegemstudio.com/manifests/onbody.json` | HTTP 200, valid JSON (3 items) | ✅ PASS |
+| **Image Content-Type** | `image/avif` & `image/webp` | HTTP 200, correct MIME types | ✅ PASS |
+| **Video Range Streaming** | `Range: bytes=0-1` | HTTP 206 Partial Content, bytes streaming | ✅ PASS |
+| **Cloudflare Edge Caching** | Edge cache response | `cf-cache-status: HIT` | ✅ PASS |
+| **Bucket CORS Policy** | Origin verification | Requires one-time paste in Cloudflare Dashboard | ⚠️ USER ACTION |
+
+### Final Step: Apply CORS Policy in Cloudflare Dashboard
+In Cloudflare Dashboard:
+1. Go to **R2 Object Storage** → bucket **`cinegem-media`** → tab **Settings**.
+2. Scroll to **CORS Policy** → click **Add CORS policy** (or Edit).
+3. Paste the following JSON and save:
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://cinegemstudio.com",
+      "https://www.cinegemstudio.com",
+      "http://localhost:5173"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges",
+      "ETag"
+    ],
+    "MaxAgeSeconds": 86400
+  }
+]
+```
+
