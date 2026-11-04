@@ -52,10 +52,21 @@ export async function fetchMediaFolder(identifier) {
   const fetchPromise = (async () => {
     try {
       const manifestUrl = mediaUrl(`manifests/${prefix}.json`);
-      const response = await fetch(manifestUrl, { cache: "default" });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load manifest for "${prefix}": HTTP ${response.status} ${response.statusText}`);
+      let response;
+      try {
+        response = await fetch(manifestUrl, { cache: "default" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+      } catch (networkErr) {
+        // Fallback to local /manifests/ if remote fetch fails (e.g. CORS on localhost or offline dev)
+        console.warn(
+          `[mediaService] Remote manifest fetch for "${prefix}" did not succeed (${networkErr.message}). Falling back to local /manifests/${prefix}.json...`
+        );
+        response = await fetch(`/manifests/${prefix}.json`);
+        if (!response.ok) {
+          throw networkErr;
+        }
       }
 
       const data = await response.json();
@@ -92,3 +103,4 @@ export function clearMediaCache() {
   folderCache.clear();
   inFlightRequests.clear();
 }
+

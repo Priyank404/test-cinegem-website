@@ -1,0 +1,80 @@
+{
+  "prefix": "creative-visuals",
+  "total": 2,
+  "imageCount": 0,
+  "videoCount": 2,
+  "updatedAt": "2026-11-04T06:08:13.529Z",
+  "items": [
+    {
+      "id": "creative-visuals/1.webm",
+      "name": "1.webm",
+      "filename": "1.webm",
+      "alt": "1",
+      "type": "video",
+      "isVideo": true,
+      "width": 720,
+      "height": 1280,
+      "duration": 45.21,
+      "src": "creative-visuals/1.4101f996/1080.mp4",
+      "srcLow": "creative-visuals/1.4101f996/720.mp4",
+      "full": "creative-visuals/1.4101f996/1080.mp4",
+      "poster": "creative-visuals/1.4101f996/poster.avif",
+      "posterWebp": "creative-visuals/1.4101f996/poster.webp",
+      "thumb": "creative-visuals/1.4101f996/poster.avif"
+    },
+    {
+      "id": "creative-visuals/2.webm",
+      "name": "2.webm",
+      "filename": "2.webm",
+      "alt": "2",
+      "type": "video",
+      "isVideo": true,
+      "width": 1920,
+      "height": 1080,
+      "duration": 17.05,
+      "src": "creative-visuals/2.b170e1e8/1080.mp4",
+      "srcLow": "creative-visuals/2.b170e1e8/720.mp4",
+      "full": "creative-visuals/2.b170e1e8/1080.mp4",
+      "poster": "creative-visuals/2.b170e1e8/poster.avif",
+      "posterWebp": "creative-visuals/2.b170e1e8/poster.webp",
+      "thumb": "creative-visuals/2.b170e1e8/poster.avif"
+    }
+  ],
+  "images": [],
+  "videos": [
+    {
+      "id": "creative-visuals/1.webm",
+      "name": "1.webm",
+      "filename": "1.webm",
+      "alt": "1",
+      "type": "video",
+      "isVideo": true,
+      "width": 720,
+      "height": 1280,
+      "duration": 45.21,
+      "src": "creative-visuals/1.4101f996/1080.mp4",
+      "srcLow": "creative-visuals/1.4101f996/720.mp4",
+      "full": "creative-visuals/1.4101f996/1080.mp4",
+      "poster": "creative-visuals/1.4101f996/poster.avif",
+      "posterWebp": "creative-visuals/1.4101f996/poster.webp",
+      "thumb": "creative-visuals/1.4101f996/poster.avif"
+    },
+    {
+      "id": "creative-visuals/2.webm",
+      "name": "2.webm",
+      "filename": "2.webm",
+      "alt": "2",
+      "type": "video",
+      "isVideo": true,
+      "width": 1920,
+      "height": 1080,
+      "duration": 17.05,
+      "src": "creative-visuals/2.b170e1e8/1080.mp4",
+      "srcLow": "creative-visuals/2.b170e1e8/720.mp4",
+      "full": "creative-visuals/2.b170e1e8/1080.mp4",
+      "poster": "creative-visuals/2.b170e1e8/poster.avif",
+      "posterWebp": "creative-visuals/2.b170e1e8/poster.webp",
+      "thumb": "creative-visuals/2.b170e1e8/poster.avif"
+    }
+  ]
+}

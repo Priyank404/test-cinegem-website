@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   Media Image Picture Utilities
+   ───────────────────────────────────────────────────────────────────────────── */
+.media-image-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.media-image-picture img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    Poppins Font Utility Classes
    ───────────────────────────────────────────────────────────────────────────── */
 .poppins-thin {

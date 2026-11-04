@@ -150,3 +150,4 @@ The frontend reads media strictly from Cloudflare R2 via:
 VITE_MEDIA_BASE_URL=https://media.yourdomain.com
 ```
 There is zero runtime dependency on Google Drive, zero polling intervals, and zero secret keys exposed in client bundles.
+

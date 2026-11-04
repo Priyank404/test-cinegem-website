@@ -44,9 +44,16 @@ const TARGET_WIDTHS = [640, 1200, 1920, 2560, 3840];
 
 const FOLDERS = ['home', 'creative-visuals', 'classic', 'onbody'];
 
-function computeHash8(filePath) {
+const IMAGE_VERSION = 1;
+const ENCODE_VERSION = 2;
+
+function computeHash8(filePath, version = 1) {
   const fileBuffer = fs.readFileSync(filePath);
-  return crypto.createHash('sha256').update(fileBuffer).digest('hex').slice(0, 8);
+  const hash = crypto.createHash('sha256')
+    .update(fileBuffer)
+    .update(String(version))
+    .digest('hex');
+  return hash.slice(0, 8);
 }
 
 function loadCache() {
@@ -88,7 +95,7 @@ async function probeVideo(filePath) {
 }
 
 async function processImage(sourcePath, prefix, fileName, hash8, cache) {
-  const cacheKey = `${prefix}/${fileName}`;
+  const cacheKey = `${prefix}/${fileName}:v${IMAGE_VERSION}`;
   const baseName = path.parse(fileName).name;
   const relFolder = `${prefix}/${baseName}.${hash8}`;
   const targetDir = path.join(outputDir, prefix, `${baseName}.${hash8}`);
@@ -186,8 +193,41 @@ async function processImage(sourcePath, prefix, fileName, hash8, cache) {
   return item;
 }
 
+function getBoundingBox(srcWidth, srcHeight, boxSize) {
+  let maxW, maxH;
+  if (srcWidth > srcHeight) {
+    // Landscape
+    maxW = boxSize === 1080 ? 1920 : boxSize === 720 ? 1280 : 3840;
+    maxH = boxSize;
+  } else if (srcHeight > srcWidth) {
+    // Portrait
+    maxW = boxSize;
+    maxH = boxSize === 1080 ? 1920 : boxSize === 720 ? 1280 : 3840;
+  } else {
+    // Square
+    maxW = boxSize;
+    maxH = boxSize;
+  }
+
+  // Never upscale: if source already fits, keep source dimensions
+  if (srcWidth <= maxW && srcHeight <= maxH) {
+    let targetW = srcWidth;
+    let targetH = srcHeight;
+    if (targetW % 2 !== 0) targetW -= 1;
+    if (targetH % 2 !== 0) targetH -= 1;
+    return { targetW, targetH };
+  }
+
+  const scale = Math.min(maxW / srcWidth, maxH / srcHeight);
+  let targetW = Math.round(srcWidth * scale);
+  let targetH = Math.round(srcHeight * scale);
+  if (targetW % 2 !== 0) targetW -= 1;
+  if (targetH % 2 !== 0) targetH -= 1;
+  return { targetW, targetH };
+}
+
 async function processVideo(sourcePath, prefix, fileName, hash8, cache) {
-  const cacheKey = `${prefix}/${fileName}`;
+  const cacheKey = `${prefix}/${fileName}:v${ENCODE_VERSION}`;
   const baseName = path.parse(fileName).name;
   const relFolder = `${prefix}/${baseName}.${hash8}`;
   const targetDir = path.join(outputDir, prefix, `${baseName}.${hash8}`);
@@ -240,30 +280,30 @@ async function processVideo(sourcePath, prefix, fileName, hash8, cache) {
   }
 
   // Common ffmpeg filters: scale and cap fps at 30 if > 30
-  function buildFilter(targetH) {
-    let vf = `scale=-2:${targetH}`;
+  function buildFilter(targetW, targetH) {
+    let vf = `scale=${targetW}:${targetH}`;
     if (fps > 30) {
       vf += ',fps=fps=30';
     }
     return vf;
   }
 
-  // 1080p rendition (never upscale: if height < 1080, use height)
-  let h1080 = Math.min(height, 1080);
-  if (h1080 % 2 !== 0) h1080 -= 1;
+  // 1080 bounding box rendition (never upscale)
+  const dims1080 = getBoundingBox(width, height, 1080);
   const out1080 = path.join(targetDir, '1080.mp4');
-  console.log(`      -> Encoding 1080.mp4 (height ${h1080})...`);
+  console.log(`      -> Encoding 1080.mp4 (${dims1080.targetW}x${dims1080.targetH})...`);
   await execFileAsync('ffmpeg', [
     '-y',
     '-i', sourcePath,
-    '-vf', buildFilter(h1080),
+    '-vf', buildFilter(dims1080.targetW, dims1080.targetH),
     '-c:v', 'libx264',
     '-preset', 'slow',
-    '-crf', '22',
-    '-maxrate', '6M',
-    '-bufsize', '12M',
+    '-crf', '18',
+    '-maxrate', '10M',
+    '-bufsize', '20M',
     '-pix_fmt', 'yuv420p',
     '-profile:v', 'high',
+    '-level', '4.1',
     '-g', '48',
     '-keyint_min', '48',
     '-sc_threshold', '0',
@@ -275,22 +315,22 @@ async function processVideo(sourcePath, prefix, fileName, hash8, cache) {
     out1080
   ]);
 
-  // 720p rendition
-  let h720 = Math.min(height, 720);
-  if (h720 % 2 !== 0) h720 -= 1;
+  // 720 bounding box rendition
+  const dims720 = getBoundingBox(width, height, 720);
   const out720 = path.join(targetDir, '720.mp4');
-  console.log(`      -> Encoding 720.mp4 (height ${h720})...`);
+  console.log(`      -> Encoding 720.mp4 (${dims720.targetW}x${dims720.targetH})...`);
   await execFileAsync('ffmpeg', [
     '-y',
     '-i', sourcePath,
-    '-vf', buildFilter(h720),
+    '-vf', buildFilter(dims720.targetW, dims720.targetH),
     '-c:v', 'libx264',
     '-preset', 'slow',
-    '-crf', '24',
-    '-maxrate', '3M',
-    '-bufsize', '6M',
+    '-crf', '21',
+    '-maxrate', '4M',
+    '-bufsize', '8M',
     '-pix_fmt', 'yuv420p',
     '-profile:v', 'high',
+    '-level', '4.1',
     '-g', '48',
     '-keyint_min', '48',
     '-sc_threshold', '0',
@@ -304,20 +344,22 @@ async function processVideo(sourcePath, prefix, fileName, hash8, cache) {
 
   // 2160p rendition (only if source >= 2160 and enabled)
   let fullRel = `${relFolder}/1080.mp4`;
-  if (enable2160Video && height >= 2160) {
+  if (enable2160Video && (width >= 2160 || height >= 2160)) {
+    const dims2160 = getBoundingBox(width, height, 2160);
     const out2160 = path.join(targetDir, '2160.mp4');
-    console.log(`      -> Encoding 2160.mp4...`);
+    console.log(`      -> Encoding 2160.mp4 (${dims2160.targetW}x${dims2160.targetH})...`);
     await execFileAsync('ffmpeg', [
       '-y',
       '-i', sourcePath,
-      '-vf', buildFilter(2160),
+      '-vf', buildFilter(dims2160.targetW, dims2160.targetH),
       '-c:v', 'libx264',
       '-preset', 'slow',
-      '-crf', '22',
-      '-maxrate', '18M',
-      '-bufsize', '36M',
+      '-crf', '18',
+      '-maxrate', '25M',
+      '-bufsize', '50M',
       '-pix_fmt', 'yuv420p',
       '-profile:v', 'high',
+      '-level', '5.1',
       '-g', '48',
       '-keyint_min', '48',
       '-sc_threshold', '0',
@@ -369,7 +411,11 @@ async function main() {
 
   const cache = loadCache();
   const manifestsDir = path.join(outputDir, 'manifests');
+  const publicManifestsDir = path.join(rootDir, 'public', 'manifests');
+  const rootManifestsDir = path.join(rootDir, 'manifests');
   fs.mkdirSync(manifestsDir, { recursive: true });
+  fs.mkdirSync(publicManifestsDir, { recursive: true });
+  fs.mkdirSync(rootManifestsDir, { recursive: true });
 
   const existingFolders = fs.readdirSync(baseSourceDir).filter(name => {
     return fs.statSync(path.join(baseSourceDir, name)).isDirectory();
@@ -394,12 +440,12 @@ async function main() {
     for (const fileName of files) {
       const filePath = path.join(folderPath, fileName);
       const ext = path.extname(fileName).toLowerCase();
-      const hash8 = computeHash8(filePath);
-
       if (IMAGE_EXTS.has(ext)) {
+        const hash8 = computeHash8(filePath, IMAGE_VERSION);
         const item = await processImage(filePath, prefix, fileName, hash8, cache);
         items.push(item);
       } else if (VIDEO_EXTS.has(ext)) {
+        const hash8 = computeHash8(filePath, ENCODE_VERSION);
         const item = await processVideo(filePath, prefix, fileName, hash8, cache);
         items.push(item);
       } else {
@@ -422,7 +468,10 @@ async function main() {
     };
 
     const manifestPath = path.join(manifestsDir, `${prefix}.json`);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    const manifestJson = JSON.stringify(manifest, null, 2);
+    fs.writeFileSync(manifestPath, manifestJson, 'utf-8');
+    fs.writeFileSync(path.join(publicManifestsDir, `${prefix}.json`), manifestJson, 'utf-8');
+    fs.writeFileSync(path.join(rootManifestsDir, `${prefix}.json`), manifestJson, 'utf-8');
     console.log(`   📄 Manifest written to: ${path.relative(rootDir, manifestPath)} (${items.length} items)`);
   }
 

@@ -47,6 +47,7 @@ import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 import TimelineEditor from "@/components/three/TimelineEditor";
 import { metalPresets } from "@/components/three/metalMaterials";
+import PerfDevHud, { getPerfFlags } from "@/components/dev/PerfDevHud";
 import "./HeroPage2.css";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import VerticalDotNav, {
@@ -107,7 +108,14 @@ const FOOTER_RING_LIFT_AMOUNT = 0.25;
 
 const SHOW_DEV_PANEL = isDevMode();
 
-// Default HDR configurations matching tuned studio lighting & Octane Diamond logic
+function pickVideoSrc(v) {
+  if (!v) return "";
+  const narrow = typeof window !== "undefined" && window.innerWidth < 768;
+  const saveData = typeof navigator !== "undefined" && navigator.connection?.saveData === true;
+  return narrow || saveData
+    ? v.srcLow || v.src || v.full || ""
+    : v.src || v.full || v.srcLow || "";
+}
 const DEFAULT_METAL_HDR_CONFIG = {
   rotation: -105,
   rotationY: -9,
@@ -468,6 +476,15 @@ export default function HomePage() {
   const [loadStatus, setLoadStatus] = useState("Initiating exhibition...");
   const [shouldStart3D, setShouldStart3D] = useState(false);
 
+  // Dev-only performance A/B switches (?perf=noring,nofog,noblur,novideo)
+  const perfFlags = useMemo(() => getPerfFlags(), []);
+
+  useEffect(() => {
+    if (perfFlags.noring) {
+      setIsLoading(false);
+    }
+  }, [perfFlags.noring]);
+
   // Defer heavy 3D WebGL / Draco initialization so intro ring animation plays at buttery smooth 60fps
   useEffect(() => {
     const isDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("ringdebug");
@@ -572,6 +589,8 @@ export default function HomePage() {
   const beat3VideoRef = useRef(null);
 
   const beat4OverlayRef = useRef(null);
+  const beat2VideoActiveRef = useRef(false);
+  const beat3VideoActiveRef = useRef(false);
 
   // Optimized media assets dynamically fetched via R2 manifests
   const {
@@ -583,15 +602,11 @@ export default function HomePage() {
   } = useHomePageMedia();
 
   const beat2ResolvedVideoSrc = useMemo(() => {
-    if (!beat2Video) return "";
-    const isNarrow = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.connection?.saveData);
-    return (isNarrow && beat2Video.srcLow) ? beat2Video.srcLow : (beat2Video.src || beat2Video.full || "");
+    return pickVideoSrc(beat2Video);
   }, [beat2Video]);
 
   const beat3ResolvedVideoSrc = useMemo(() => {
-    if (!beat3Video) return "";
-    const isNarrow = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.connection?.saveData);
-    return (isNarrow && beat3Video.srcLow) ? beat3Video.srcLow : (beat3Video.src || beat3Video.full || "");
+    return pickVideoSrc(beat3Video);
   }, [beat3Video]);
 
   useEffect(() => {
@@ -610,7 +625,7 @@ export default function HomePage() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && !perfFlags.novideo) {
             const vid = entry.target;
             const targetSrc = vid.dataset.src;
             if (targetSrc && (!vid.src || !vid.src.includes(targetSrc))) {
@@ -627,7 +642,43 @@ export default function HomePage() {
     if (beat3VideoRef.current) observer.observe(beat3VideoRef.current);
 
     return () => observer.disconnect();
-  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc]);
+  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc, perfFlags.novideo]);
+
+  // Buffer home page videos during browser idle time once initial 3D experience has loaded
+  useEffect(() => {
+    if (isLoading || typeof window === "undefined" || perfFlags.novideo) return;
+
+    const bufferVideos = () => {
+      const b2Src = pickVideoSrc(beat2Video);
+      const b3Src = pickVideoSrc(beat3Video);
+
+      if (beat2VideoRef.current && b2Src && !beat2VideoRef.current.src) {
+        beat2VideoRef.current.src = b2Src;
+        beat2VideoRef.current.preload = "auto";
+      }
+      if (beat3VideoRef.current && b3Src && !beat3VideoRef.current.src) {
+        beat3VideoRef.current.src = b3Src;
+        beat3VideoRef.current.preload = "auto";
+      }
+    };
+
+    let idleId;
+    let timerId;
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(bufferVideos, { timeout: 2000 });
+    } else {
+      timerId = setTimeout(bufferVideos, 1500);
+    }
+
+    return () => {
+      if (idleId && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [isLoading, beat2Video, beat3Video]);
 
   // "Explore 3D Viewer" text link that fades in during the tail of Beat 5
   // (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME constants above) once the
@@ -1007,19 +1058,42 @@ export default function HomePage() {
         trackElem.style.transform = `translateY(-${pxOffset}px)`;
       }
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
+      const isVideoActive = dominant === 2;
+      if (beat2VideoActiveRef.current !== isVideoActive) {
+        beat2VideoActiveRef.current = isVideoActive;
+        if (beat2OverlayRef.current) {
+          beat2OverlayRef.current.classList.toggle("video-active", isVideoActive);
+        }
+        if (isVideoActive && (import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev")) {
+          const v = beat2VideoRef.current;
+          let buf = 0;
+          try {
+            if (v?.buffered?.length > 0) buf = v.buffered.end(0);
+          } catch {}
+          console.log(`[video-perf] Beat 2 video dominant | readyState: ${v?.readyState} | buffered: ${buf.toFixed(2)}s / ${(v?.duration || 0).toFixed(2)}s`);
+        }
+      }
       if (beat2VideoRef.current) {
-        if (dominant === 2) {
+        if (dominant === 2 && !perfFlags.novideo) {
           if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
             beat2VideoRef.current.src = beat2ResolvedVideoSrc;
-            beat2VideoRef.current.load();
           }
-          if (beat2VideoRef.current.paused)
+          if (beat2VideoRef.current.paused) {
             beat2VideoRef.current.play().catch(() => {});
+          }
         } else {
-          if (!beat2VideoRef.current.paused) beat2VideoRef.current.pause();
+          if (!beat2VideoRef.current.paused) {
+            beat2VideoRef.current.pause();
+          }
         }
       }
     } else {
+      if (beat2VideoActiveRef.current) {
+        beat2VideoActiveRef.current = false;
+        if (beat2OverlayRef.current) {
+          beat2OverlayRef.current.classList.remove("video-active");
+        }
+      }
       if (beat2SlideTrackRef.current) {
         beat2SlideTrackRef.current.style.transform = "translateY(0px)";
       }
@@ -1065,11 +1139,6 @@ export default function HomePage() {
       beat3OverlayRef.current.style.pointerEvents = "none";
     }
 
-    // NOTE: Beat 3's content/title cards no longer need a runtime swap —
-    // they're rendered with their own static beat3LayoutConfig position
-    // directly in JSX (see the Beat 3 Layout block below), so there's
-    // nothing to reposition here at all.
-
     if (frame >= b3ee && frame <= b3xe) {
       const activeRange = Math.max(0.001, b3xs - b3ee);
       const trackProgress = Math.min(
@@ -1089,19 +1158,42 @@ export default function HomePage() {
         trackElem.style.transform = `translateY(-${pxOffset}px)`;
       }
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
+      const isVideoActive = dominant === 2;
+      if (beat3VideoActiveRef.current !== isVideoActive) {
+        beat3VideoActiveRef.current = isVideoActive;
+        if (beat3OverlayRef.current) {
+          beat3OverlayRef.current.classList.toggle("video-active", isVideoActive);
+        }
+        if (isVideoActive && (import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev")) {
+          const v = beat3VideoRef.current;
+          let buf = 0;
+          try {
+            if (v?.buffered?.length > 0) buf = v.buffered.end(0);
+          } catch {}
+          console.log(`[video-perf] Beat 3 video dominant | readyState: ${v?.readyState} | buffered: ${buf.toFixed(2)}s / ${(v?.duration || 0).toFixed(2)}s`);
+        }
+      }
       if (beat3VideoRef.current) {
-        if (dominant === 2) {
+        if (dominant === 2 && !perfFlags.novideo) {
           if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
             beat3VideoRef.current.src = beat3ResolvedVideoSrc;
-            beat3VideoRef.current.load();
           }
-          if (beat3VideoRef.current.paused)
+          if (beat3VideoRef.current.paused) {
             beat3VideoRef.current.play().catch(() => {});
+          }
         } else {
-          if (!beat3VideoRef.current.paused) beat3VideoRef.current.pause();
+          if (!beat3VideoRef.current.paused) {
+            beat3VideoRef.current.pause();
+          }
         }
       }
     } else {
+      if (beat3VideoActiveRef.current) {
+        beat3VideoActiveRef.current = false;
+        if (beat3OverlayRef.current) {
+          beat3OverlayRef.current.classList.remove("video-active");
+        }
+      }
       if (beat3SlideTrackRef.current) {
         beat3SlideTrackRef.current.style.transform = "translateY(0px)";
       }
@@ -1330,7 +1422,8 @@ export default function HomePage() {
           drifts from the ring's own scroll position. (The old particle/
           shader BeatBackground layer has been removed — this is now the
           only background layer.) */}
-      {shouldStart3D && (
+      <PerfDevHud />
+      {shouldStart3D && !perfFlags.nofog && (
         <VantaBeatFogBackground
           ref={vantaBeatRef}
           beatOptions={beatFogOptions}
@@ -1539,7 +1632,7 @@ export default function HomePage() {
                       ref={beat3VideoRef}
                       data-src={beat3ResolvedVideoSrc}
                       poster={beat3Video.poster || beat3Video.thumb}
-                      preload="none"
+                      preload="metadata"
                       loop
                       muted
                       playsInline
@@ -1603,7 +1696,7 @@ export default function HomePage() {
 
       {/* Fixed 3D background — canvas + gradient overlay, pinned behind
           everything else via z-index (see RingHero.jsx inline styles) */}
-      {shouldStart3D && (
+      {shouldStart3D && !perfFlags.noring && (
         <RingHero
           glbUrl="/models/ring-draco.glb"
         metalHdrUrl={metalHdrUrl}

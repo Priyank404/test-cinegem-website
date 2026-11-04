@@ -52,7 +52,7 @@ Every deleted file was verified with search/grep across all source files, config
 ## 4. Security Audit & Findings (Phase 5)
 
 1. **Google Drive API Key Exposure in Git History:**
-   - The key `AIzaSyBtAzyvWH3iqfmJ1y0GwbKAoXFxTRw_-Xk` was committed to git in commit `9caaa79` (`chore: save working state before starting seo implementation`).
+   - The key `AIza…(redacted)` was committed to git in commit `9caaa79` (`chore: save working state before starting seo implementation`).
    - **Action Required by User:** Please open the [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials) and **delete or revoke** this API key.
 2. **Environment Files Security:**
    - Confirmed `.env` is **not** tracked by git.
@@ -118,36 +118,57 @@ The upload was executed via `npm run media:upload` with **186 objects synced** t
 | **Image Content-Type** | `image/avif` & `image/webp` | HTTP 200, correct MIME types | ✅ PASS |
 | **Video Range Streaming** | `Range: bytes=0-1` | HTTP 206 Partial Content, bytes streaming | ✅ PASS |
 | **Cloudflare Edge Caching** | Edge cache response | `cf-cache-status: HIT` | ✅ PASS |
-| **Bucket CORS Policy** | Origin verification | Requires one-time paste in Cloudflare Dashboard | ⚠️ USER ACTION |
+| **Bucket CORS Policy** | Origin verification | `access-control-allow-origin: http://localhost:5173` | ✅ PASS |
 
-### Final Step: Apply CORS Policy in Cloudflare Dashboard
-In Cloudflare Dashboard:
-1. Go to **R2 Object Storage** → bucket **`cinegem-media`** → tab **Settings**.
-2. Scroll to **CORS Policy** → click **Add CORS policy** (or Edit).
-3. Paste the following JSON and save:
-```json
-[
-  {
-    "AllowedOrigins": [
-      "https://cinegemstudio.com",
-      "https://www.cinegemstudio.com",
-      "http://localhost:5173"
-    ],
-    "AllowedMethods": [
-      "GET",
-      "HEAD"
-    ],
-    "AllowedHeaders": [
-      "*"
-    ],
-    "ExposeHeaders": [
-      "Content-Length",
-      "Content-Range",
-      "Accept-Ranges",
-      "ETag"
-    ],
-    "MaxAgeSeconds": 86400
-  }
-]
-```
+---
+
+## 7. Follow-Up Quality & Performance Optimizations (Round 2)
+
+### Changes Applied:
+1. **Desktop Video Rendition Selection (`pickVideoSrc`):**
+   - Corrected inverted preference in `src/pages/HomePage.jsx`. Desktop now selects crisp `1080p` MP4 (`v.src`), reserving `720p` (`v.srcLow`) exclusively for narrow viewports (`< 768px`) or `saveData: true`.
+2. **Bounding-Box Aware FFmpeg Scaling:**
+   - Switched from height-only scaling to bounding-box proportional fitting (`1920x1080` landscape, `1080x1920` portrait, `1080x1080` square).
+   - Preserves native dimensions on non-standard aspect ratios like `creative-visuals/1.webm` (720x1280 portrait is no longer squashed to 608px).
+3. **High-Bitrate Video Master Settings:**
+   - **1080p:** `-crf 18 -maxrate 10M -bufsize 20M -preset slow -level 4.1` (increased from soft CRF 22 / 6M).
+   - **720p:** `-crf 21 -maxrate 4M -bufsize 8M -preset slow -level 4.1` (increased from CRF 24 / 3M).
+   - Mixed `ENCODE_VERSION = 2` into SHA-256 hash input (`<name>.<hash8>/...`) to guarantee 100% Cloudflare CDN cache invalidation.
+4. **Compositing Layer Memory Cleanup:**
+   - Removed `will-change: transform` and `backface-visibility: hidden` from static image rules in `src/pages/HeroPage2.css`.
+5. **Backdrop Filter Disabling on Active Videos:**
+   - Toggled `.video-active` on Beat 2 and Beat 3 overlays when video is on screen.
+   - Disables expensive `backdrop-filter: blur(24px)` beneath opaque video playback and substitutes tuned `background: rgba(14, 14, 18, 0.82)` to eliminate redundant GPU canvas blur passes.
+6. **Background Video Pre-Buffering via `requestIdleCallback`:**
+   - Home page videos are preloaded into browser cache during idle time after the 3D ring experience has loaded, eliminating playback stalls, seek jumps, and poster flash.
+7. **Dead Code Cleanup:**
+   - Permanently deleted `src/constants/gallery.js`, `src/hooks/useLightbox.js`, `src/components/shared/LightboxModal.jsx`, and `src/components/shared/HeroImage.jsx` (verified 0 importers).
+8. **Dev-Only Performance A/B Switches (`PerfDevHud.jsx`):**
+   - Added `?perf=` query param reader with live top-left FPS & frame-time delta overlay.
+
+### Video Renditions Master Table (`ffprobe` verified):
+
+| Asset | Rendition | Resolution | FPS | Codec Profile & Level | Avg Bitrate | File Size | R2 Key |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **home/5.webm** | 1080p | 1080x1080 | 30 fps | H.264 High L4.1 | 2612 kbps | 4.68 MB | `home/5.9836ea1b/1080.mp4` |
+| **home/5.webm** | 720p | 720x720 | 30 fps | H.264 High L4.1 | 942 kbps | 1.69 MB | `home/5.9836ea1b/720.mp4` |
+| **home/10.webm** | 1080p | 1920x1080 | 30 fps | H.264 High L4.1 | 8335 kbps | 16.92 MB | `home/10.b170e1e8/1080.mp4` |
+| **home/10.webm** | 720p | 1280x720 | 30 fps | H.264 High L4.1 | 3017 kbps | 6.13 MB | `home/10.b170e1e8/720.mp4` |
+| **creative-visuals/1.webm** | 1080p | 720x1280 | 30 fps | H.264 High L4.1 | 5436 kbps | 29.29 MB | `creative-visuals/1.4101f996/1080.mp4` |
+| **creative-visuals/1.webm** | 720p | 720x1280 | 30 fps | H.264 High L4.1 | 3114 kbps | 16.78 MB | `creative-visuals/1.4101f996/720.mp4` |
+| **creative-visuals/2.webm** | 1080p | 1920x1080 | 30 fps | H.264 High L4.1 | 8336 kbps | 16.93 MB | `creative-visuals/2.b170e1e8/1080.mp4` |
+| **creative-visuals/2.webm** | 720p | 1280x720 | 30 fps | H.264 High L4.1 | 3015 kbps | 6.12 MB | `creative-visuals/2.b170e1e8/720.mp4` |
+| **classic/1.webm** | 1080p | 1080x1080 | 30 fps | H.264 High L4.1 | 2612 kbps | 4.68 MB | `classic/1.9836ea1b/1080.mp4` |
+| **classic/1.webm** | 720p | 720x720 | 30 fps | H.264 High L4.1 | 942 kbps | 1.69 MB | `classic/1.9836ea1b/720.mp4` |
+
+### Instructions for Dev Performance A/B Testing:
+
+Open `http://localhost:5173/` with any of the following query parameters:
+- `http://localhost:5173/?perf=noring` — Runs without mounting the 3D WebGL Three.js ring scene.
+- `http://localhost:5173/?perf=nofog` — Runs without mounting the Vanta procedural fog shader background.
+- `http://localhost:5173/?perf=noblur` — Disables `backdrop-filter` globally across all glassy cards.
+- `http://localhost:5173/?perf=novideo` — Renders video posters only without loading video streams.
+- `http://localhost:5173/?perf=noring,nofog` — Combinable flags to isolate GPU rendering vs compositing pipelines.
+- Top-left badge displays real-time rolling average FPS, minimum (worst frame) FPS, and maximum frame delta in milliseconds.
+
 
