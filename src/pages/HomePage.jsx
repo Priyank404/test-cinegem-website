@@ -1305,6 +1305,95 @@ export default function HomePage() {
     applyCardOverlayFrame(lastFrameRef.current, cardTimingConfig);
   }, [cardTimingConfig]);
 
+  // Unified scroll progress handler for card overlays, section dots, explore link, and footer
+  const handleScrollProgress = useCallback(
+    (progress) => {
+      const frame = progress * TOTAL_FRAMES;
+      lastFrameRef.current = frame;
+
+      // Sync vertical dot navigation active index with scroll progress (5 sections)
+      const newSectionIndex =
+        frame < 25
+          ? 0
+          : frame < 68
+            ? 1
+            : frame < 114
+              ? 2
+              : frame < 185
+                ? 3
+                : 4;
+
+      if (newSectionIndex !== activeSectionRef.current) {
+        activeSectionRef.current = newSectionIndex;
+        setActiveSectionIndex(newSectionIndex);
+      }
+
+      applyCardOverlayFrame(frame, cardTimingConfig);
+
+      // "Explore 3D Viewer" link
+      if (exploreLinkRef.current) {
+        const showExploreLink =
+          frame >= EXPLORE_LINK_GLOBAL_FRAME &&
+          frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
+        exploreLinkRef.current.classList.toggle("is-visible", showExploreLink);
+        exploreLinkRef.current.style.display = showExploreLink ? "flex" : "none";
+        exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
+      }
+
+      // Footer reveal
+      if (footerRevealRef.current) {
+        const footerT = Math.min(
+          1,
+          Math.max(
+            0,
+            (frame - FOOTER_REVEAL_GLOBAL_START_FRAME) /
+              (FOOTER_REVEAL_GLOBAL_END_FRAME - FOOTER_REVEAL_GLOBAL_START_FRAME),
+          ),
+        );
+        footerRevealRef.current.style.transform = `translateY(${(1 - footerT) * 100}%)`;
+        footerRevealRef.current.style.pointerEvents =
+          footerT > 0.5 ? "auto" : "none";
+
+        if (navRef.current && navRef.current.style.transform) {
+          navRef.current.style.transform = "";
+        }
+      }
+    },
+    [cardTimingConfig],
+  );
+
+  // Fallback ScrollTrigger when 3D Ring is turned off via ?perf=noring
+  // Ensures cards, overlays, videos, dots, and footer scrub smoothly with scroll
+  useEffect(() => {
+    if (!perfFlags.noring) return;
+
+    ScrollTrigger.refresh();
+
+    const trigger = ScrollTrigger.create({
+      trigger: "#scroll-content",
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 1.2,
+      onUpdate: (self) => {
+        handleScrollProgress(self.progress);
+        if (vantaBeatRef.current) {
+          const beatPos = self.progress * 4;
+          const fromIndex = Math.floor(beatPos);
+          const weight = beatPos - fromIndex;
+          vantaBeatRef.current.setBlend({
+            fromIndex: Math.min(fromIndex, 4),
+            toIndex: Math.min(fromIndex + 1, 4),
+            weight,
+          });
+        }
+      },
+    });
+
+    return () => {
+      trigger.kill();
+    };
+  }, [perfFlags.noring, handleScrollProgress]);
+
   // Persists cardTimingConfig to localStorage as a dedicated, explicit
   // save action — separate from "Reset Timing". Values are picked back
   // up on next load via the lazy useState initializer below, so tuned
@@ -1763,75 +1852,7 @@ export default function HomePage() {
             timelineRef.current.update(info, currentPose);
           }
 
-          const frame = info.progress * TOTAL_FRAMES;
-          const roundedFrame = Math.round(frame);
-
-          // Sync vertical dot navigation active index with scroll progress (5 sections)
-          const newSectionIndex =
-            frame < 25
-              ? 0
-              : frame < 68
-                ? 1
-                : frame < 114
-                  ? 2
-                  : frame < 185
-                    ? 3
-                    : 4;
-
-          if (newSectionIndex !== activeSectionRef.current) {
-            activeSectionRef.current = newSectionIndex;
-            setActiveSectionIndex(newSectionIndex);
-          }
-
-          // Keep the last-known global frame available outside this
-          // callback (the live-preview useEffect on cardTimingConfig
-          // reads it) and apply the beat 2/3 overlay math for this frame.
-          lastFrameRef.current = frame;
-          applyCardOverlayFrame(frame, cardTimingConfig);
-
-          // "Explore 3D Viewer" link — visible only while the global frame
-          // is within [EXPLORE_LINK_GLOBAL_FRAME, _END_FRAME], i.e. only
-          // during its own beat. Toggled every tick (not a one-way
-          // latch), so it hides again if the user scrolls back up past
-          // EXPLORE_LINK_GLOBAL_FRAME.
-          if (exploreLinkRef.current) {
-            const showExploreLink =
-              frame >= EXPLORE_LINK_GLOBAL_FRAME &&
-              frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
-            exploreLinkRef.current.classList.toggle(
-              "is-visible",
-              showExploreLink,
-            );
-            exploreLinkRef.current.style.display = showExploreLink ? "flex" : "none";
-            exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
-          }
-
-          // Footer reveal — 0 (fully hidden below viewport) -> 1 (fully
-          // in place) as frame goes from FOOTER_REVEAL_GLOBAL_START_FRAME
-          // to _END_FRAME. Clamped so it holds at 0 before frame 245 and
-          // stays at 1 if somehow scrolled past 260 (shouldn't happen,
-          // 260 is TOTAL_FRAMES). Reverses smoothly on scroll-up since
-          // it's driven by the same continuous progress value every
-          // tick, not a one-way reveal.
-          if (footerRevealRef.current) {
-            const footerT = Math.min(
-              1,
-              Math.max(
-                0,
-                (frame - FOOTER_REVEAL_GLOBAL_START_FRAME) /
-                  (FOOTER_REVEAL_GLOBAL_END_FRAME -
-                    FOOTER_REVEAL_GLOBAL_START_FRAME),
-              ),
-            );
-            footerRevealRef.current.style.transform = `translateY(${(1 - footerT) * 100}%)`;
-            footerRevealRef.current.style.pointerEvents =
-              footerT > 0.5 ? "auto" : "none";
-
-            // Keep header logo fixed in place at the top of the page (do not slide up)
-            if (navRef.current && navRef.current.style.transform) {
-              navRef.current.style.transform = "";
-            }
-          }
+          handleScrollProgress(info.progress);
 
           // Debounce React state update so sliders sync to scrolled values when scrolling stops
           clearTimeout(scrollDebounceRef.current);
