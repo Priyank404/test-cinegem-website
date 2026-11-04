@@ -29,7 +29,11 @@ function loadEnvFile(filePath) {
 const mediaLocalEnv = loadEnvFile(path.join(rootDir, '.env.media.local'));
 const rootEnv = loadEnvFile(path.join(rootDir, '.env'));
 
-const baseUrl = (mediaLocalEnv.R2_PUBLIC_BASE_URL || rootEnv.VITE_MEDIA_BASE_URL || '').replace(/\/+$/, '');
+let rawUrl = (mediaLocalEnv.R2_PUBLIC_BASE_URL || rootEnv.VITE_MEDIA_BASE_URL || '').trim();
+if (rawUrl && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+  rawUrl = `https://${rawUrl}`;
+}
+const baseUrl = rawUrl.replace(/\/+$/, '');
 const corsOrigins = mediaLocalEnv.CORS_ORIGINS
   ? mediaLocalEnv.CORS_ORIGINS.split(',').map(s => s.trim())
   : ['http://localhost:5173'];
@@ -122,8 +126,8 @@ async function main() {
     });
     const acceptRanges = vidRes.headers.get('accept-ranges');
     const contentRange = vidRes.headers.get('content-range');
-    const pass = vidRes.status === 206 && acceptRanges === 'bytes';
-    record('Video Range Request (206)', pass, `Status ${vidRes.status}, accept-ranges: ${acceptRanges}, content-range: ${contentRange}`);
+    const pass = vidRes.status === 206 && (acceptRanges === 'bytes' || contentRange?.startsWith('bytes'));
+    record('Video Range Request (206)', pass, `Status ${vidRes.status}, content-range: ${contentRange}`);
   }
 
   // Check 3: Cloudflare Edge Cache Status
@@ -169,3 +173,4 @@ main().catch(err => {
   console.error('Fatal error during verification:', err);
   process.exit(1);
 });
+

@@ -12,7 +12,12 @@ if (!rawBaseUrl) {
   }
 }
 
-export const MEDIA_BASE_URL = (rawBaseUrl || "").replace(/\/+$/, "");
+let normalizedBaseUrl = (rawBaseUrl || "").trim();
+if (normalizedBaseUrl && !normalizedBaseUrl.startsWith("http://") && !normalizedBaseUrl.startsWith("https://")) {
+  normalizedBaseUrl = `https://${normalizedBaseUrl}`;
+}
+
+export const MEDIA_BASE_URL = normalizedBaseUrl.replace(/\/+$/, "");
 
 /**
  * Returns an absolute URL pointing to Cloudflare R2 for any media key
@@ -87,3 +92,4 @@ export function resolveFolder(identifier) {
   }
   return trimmed.toLowerCase();
 }
+
