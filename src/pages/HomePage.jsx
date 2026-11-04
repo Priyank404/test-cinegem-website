@@ -219,6 +219,31 @@ export default function HomePage() {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSectionRef = useRef(0);
 
+  // Video playback & scroll activity refs
+  const beat2VideoRef = useRef(null);
+  const beat3VideoRef = useRef(null);
+  const beat2VideoActiveRef = useRef(false);
+  const beat3VideoActiveRef = useRef(false);
+  const videoPlayDebounceRef = useRef(null);
+  const resumeVisibleVideosRef = useRef(null);
+
+  const onScrollAction = useCallback(() => {
+    // Instantly pause videos during active scrolling
+    if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
+      beat2VideoRef.current.pause();
+    }
+    if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
+      beat3VideoRef.current.pause();
+    }
+
+    // Schedule resume when scrolling stops (80ms settle)
+    clearTimeout(videoPlayDebounceRef.current);
+    videoPlayDebounceRef.current = setTimeout(() => {
+      videoPlayDebounceRef.current = null;
+      resumeVisibleVideosRef.current?.();
+    }, 80);
+  }, []);
+
   // Synchronize active dot with scroll position across the 5 sections
   const updateActiveSection = useCallback(() => {
     const scrollY = window.scrollY || window.pageYOffset || 0;
@@ -249,17 +274,25 @@ export default function HomePage() {
     }
   }, []);
 
-  // Window scroll & resize listeners for real-time dot tracking
+  // Window scroll, wheel, touch & resize listeners for real-time dot tracking and scroll video pausing
   useEffect(() => {
-    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    const handleScroll = () => {
+      updateActiveSection();
+      onScrollAction();
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("wheel", onScrollAction, { passive: true });
+    window.addEventListener("touchmove", onScrollAction, { passive: true });
     window.addEventListener("resize", updateActiveSection, { passive: true });
     updateActiveSection();
 
     return () => {
-      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("wheel", onScrollAction);
+      window.removeEventListener("touchmove", onScrollAction);
       window.removeEventListener("resize", updateActiveSection);
     };
-  }, [updateActiveSection]);
+  }, [updateActiveSection, onScrollAction]);
 
   // Smooth-scroll layer — RingHero.jsx's docblock mentions Lenis as part
   // of the intended stack, but nothing was ever wiring it up: the page
@@ -343,16 +376,27 @@ export default function HomePage() {
     // Keep ScrollTrigger's internal scroll tracking synced to Lenis's
     // interpolated position every time Lenis emits a scroll update,
     // rather than trusting its own separate scroll listener.
-    const handleLenisScroll = () => {
+    const handleLenisScroll = (e) => {
       ScrollTrigger.update();
       updateActiveSection();
 
-      // Instantly pause videos during active scrolling
-      if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
-        beat2VideoRef.current.pause();
-      }
-      if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
-        beat3VideoRef.current.pause();
+      const vel = Math.abs(e?.velocity || 0);
+      if (vel > 0.15) {
+        if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
+          beat2VideoRef.current.pause();
+        }
+        if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
+          beat3VideoRef.current.pause();
+        }
+        clearTimeout(videoPlayDebounceRef.current);
+        videoPlayDebounceRef.current = setTimeout(() => {
+          videoPlayDebounceRef.current = null;
+          resumeVisibleVideosRef.current?.();
+        }, 80);
+      } else {
+        if (!videoPlayDebounceRef.current) {
+          resumeVisibleVideosRef.current?.();
+        }
       }
     };
     lenis.on("scroll", handleLenisScroll);
@@ -587,19 +631,14 @@ export default function HomePage() {
   const beat2Slide1Ref = useRef(null);
   const beat2Slide2Ref = useRef(null);
   const beat2Slide3Ref = useRef(null);
-  const beat2VideoRef = useRef(null);
 
   const beat3OverlayRef = useRef(null);
   const beat3SlideTrackRef = useRef(null);
   const beat3Slide1Ref = useRef(null);
   const beat3Slide2Ref = useRef(null);
   const beat3Slide3Ref = useRef(null);
-  const beat3VideoRef = useRef(null);
 
   const beat4OverlayRef = useRef(null);
-  const beat2VideoActiveRef = useRef(false);
-  const beat3VideoActiveRef = useRef(false);
-  const videoPlayDebounceRef = useRef(null);
 
   // Optimized media assets dynamically fetched via R2 manifests
   const {
@@ -818,6 +857,76 @@ export default function HomePage() {
     }
     return DEFAULT_CARD_TIMING_CONFIG;
   });
+
+  // Centralized video resume controller: plays visible video in loop when scrolling stops
+  const resumeVisibleVideos = useCallback(() => {
+    if (perfFlags.novideo) return;
+
+    const frame = lastFrameRef.current;
+    const config = cardTimingConfig;
+
+    const playVideo = (v, src) => {
+      if (!v) return;
+      if (src && (!v.src || !v.src.includes(src))) {
+        v.src = src;
+      }
+      v.muted = true;
+      v.playsInline = true;
+      v.loop = true;
+      if (v.paused) {
+        const p = v.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {});
+        }
+      }
+    };
+
+    const pauseVideo = (v) => {
+      if (v && !v.paused) {
+        v.pause();
+      }
+    };
+
+    // Beat 2: Video is Slide 3 of the track.
+    // Slide 3 begins entering when trackProgress >= 0.45.
+    const b2es = config.beat2EntryStart; // 25
+    const b2ee = config.beat2EntryEnd;   // 35
+    const b2xs = config.beat2ExitStart;  // 51
+    const b2xe = config.beat2ExitEnd;    // 61
+    const inBeat2 = frame >= b2es && frame <= b2xe;
+    const b2Progress = inBeat2 && frame >= b2ee
+      ? Math.min(1, Math.max(0, (frame - b2ee) / Math.max(0.001, b2xs - b2ee)))
+      : 0;
+    const isBeat2VideoVisible = inBeat2 && b2Progress >= 0.45;
+
+    // Beat 3: Video is item 5 (bottom wide banner in editorial track).
+    // Bottom banner begins entering when trackProgress >= 0.35.
+    const b3es = config.beat3EntryStart; // 75
+    const b3ee = config.beat3EntryEnd;   // 85
+    const b3xs = config.beat3ExitStart;  // 101
+    const b3xe = config.beat3ExitEnd;    // 111
+    const inBeat3 = frame >= b3es && frame <= b3xe;
+    const b3Progress = inBeat3 && frame >= b3ee
+      ? Math.min(1, Math.max(0, (frame - b3ee) / Math.max(0.001, b3xs - b3ee)))
+      : 0;
+    const isBeat3VideoVisible = inBeat3 && b3Progress >= 0.35;
+
+    if (isBeat2VideoVisible) {
+      playVideo(beat2VideoRef.current, beat2ResolvedVideoSrc);
+    } else {
+      pauseVideo(beat2VideoRef.current);
+    }
+
+    if (isBeat3VideoVisible) {
+      playVideo(beat3VideoRef.current, beat3ResolvedVideoSrc);
+    } else {
+      pauseVideo(beat3VideoRef.current);
+    }
+  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc, cardTimingConfig, perfFlags.novideo]);
+
+  useEffect(() => {
+    resumeVisibleVideosRef.current = resumeVisibleVideos;
+  }, [resumeVisibleVideos]);
 
   const [timelineTarget, setTimelineTarget] = useState("desktop");
 
@@ -1081,36 +1190,14 @@ export default function HomePage() {
           let buf = 0;
           try {
             if (v?.buffered?.length > 0) buf = v.buffered.end(0);
-          } catch {}
+          } catch (_err) {
+            void _err;
+          }
           console.log(`[video-perf] Beat 2 video dominant | readyState: ${v?.readyState} | buffered: ${buf.toFixed(2)}s / ${(v?.duration || 0).toFixed(2)}s`);
         }
       }
-      if (beat2VideoRef.current) {
-        if (dominant === 2 && !perfFlags.novideo) {
-          if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
-            beat2VideoRef.current.src = beat2ResolvedVideoSrc;
-          }
-          // Pause video while actively scrolling to guarantee maximum scroll fluidity
-          if (!beat2VideoRef.current.paused) {
-            beat2VideoRef.current.pause();
-          }
-          // When scrolling stops, play video in loop after a short settle period
-          clearTimeout(videoPlayDebounceRef.current);
-          videoPlayDebounceRef.current = setTimeout(() => {
-            if (beat2VideoRef.current && beat2VideoActiveRef.current && !perfFlags.novideo) {
-              if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
-                beat2VideoRef.current.src = beat2ResolvedVideoSrc;
-              }
-              if (beat2VideoRef.current.paused) {
-                beat2VideoRef.current.play().catch(() => {});
-              }
-            }
-          }, 200);
-        } else {
-          if (!beat2VideoRef.current.paused) {
-            beat2VideoRef.current.pause();
-          }
-        }
+      if (beat2VideoRef.current && beat2ResolvedVideoSrc && !beat2VideoRef.current.src) {
+        beat2VideoRef.current.src = beat2ResolvedVideoSrc;
       }
     } else {
       if (beat2VideoActiveRef.current) {
@@ -1194,36 +1281,14 @@ export default function HomePage() {
           let buf = 0;
           try {
             if (v?.buffered?.length > 0) buf = v.buffered.end(0);
-          } catch {}
+          } catch (_err) {
+            void _err;
+          }
           console.log(`[video-perf] Beat 3 video dominant | readyState: ${v?.readyState} | buffered: ${buf.toFixed(2)}s / ${(v?.duration || 0).toFixed(2)}s`);
         }
       }
-      if (beat3VideoRef.current) {
-        if (dominant === 2 && !perfFlags.novideo) {
-          if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
-            beat3VideoRef.current.src = beat3ResolvedVideoSrc;
-          }
-          // Pause video while actively scrolling to guarantee maximum scroll fluidity
-          if (!beat3VideoRef.current.paused) {
-            beat3VideoRef.current.pause();
-          }
-          // When scrolling stops, play video in loop after a short settle period
-          clearTimeout(videoPlayDebounceRef.current);
-          videoPlayDebounceRef.current = setTimeout(() => {
-            if (beat3VideoRef.current && beat3VideoActiveRef.current && !perfFlags.novideo) {
-              if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
-                beat3VideoRef.current.src = beat3ResolvedVideoSrc;
-              }
-              if (beat3VideoRef.current.paused) {
-                beat3VideoRef.current.play().catch(() => {});
-              }
-            }
-          }, 200);
-        } else {
-          if (!beat3VideoRef.current.paused) {
-            beat3VideoRef.current.pause();
-          }
-        }
+      if (beat3VideoRef.current && beat3ResolvedVideoSrc && !beat3VideoRef.current.src) {
+        beat3VideoRef.current.src = beat3ResolvedVideoSrc;
       }
     } else {
       if (beat3VideoActiveRef.current) {
@@ -1754,7 +1819,7 @@ export default function HomePage() {
 
                 {/* 5. Bottom Wide Banner (Video) */}
                 <div className="creative-grid-item creative-item-bottom">
-                  {beat3Video?.src ? (
+                  {beat3ResolvedVideoSrc ? (
                     <video
                       ref={beat3VideoRef}
                       data-src={beat3ResolvedVideoSrc}
