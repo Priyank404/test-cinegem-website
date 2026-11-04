@@ -346,6 +346,14 @@ export default function HomePage() {
     const handleLenisScroll = () => {
       ScrollTrigger.update();
       updateActiveSection();
+
+      // Instantly pause videos during active scrolling
+      if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
+        beat2VideoRef.current.pause();
+      }
+      if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
+        beat3VideoRef.current.pause();
+      }
     };
     lenis.on("scroll", handleLenisScroll);
 
@@ -591,6 +599,7 @@ export default function HomePage() {
   const beat4OverlayRef = useRef(null);
   const beat2VideoActiveRef = useRef(false);
   const beat3VideoActiveRef = useRef(false);
+  const videoPlayDebounceRef = useRef(null);
 
   // Optimized media assets dynamically fetched via R2 manifests
   const {
@@ -676,6 +685,9 @@ export default function HomePage() {
       }
       if (timerId) {
         clearTimeout(timerId);
+      }
+      if (videoPlayDebounceRef.current) {
+        clearTimeout(videoPlayDebounceRef.current);
       }
     };
   }, [isLoading, beat2Video, beat3Video]);
@@ -1078,9 +1090,22 @@ export default function HomePage() {
           if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
             beat2VideoRef.current.src = beat2ResolvedVideoSrc;
           }
-          if (beat2VideoRef.current.paused) {
-            beat2VideoRef.current.play().catch(() => {});
+          // Pause video while actively scrolling to guarantee maximum scroll fluidity
+          if (!beat2VideoRef.current.paused) {
+            beat2VideoRef.current.pause();
           }
+          // When scrolling stops, play video in loop after a short settle period
+          clearTimeout(videoPlayDebounceRef.current);
+          videoPlayDebounceRef.current = setTimeout(() => {
+            if (beat2VideoRef.current && beat2VideoActiveRef.current && !perfFlags.novideo) {
+              if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
+                beat2VideoRef.current.src = beat2ResolvedVideoSrc;
+              }
+              if (beat2VideoRef.current.paused) {
+                beat2VideoRef.current.play().catch(() => {});
+              }
+            }
+          }, 200);
         } else {
           if (!beat2VideoRef.current.paused) {
             beat2VideoRef.current.pause();
@@ -1178,9 +1203,22 @@ export default function HomePage() {
           if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
             beat3VideoRef.current.src = beat3ResolvedVideoSrc;
           }
-          if (beat3VideoRef.current.paused) {
-            beat3VideoRef.current.play().catch(() => {});
+          // Pause video while actively scrolling to guarantee maximum scroll fluidity
+          if (!beat3VideoRef.current.paused) {
+            beat3VideoRef.current.pause();
           }
+          // When scrolling stops, play video in loop after a short settle period
+          clearTimeout(videoPlayDebounceRef.current);
+          videoPlayDebounceRef.current = setTimeout(() => {
+            if (beat3VideoRef.current && beat3VideoActiveRef.current && !perfFlags.novideo) {
+              if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
+                beat3VideoRef.current.src = beat3ResolvedVideoSrc;
+              }
+              if (beat3VideoRef.current.paused) {
+                beat3VideoRef.current.play().catch(() => {});
+              }
+            }
+          }, 200);
         } else {
           if (!beat3VideoRef.current.paused) {
             beat3VideoRef.current.pause();
