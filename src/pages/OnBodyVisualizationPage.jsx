@@ -576,6 +576,7 @@ export default function OnBodyVisualizationPage() {
       fullBleed
     >
       <HeroSection
+        pageKey="onbody"
         backgroundSrc={heroBackgroundSrc}
         heading={["On-Body", "Visualization"]}
         paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."

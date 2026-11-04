@@ -1,15 +1,15 @@
 // HeroSection.jsx
 //
-// Cinematic scroll-zoom hero with a global interactive Color Tuner panel.
-// All pages share the exact same user-selected heading & paragraph colors.
+// Cinematic scroll-zoom hero with independent per-page text color support.
 // An interactive floating panel allows the user to test hex values, pick colors,
-// and copy configurations in real time.
+// and copy configurations in real time independently for each page.
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import TrailText from "@/components/shared/TrailText";
 import { isMediaVideo } from "@/utils/mediaPositioning";
-import { getSavedHeroColors } from "@/components/ui/HeroColorTuner";
+import { getSavedHeroColors, getPageKey } from "@/components/ui/HeroColorTuner";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,12 +17,15 @@ export default function HeroSection({
   backgroundSrc = "",
   heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
+  pageKey,
 }) {
+  const location = useLocation();
+  const currentPageKey = pageKey || getPageKey(location?.pathname);
   const heroRef = useRef(null);
   const bgRef = useRef(null);
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
-  const [colors, setColors] = useState(() => getSavedHeroColors());
+  const [colors, setColors] = useState(() => getSavedHeroColors(currentPageKey));
 
   const resolvedSrc = typeof backgroundSrc === "object" ? (backgroundSrc?.full || backgroundSrc?.src || "") : backgroundSrc;
   const isVideo = isMediaVideo(backgroundSrc || resolvedSrc);
@@ -33,10 +36,15 @@ export default function HeroSection({
     }
   }, [resolvedSrc]);
 
-  // Synchronize live color updates across all hero sections
+  // Synchronize colors when navigating to a different page
+  useEffect(() => {
+    setColors(getSavedHeroColors(currentPageKey));
+  }, [currentPageKey]);
+
+  // Synchronize live color updates for this specific page
   useEffect(() => {
     const onColorChange = (e) => {
-      if (e.detail) {
+      if (e.detail && (!e.detail.pageKey || e.detail.pageKey === currentPageKey)) {
         setColors({
           heading: e.detail.heading,
           paragraph: e.detail.paragraph,
@@ -46,7 +54,7 @@ export default function HeroSection({
     };
     window.addEventListener("hero-color-change", onColorChange);
     return () => window.removeEventListener("hero-color-change", onColorChange);
-  }, []);
+  }, [currentPageKey]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

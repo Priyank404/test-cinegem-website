@@ -17,53 +17,53 @@ const ImageClickContext = createContext(null);
 ═══════════════════════════════════════════════════════════════════════ */
 
 const section1Images = [
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png", alt: "Solitaire marquise diamond ring front view in 18K yellow gold 3D render", label: "Front" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png", alt: "Solitaire marquise diamond ring side profile view in 18K yellow gold 3D render", label: "Side" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png", alt: "Solitaire marquise diamond ring perspective angle view in 18K yellow gold 3D render", label: "Angle" },
-  { src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png", alt: "Solitaire marquise diamond ring crown detail view in 18K yellow gold 3D render", label: "Detail" },
+  { src: "/E-com Visuals/BR_0010_IR_01_WB.png", alt: "Classic Diamond Bracelet front view in 18K yellow gold 3D render", label: "Front" },
+  { src: "/E-com Visuals/BR_IY_01_Output AOV 2_0000.png", alt: "Classic Diamond Bracelet side profile view in 18K yellow gold 3D render", label: "Side" },
+  { src: "/E-com Visuals/BR_IY_03_Output AOV 1_0000.png", alt: "Classic Diamond Bracelet perspective angle view in 18K yellow gold 3D render", label: "Angle" },
+  { src: "/E-com Visuals/Figaro-BR-CH-Y-V1.png", alt: "Figaro Gold Bracelet detail view in 18K yellow gold 3D render", label: "Detail" },
 ];
 
 const section2Images = [
   {
-    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-1.png",
-    alt: "Marquise diamond solitaire ring front view 3D render — Cinegem Studio",
+    src: "/E-com Visuals/RG01-Y-B-V3.png",
+    alt: "Solitaire diamond ring front view 3D render — Cinegem Studio",
     label: "Front",
   },
   {
-    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-2.png",
-    alt: "Marquise diamond solitaire ring profile view 3D render — Cinegem Studio",
+    src: "/E-com Visuals/RG01-Y-B-V4.png",
+    alt: "Solitaire diamond ring profile view 3D render — Cinegem Studio",
     label: "Side",
   },
   {
-    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-3.png",
-    alt: "Marquise diamond solitaire ring perspective view 3D render — Cinegem Studio",
+    src: "/E-com Visuals/RG02-R-V3.png",
+    alt: "Rose gold solitaire ring perspective view 3D render — Cinegem Studio",
     label: "Angle",
   },
   {
-    src: "/E-com Visuals/solitaire-high-polish-yellow-marquise-angle-4.png",
-    alt: "Marquise diamond solitaire ring macro detail view 3D render — Cinegem Studio",
+    src: "/E-com Visuals/RG02-W-V2.png",
+    alt: "White gold solitaire ring macro detail view 3D render — Cinegem Studio",
     label: "Detail",
   },
 ];
 
 const section3Images = [
   {
-    src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
+    src: "/E-com Visuals/PD001-Y-V1_Output AOV 8_0000.png",
     alt: "Diamond pendant necklace front view in 14K yellow gold 3D render — Cinegem Studio",
     label: "Front",
   },
   {
-    src: "/G7P25CLACRAW0113D00-TZPDP00005-14Y-V1-WB.png",
+    src: "/E-com Visuals/PD001-Y-V2_Output AOV 8_0000.png",
     alt: "Diamond pendant necklace side view in 14K yellow gold 3D render — Cinegem Studio",
     label: "Side",
   },
   {
-    src: "/G7P25CLACRAW0113D00-TZPDP00005-CPG-V2-WB.png",
+    src: "/E-com Visuals/KJ01898P-RD-2-Y-V1.png",
     alt: "Diamond pendant necklace detail view in rose gold 3D render — Cinegem Studio",
     label: "Detail",
   },
   {
-    src: "/G7P25CLACRAW0113D00-TZPDP00005-24Y-V3-WB.png",
+    src: "/E-com Visuals/NP-1-YG-LS2-V2.png",
     alt: "Diamond pendant necklace macro view in 24K yellow gold 3D render — Cinegem Studio",
     label: "Macro",
   },
@@ -645,9 +645,9 @@ function Section3({ mediaItems = [], images = [], videoSrc }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function ClassicEComVisuals({
-  videoSrc1 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
-  videoSrc2 = "/E-com Visuals/solitaire-high-polish-yellow-marquise-video.mp4",
-  videoSrc3 = "MarquiseSideStone_HiddenHalo_Cushion_533985AX-R.mp4",
+  videoSrc1 = "/Creative visuals/A6-R3-HQ.mp4",
+  videoSrc2 = "/Creative visuals/360 Turntable black.mp4",
+  videoSrc3 = "/Creative visuals/E commerce 1 with Music.mp4",
   title = "Classic E-Commerce Visuals",
   eyebrow = "Product Showcase",
 }) {
@@ -813,6 +813,7 @@ export default function ClassicEComVisuals({
     <ServicePageLayout title={title} currentPage="/classic" fullBleed>
       {/* Cinematic scroll-zoom hero */}
       <HeroSection
+        pageKey="classic"
         backgroundSrc={heroBackgroundSrc}
         heading={["Classic", "E-Commerce", "Visuals"]}
         paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."

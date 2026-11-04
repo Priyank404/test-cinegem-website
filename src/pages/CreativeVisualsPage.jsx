@@ -793,6 +793,7 @@ export default function CreativeVisualsPage() {
     <ServicePageLayout title="Creative Visuals" currentPage="/creative-visuals" fullBleed>
       {/* Nav bar + cinematic hero */}
       <HeroSection
+        pageKey="creative-visuals"
         backgroundSrc={heroBackgroundSrc}
         heading={["Creative", "Visuals"]}
         paragraph="A cascading edit of jewellery photography and motion — an interlocking mosaic of every piece."

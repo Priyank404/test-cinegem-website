@@ -1,9 +1,26 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { isDevMode } from "@/config/env";
 
 const DEFAULT_HEADING_COLOR = "#858890";
 const DEFAULT_PARAGRAPH_COLOR = "#555860";
 const DEFAULT_SHADOW = "none";
+
+export const PAGE_TITLES = {
+  classic: "Classic E-Commerce",
+  "creative-visuals": "Creative Visuals",
+  onbody: "On-Body Visualization",
+  home: "Home Page",
+};
+
+export function getPageKey(pathname = "") {
+  let path = pathname;
+  if (!path && typeof window !== "undefined") {
+    path = window.location.pathname;
+  }
+  const clean = (path || "").toLowerCase().replace(/^\/|\/$/g, "");
+  return clean || "home";
+}
 
 export const PRESET_SHADES = [
   { name: "Platinum Silver", heading: "#858890", paragraph: "#555860", desc: "Balanced whitish-silver" },
@@ -32,58 +49,77 @@ function applyCssVariables(heading, paragraph, shadow) {
   );
 }
 
-export function getSavedHeroColors() {
+export function getSavedHeroColors(pageKey) {
+  const key = pageKey || getPageKey();
   if (typeof window === "undefined") {
     return {
       heading: DEFAULT_HEADING_COLOR,
       paragraph: DEFAULT_PARAGRAPH_COLOR,
       shadow: DEFAULT_SHADOW,
+      pageKey: key,
     };
   }
-  const heading = localStorage.getItem("cinegem_hero_heading_color") || DEFAULT_HEADING_COLOR;
-  const paragraph = localStorage.getItem("cinegem_hero_paragraph_color") || DEFAULT_PARAGRAPH_COLOR;
-  const shadow = localStorage.getItem("cinegem_hero_shadow") || DEFAULT_SHADOW;
+
+  // Read page-specific colors first; fall back to global saved color or defaults
+  const pageHeading = localStorage.getItem(`cinegem_hero_heading_${key}`);
+  const globalHeading = localStorage.getItem("cinegem_hero_heading_color");
+  const heading = pageHeading || globalHeading || DEFAULT_HEADING_COLOR;
+
+  const pageParagraph = localStorage.getItem(`cinegem_hero_paragraph_${key}`);
+  const globalParagraph = localStorage.getItem("cinegem_hero_paragraph_color");
+  const paragraph = pageParagraph || globalParagraph || DEFAULT_PARAGRAPH_COLOR;
+
+  const pageShadow = localStorage.getItem(`cinegem_hero_shadow_${key}`);
+  const globalShadow = localStorage.getItem("cinegem_hero_shadow");
+  const shadow = pageShadow || globalShadow || DEFAULT_SHADOW;
 
   applyCssVariables(heading, paragraph, shadow);
 
-  return { heading, paragraph, shadow };
+  return { heading, paragraph, shadow, pageKey: key };
 }
 
-export function saveHeroColors(heading, paragraph, shadow) {
+export function saveHeroColors(heading, paragraph, shadow, pageKey) {
   if (typeof window === "undefined") return;
+  const key = pageKey || getPageKey();
   try {
-    localStorage.setItem("cinegem_hero_heading_color", heading);
-    localStorage.setItem("cinegem_hero_paragraph_color", paragraph);
-    localStorage.setItem("cinegem_hero_shadow", shadow);
-  } catch (err) {
-    // ignore quota/private mode errors
+    localStorage.setItem(`cinegem_hero_heading_${key}`, heading);
+    localStorage.setItem(`cinegem_hero_paragraph_${key}`, paragraph);
+    localStorage.setItem(`cinegem_hero_shadow_${key}`, shadow);
+  } catch (_err) {
+    void _err;
   }
 
   applyCssVariables(heading, paragraph, shadow);
 
   window.dispatchEvent(
     new CustomEvent("hero-color-change", {
-      detail: { heading, paragraph, shadow },
+      detail: { heading, paragraph, shadow, pageKey: key },
     })
   );
 }
 
 export default function HeroColorTuner() {
-  if (!isDevMode()) return null;
+  const location = useLocation();
+  const currentPageKey = getPageKey(location?.pathname);
+  const pageTitle = PAGE_TITLES[currentPageKey] || currentPageKey;
+
   const [isOpen, setIsOpen] = useState(false);
   const [headingColor, setHeadingColor] = useState(DEFAULT_HEADING_COLOR);
   const [paragraphColor, setParagraphColor] = useState(DEFAULT_PARAGRAPH_COLOR);
   const [shadow, setShadow] = useState(DEFAULT_SHADOW);
   const [copiedKey, setCopiedKey] = useState(null);
 
+  // Sync tuner inputs with the active page's independent colors
   useEffect(() => {
-    const saved = getSavedHeroColors();
+    const saved = getSavedHeroColors(currentPageKey);
     setHeadingColor(saved.heading);
     setParagraphColor(saved.paragraph);
     setShadow(saved.shadow);
+  }, [currentPageKey]);
 
+  useEffect(() => {
     const onColorChange = (e) => {
-      if (e.detail) {
+      if (e.detail && (!e.detail.pageKey || e.detail.pageKey === currentPageKey)) {
         setHeadingColor(e.detail.heading);
         setParagraphColor(e.detail.paragraph);
         setShadow(e.detail.shadow);
@@ -92,34 +128,41 @@ export default function HeroColorTuner() {
 
     window.addEventListener("hero-color-change", onColorChange);
     return () => window.removeEventListener("hero-color-change", onColorChange);
-  }, []);
+  }, [currentPageKey]);
 
   const updateHeading = (color) => {
     setHeadingColor(color);
-    saveHeroColors(color, paragraphColor, shadow);
+    saveHeroColors(color, paragraphColor, shadow, currentPageKey);
   };
 
   const updateParagraph = (color) => {
     setParagraphColor(color);
-    saveHeroColors(headingColor, color, shadow);
+    saveHeroColors(headingColor, color, shadow, currentPageKey);
   };
 
   const updateShadow = (shadowVal) => {
     setShadow(shadowVal);
-    saveHeroColors(headingColor, paragraphColor, shadowVal);
+    saveHeroColors(headingColor, paragraphColor, shadowVal, currentPageKey);
   };
 
   const applyPreset = (preset) => {
     setHeadingColor(preset.heading);
     setParagraphColor(preset.paragraph);
-    saveHeroColors(preset.heading, preset.paragraph, shadow);
+    saveHeroColors(preset.heading, preset.paragraph, shadow, currentPageKey);
   };
 
   const resetDefaults = () => {
+    try {
+      localStorage.removeItem(`cinegem_hero_heading_${currentPageKey}`);
+      localStorage.removeItem(`cinegem_hero_paragraph_${currentPageKey}`);
+      localStorage.removeItem(`cinegem_hero_shadow_${currentPageKey}`);
+    } catch (_err) {
+      void _err;
+    }
     setHeadingColor(DEFAULT_HEADING_COLOR);
     setParagraphColor(DEFAULT_PARAGRAPH_COLOR);
     setShadow(DEFAULT_SHADOW);
-    saveHeroColors(DEFAULT_HEADING_COLOR, DEFAULT_PARAGRAPH_COLOR, DEFAULT_SHADOW);
+    saveHeroColors(DEFAULT_HEADING_COLOR, DEFAULT_PARAGRAPH_COLOR, DEFAULT_SHADOW, currentPageKey);
   };
 
   const copyToClipboard = (text, key) => {
@@ -127,6 +170,8 @@ export default function HeroColorTuner() {
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 1800);
   };
+
+  if (!isDevMode()) return null;
 
   return (
     <>
@@ -158,9 +203,14 @@ export default function HeroColorTuner() {
               <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
                 <span>🎨 Hero Text Color Tuner</span>
               </h3>
-              <p className="text-[11px] text-white/50 font-light mt-0.5">
-                Updates all pages live in real time
-              </p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#C5A059]/20 text-[#C5A059] border border-[#C5A059]/35">
+                  Page: {pageTitle}
+                </span>
+                <span className="text-[10px] text-white/40 font-mono">
+                  /{currentPageKey}
+                </span>
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -300,7 +350,7 @@ export default function HeroColorTuner() {
             <button
               type="button"
               onClick={() => {
-                const configStr = `Heading: ${headingColor} | Paragraph: ${paragraphColor} | Shadow: ${shadow}`;
+                const configStr = `Page: ${pageTitle} (/${currentPageKey}) | Heading: ${headingColor} | Paragraph: ${paragraphColor} | Shadow: ${shadow}`;
                 copyToClipboard(configStr, "all");
               }}
               className="w-full py-2.5 px-4 rounded-lg bg-[#C5A059] hover:bg-[#b08d48] text-[#121212] font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-lg cursor-pointer"

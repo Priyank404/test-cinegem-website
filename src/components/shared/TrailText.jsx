@@ -31,6 +31,8 @@ export default function TrailText({
   splitBy = "words", // "words" splits a single string on spaces; "lines" expects an array of line strings as children
   delay = 0, // ms before this block's own trail starts — use to stagger a paragraph after a heading
   config = { mass: 5, tension: 2000, friction: 200 },
+  style = {},
+  ...rest
 }) {
   // "lines": pass children as an array, e.g. {["Classic", "E-Commerce", "Visuals"]}
   //   -> each array item trails in as its own block-level line, no wrapping surprises.
@@ -52,12 +54,16 @@ export default function TrailText({
   const AnimatedItem = a[ItemTag] || a.div;
 
   return (
-    <Tag className={className}>
-      {trail.map((style, index) => (
+    <Tag className={className} style={style} {...rest}>
+      {trail.map((animStyle, index) => (
         <AnimatedItem
           key={index}
           className={`will-change-transform ${splitBy === "words" ? "inline-block" : ""} ${wordClassName}`}
-          style={style}
+          style={{
+            ...animStyle,
+            color: style?.color || "inherit",
+            textShadow: style?.textShadow || "inherit",
+          }}
         >
           {items[index]}
           {splitBy === "words" && index < items.length - 1 ? "\u00A0" : ""}
