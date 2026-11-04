@@ -227,22 +227,104 @@ export default function HomePage() {
   const videoPlayDebounceRef = useRef(null);
   const resumeVisibleVideosRef = useRef(null);
 
+  // Smooth video playback easing controller: eases video acceleration on start to eliminate jerking
+  const easeVideoIn = useCallback((v) => {
+    if (!v) return;
+    if (v._easeRafId) {
+      cancelAnimationFrame(v._easeRafId);
+      v._easeRafId = null;
+    }
+
+    // Set initial gentle slow-motion rate so the transition from pause has zero jerk
+    try {
+      v.playbackRate = 0.15;
+    } catch (_e) {
+      void _e;
+    }
+
+    const playPromise = v.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise
+        .then(() => {
+          const startTime = performance.now();
+          const duration = 500; // ms
+          const startRate = 0.15;
+          const targetRate = 1.0;
+
+          const ramp = (now) => {
+            if (!v || v.paused) {
+              v._easeRafId = null;
+              return;
+            }
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            // easeInOutQuad: zero jerk at start, smooth coasting into full speed
+            const ease =
+              progress < 0.5
+                ? 2 * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+            try {
+              v.playbackRate = Math.min(
+                targetRate,
+                Math.max(startRate, startRate + (targetRate - startRate) * ease)
+              );
+            } catch (_err) {
+              void _err;
+            }
+
+            if (progress < 1) {
+              v._easeRafId = requestAnimationFrame(ramp);
+            } else {
+              try {
+                v.playbackRate = targetRate;
+              } catch (_err2) {
+                void _err2;
+              }
+              v._easeRafId = null;
+            }
+          };
+
+          v._easeRafId = requestAnimationFrame(ramp);
+        })
+        .catch((_err) => {
+          void _err;
+        });
+    }
+  }, []);
+
+  const pauseVideoSmooth = useCallback((v) => {
+    if (!v) return;
+    if (v._easeRafId) {
+      cancelAnimationFrame(v._easeRafId);
+      v._easeRafId = null;
+    }
+    if (!v.paused) {
+      v.pause();
+    }
+    try {
+      v.playbackRate = 1.0;
+    } catch (_err) {
+      void _err;
+    }
+  }, []);
+
   const onScrollAction = useCallback(() => {
     // Instantly pause videos during active scrolling
     if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
-      beat2VideoRef.current.pause();
+      pauseVideoSmooth(beat2VideoRef.current);
     }
     if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
-      beat3VideoRef.current.pause();
+      pauseVideoSmooth(beat3VideoRef.current);
     }
 
-    // Schedule resume when scrolling stops (80ms settle)
+    // Schedule resume when scrolling stops (160ms settle to prevent scroll gesture chatter)
     clearTimeout(videoPlayDebounceRef.current);
     videoPlayDebounceRef.current = setTimeout(() => {
       videoPlayDebounceRef.current = null;
       resumeVisibleVideosRef.current?.();
-    }, 80);
-  }, []);
+    }, 160);
+  }, [pauseVideoSmooth]);
 
   // Synchronize active dot with scroll position across the 5 sections
   const updateActiveSection = useCallback(() => {
@@ -254,6 +336,7 @@ export default function HomePage() {
 
     const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
     const currentFrame = progress * TOTAL_FRAMES;
+    lastFrameRef.current = currentFrame;
 
     let newIndex = 0;
     if (currentFrame < 25) {
@@ -381,22 +464,18 @@ export default function HomePage() {
       updateActiveSection();
 
       const vel = Math.abs(e?.velocity || 0);
-      if (vel > 0.15) {
+      if (vel > 0.05) {
         if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
-          beat2VideoRef.current.pause();
+          pauseVideoSmooth(beat2VideoRef.current);
         }
         if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
-          beat3VideoRef.current.pause();
+          pauseVideoSmooth(beat3VideoRef.current);
         }
         clearTimeout(videoPlayDebounceRef.current);
         videoPlayDebounceRef.current = setTimeout(() => {
           videoPlayDebounceRef.current = null;
           resumeVisibleVideosRef.current?.();
-        }, 80);
-      } else {
-        if (!videoPlayDebounceRef.current) {
-          resumeVisibleVideosRef.current?.();
-        }
+        }, 160);
       }
     };
     lenis.on("scroll", handleLenisScroll);
@@ -406,8 +485,13 @@ export default function HomePage() {
       lenis.off("scroll", handleLenisScroll);
       gsap.ticker.remove(lenisTick);
       lenis.destroy();
+      clearTimeout(videoPlayDebounceRef.current);
+      const b2Vid = beat2VideoRef.current;
+      const b3Vid = beat3VideoRef.current;
+      if (b2Vid) pauseVideoSmooth(b2Vid);
+      if (b3Vid) pauseVideoSmooth(b3Vid);
     };
-  }, []);
+  }, [pauseVideoSmooth, updateActiveSection]);
 
   // Live-tunable knobs, independent per element — this is what actually
   // proves metal and gem aren't cross-contaminating each other's HDR.
@@ -874,17 +958,12 @@ export default function HomePage() {
       v.playsInline = true;
       v.loop = true;
       if (v.paused) {
-        const p = v.play();
-        if (p && typeof p.catch === "function") {
-          p.catch(() => {});
-        }
+        easeVideoIn(v);
       }
     };
 
     const pauseVideo = (v) => {
-      if (v && !v.paused) {
-        v.pause();
-      }
+      pauseVideoSmooth(v);
     };
 
     // Beat 2: Video is Slide 3 of the track.
@@ -922,7 +1001,7 @@ export default function HomePage() {
     } else {
       pauseVideo(beat3VideoRef.current);
     }
-  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc, cardTimingConfig, perfFlags.novideo]);
+  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc, cardTimingConfig, easeVideoIn, pauseVideoSmooth, perfFlags.novideo]);
 
   useEffect(() => {
     resumeVisibleVideosRef.current = resumeVisibleVideos;
@@ -1210,7 +1289,7 @@ export default function HomePage() {
         beat2SlideTrackRef.current.style.transform = "translateY(0px)";
       }
       if (beat2VideoRef.current && !beat2VideoRef.current.paused) {
-        beat2VideoRef.current.pause();
+        pauseVideoSmooth(beat2VideoRef.current);
       }
     }
 
@@ -1301,7 +1380,7 @@ export default function HomePage() {
         beat3SlideTrackRef.current.style.transform = "translateY(0px)";
       }
       if (beat3VideoRef.current && !beat3VideoRef.current.paused) {
-        beat3VideoRef.current.pause();
+        pauseVideoSmooth(beat3VideoRef.current);
       }
     }
 
