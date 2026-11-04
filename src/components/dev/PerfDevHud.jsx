@@ -1,6 +1,6 @@
 // src/components/dev/PerfDevHud.jsx
 // Dev-only performance A/B testing overlay with interactive live toggles
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { isDevMode } from "@/config/env";
 
 export function getPerfFlags() {
@@ -76,9 +76,6 @@ export function resetPerfFlags() {
 
 export default function PerfDevHud() {
   const isDev = isDevMode();
-  const [stats, setStats] = useState({ avg: 60, min: 60, maxDelta: 16 });
-  const frameTimesRef = useRef([]);
-
   const flags = usePerfFlags();
 
   // Apply noblur class to html element
@@ -94,51 +91,6 @@ export default function PerfDevHud() {
     };
   }, [flags.noblur, isDev]);
 
-  // RequestAnimationFrame FPS monitor over sliding 2s window
-  useEffect(() => {
-    if (!isDev) return;
-
-    let animId;
-    let lastTime = performance.now();
-    let lastUiUpdate = performance.now();
-
-    const loop = (now) => {
-      const delta = now - lastTime;
-      lastTime = now;
-
-      // Track frame timestamp and delta
-      frameTimesRef.current.push({ time: now, delta });
-
-      // Keep only frames in last 2000 ms
-      const cutoff = now - 2000;
-      frameTimesRef.current = frameTimesRef.current.filter((f) => f.time >= cutoff);
-
-      // Update UI once every 200 ms to avoid overhead
-      if (now - lastUiUpdate > 200 && frameTimesRef.current.length > 2) {
-        lastUiUpdate = now;
-        const frames = frameTimesRef.current;
-        const totalTime = frames[frames.length - 1].time - frames[0].time;
-        const avgFps = totalTime > 0 ? Math.round(((frames.length - 1) / (totalTime / 1000))) : 60;
-        let maxDelta = 0;
-        for (const f of frames) {
-          if (f.delta > maxDelta) maxDelta = f.delta;
-        }
-        const minFps = maxDelta > 0 ? Math.round(1000 / maxDelta) : avgFps;
-        setStats({
-          avg: avgFps,
-          min: minFps,
-          maxDelta: Math.round(maxDelta),
-        });
-      }
-
-      animId = requestAnimationFrame(loop);
-    };
-
-    animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
-  }, [isDev]);
-
-  // Completely disabled in production
   if (!isDev) return null;
 
   return (
@@ -148,11 +100,11 @@ export default function PerfDevHud() {
         top: 10,
         left: 10,
         zIndex: 99999,
-        padding: "6px 10px",
+        padding: "8px 12px",
         background: "rgba(10, 10, 14, 0.90)",
         border: "1px solid rgba(255, 255, 255, 0.18)",
         borderRadius: 6,
-        color: stats.avg < 30 ? "#ff4d4d" : stats.avg < 50 ? "#ffcc00" : "#4ade80",
+        color: "#e5e7eb",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         fontSize: 11,
         lineHeight: 1.4,
@@ -162,14 +114,13 @@ export default function PerfDevHud() {
         backdropFilter: "blur(6px)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <div>
-          <strong>{stats.avg} FPS</strong> <span style={{ opacity: 0.7 }}>(min: {stats.min} FPS / {stats.maxDelta}ms)</span>
-        </div>
-      </div>
-
-      <div style={{ color: "#9ca3af", fontSize: 10, marginTop: 2, marginBottom: 6 }}>
-        Active perf: <span style={{ color: flags.any ? "#fbbf24" : "#9ca3af" }}>{flags.raw || "none"}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginBottom: 8 }}>
+        <span style={{ fontWeight: 600, color: "#f9fafb", fontSize: 11, letterSpacing: "0.02em" }}>
+          Perf Controls
+        </span>
+        <span style={{ color: "#9ca3af", fontSize: 10 }}>
+          Active: <strong style={{ color: flags.any ? "#fbbf24" : "#9ca3af" }}>{flags.raw || "none"}</strong>
+        </span>
       </div>
 
       {/* Interactive Quick Toggles */}
