@@ -226,7 +226,50 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
 export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false, theme = 'light' }) {
   const [showHeader, setShowHeader] = useState(alwaysVisible)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const isHoveredRef = useRef(false)
+  const leaveTimerRef = useRef(null)
+  const internalNavRef = useRef(null)
   const lastScrollY = useRef(0)
+
+  useEffect(() => {
+    isHoveredRef.current = isHovered
+  }, [isHovered])
+
+  // Reveal header when mouse hovers within the top header area (top 80px) or over the nav / mega menu dropdown
+  useEffect(() => {
+    if (alwaysVisible) return
+
+    const handleMouseMove = (e) => {
+      const isOverHeaderArea = e.clientY <= 80 || Boolean(internalNavRef.current?.contains(e.target))
+
+      if (isOverHeaderArea) {
+        if (leaveTimerRef.current) {
+          clearTimeout(leaveTimerRef.current)
+          leaveTimerRef.current = null
+        }
+        if (!isHoveredRef.current) {
+          setIsHovered(true)
+        }
+      } else if (isHoveredRef.current) {
+        if (!leaveTimerRef.current) {
+          leaveTimerRef.current = setTimeout(() => {
+            setIsHovered(false)
+            leaveTimerRef.current = null
+          }, 150)
+        }
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    return () => {
+      if (leaveTimerRef.current) {
+        clearTimeout(leaveTimerRef.current)
+        leaveTimerRef.current = null
+      }
+      window.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [alwaysVisible])
 
   useEffect(() => {
     if (alwaysVisible) {
@@ -279,9 +322,33 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
     <>
       {/* ── Navigation Header ─────────────────────────────────────────────── */}
       <nav
-        ref={navRef}
+        ref={(node) => {
+          internalNavRef.current = node
+          if (typeof navRef === 'function') {
+            navRef(node)
+          } else if (navRef) {
+            navRef.current = node
+          }
+        }}
+        onMouseEnter={() => {
+          if (leaveTimerRef.current) {
+            clearTimeout(leaveTimerRef.current)
+            leaveTimerRef.current = null
+          }
+          setIsHovered(true)
+        }}
+        onMouseLeave={(e) => {
+          if (e.clientY > 80 && !menuOpen) {
+            if (!leaveTimerRef.current) {
+              leaveTimerRef.current = setTimeout(() => {
+                setIsHovered(false)
+                leaveTimerRef.current = null
+              }, 150)
+            }
+          }
+        }}
         className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-500 border-b ${
-          showHeader || menuOpen
+          showHeader || menuOpen || isHovered
             ? theme === 'dark'
               ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#0c0d16]/80 border-white/10 shadow-lg'
               : 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
