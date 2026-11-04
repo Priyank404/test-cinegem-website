@@ -6,11 +6,11 @@ export function getPerfFlags() {
   if (typeof window === "undefined") {
     return { noring: false, nofog: false, noblur: false, novideo: false, any: false, raw: "" };
   }
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev";
+  const params = new URLSearchParams(window.location.search);
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev" || params.has("fps") || params.has("perf");
   if (!isDev) {
     return { noring: false, nofog: false, noblur: false, novideo: false, any: false, raw: "" };
   }
-  const params = new URLSearchParams(window.location.search);
   const perf = (params.get("perf") || "").toLowerCase().trim();
   const flags = perf ? perf.split(",").map((f) => f.trim()).filter(Boolean) : [];
   return {
@@ -77,7 +77,12 @@ export function resetPerfFlags() {
 }
 
 export default function PerfDevHud() {
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev";
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const isDev =
+    import.meta.env.DEV ||
+    import.meta.env.VITE_APP_MODE === "dev" ||
+    params?.has("fps") ||
+    params?.has("perf");
   const [stats, setStats] = useState({ avg: 60, min: 60, maxDelta: 16 });
   const frameTimesRef = useRef([]);
 
