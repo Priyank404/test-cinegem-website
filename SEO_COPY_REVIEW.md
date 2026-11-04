@@ -59,11 +59,11 @@
 * **Decision needed:**
   * If you deploy to Cloudflare Pages via **Git Integration** (pushing to GitHub), Cloudflare builds the site from the repository. Files ignored by git will NOT exist in the Cloudflare build container, and local video/image fallbacks will be missing.
   * If you deploy to Cloudflare Pages via **Wrangler CLI** (`npx wrangler pages deploy dist`), `public/` can remain ignored because Vite bundles it locally into `dist/`.
-  * **Recommendation:** If deploying via Git, commit essential brand assets (`logo-*.png`, `favicon.png`, `4.png`) to git while keeping heavy test videos in Google Drive.
+  * **Recommendation:** If deploying via Git, commit essential brand assets (`logo-*.png`, `favicon.png`, `4.png`) to git while keeping heavy portfolio assets in Cloudflare R2 media CDN.
 
 ---
 
-## 6. Google Drive API Key Public Exposure
+## 6. Google Drive API Key Public Exposure (Legacy / Migrated)
 * **Current status in codebase:**
   * `VITE_GOOGLE_DRIVE_API` in `.env` is bundled into the client-side JavaScript bundle during `vite build`. Any visitor opening DevTools Network tab can inspect this key.
 * **Required security action (in Google Cloud Console):**

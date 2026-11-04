@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import fs from "fs";
 import path from "path";
-import mediaFolderPlugin from "./vite-plugin-media-folder.js";
 
 function saveTimelinePlugin() {
   return {
@@ -80,7 +79,7 @@ function stripPendingFaqPlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), saveTimelinePlugin(), mediaFolderPlugin(), stripPendingFaqPlugin()],
+  plugins: [react(), saveTimelinePlugin(), stripPendingFaqPlugin()],
 
   resolve: {
     alias: {

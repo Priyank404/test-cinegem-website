@@ -5,5 +5,10 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.media.local.example
+.env.media.local
+.media-cache.json
+.media-out/
+media-originals/
 public/
 seo-baseline/

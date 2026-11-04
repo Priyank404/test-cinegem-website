@@ -1,16 +1,15 @@
 // HeroSection.jsx
 //
-// Cinematic scroll-zoom hero with intelligent automatic contrast adaptation.
-// When the hero media has a white/light background (e.g. Classic E-Commerce),
-// the text adapts to a refined whitish-silver grey palette (#858890 / #555860) so it
-// never blends with white while avoiding harsh black.
-// When the background is dark (e.g. Creative Visuals), it adapts to crisp white (#FCFBFA).
-// An explicit `theme` prop ('dark-text' | 'light-text' | 'auto') can also be passed.
+// Cinematic scroll-zoom hero with a global interactive Color Tuner panel.
+// All pages share the exact same user-selected heading & paragraph colors.
+// An interactive floating panel allows the user to test hex values, pick colors,
+// and copy configurations in real time.
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import TrailText from "@/components/shared/TrailText";
 import { isMediaVideo } from "@/utils/mediaPositioning";
+import { getSavedHeroColors } from "@/components/ui/HeroColorTuner";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,70 +17,36 @@ export default function HeroSection({
   backgroundSrc = "",
   heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
-  // theme: 'auto' | 'dark-text' (whitish-silver grey for light backgrounds) | 'light-text' (crisp white for dark backgrounds)
-  theme = "auto",
 }) {
   const heroRef = useRef(null);
   const bgRef = useRef(null);
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
-  const [detectedDarkText, setDetectedDarkText] = useState(false);
+  const [colors, setColors] = useState(() => getSavedHeroColors());
 
-  const isVideo = isMediaVideo(backgroundSrc);
+  const resolvedSrc = typeof backgroundSrc === "object" ? (backgroundSrc?.full || backgroundSrc?.src || "") : backgroundSrc;
+  const isVideo = isMediaVideo(backgroundSrc || resolvedSrc);
 
   useEffect(() => {
-    if (backgroundSrc) {
+    if (resolvedSrc) {
       setMediaFailed(false);
     }
-  }, [backgroundSrc]);
+  }, [resolvedSrc]);
 
-  // Automatic luminance sampling in the bottom-left corner where text sits
+  // Synchronize live color updates across all hero sections
   useEffect(() => {
-    if (theme !== "auto" || !backgroundSrc || isVideo) return;
-
-    let isMounted = true;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = backgroundSrc;
-    img.onload = () => {
-      if (!isMounted) return;
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = 16;
-        canvas.height = 16;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        // Sample the bottom-left region of the image
-        const sx = 0;
-        const sy = Math.floor(img.naturalHeight * 0.6);
-        const sw = Math.floor(img.naturalWidth * 0.5);
-        const sh = Math.floor(img.naturalHeight * 0.4);
-
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 16, 16);
-        const imgData = ctx.getImageData(0, 0, 16, 16).data;
-        let totalL = 0;
-        for (let i = 0; i < imgData.length; i += 4) {
-          totalL +=
-            0.299 * imgData[i] +
-            0.587 * imgData[i + 1] +
-            0.114 * imgData[i + 2];
-        }
-        const avgL = totalL / (imgData.length / 4);
-        // If average luminance in bottom-left > 130, background is light -> use silver grey text
-        setDetectedDarkText(avgL > 130);
-      } catch {
-        // Fallback gracefully
+    const onColorChange = (e) => {
+      if (e.detail) {
+        setColors({
+          heading: e.detail.heading,
+          paragraph: e.detail.paragraph,
+          shadow: e.detail.shadow,
+        });
       }
     };
-
-    return () => {
-      isMounted = false;
-    };
-  }, [backgroundSrc, theme, isVideo]);
-
-  const isDarkText =
-    theme === "dark-text" || (theme === "auto" && detectedDarkText);
+    window.addEventListener("hero-color-change", onColorChange);
+    return () => window.removeEventListener("hero-color-change", onColorChange);
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -123,29 +88,30 @@ export default function HeroSection({
       ref={heroRef}
       className="relative z-10 w-full h-[100svh] min-h-[480px] -mt-20 overflow-hidden bg-[#0d0d0d]"
     >
-      {!mediaFailed && backgroundSrc ? (
+      {/* Background media (image or video) */}
+      {!mediaFailed && resolvedSrc ? (
         isVideo ? (
           <video
             ref={bgRef}
-            src={backgroundSrc}
+            src={resolvedSrc}
             autoPlay
             loop
             muted
             playsInline
             preload="auto"
             onError={() => {
-              if (backgroundSrc) setMediaFailed(true);
+              if (resolvedSrc) setMediaFailed(true);
             }}
             className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)] transition-opacity duration-500 ease-out"
           />
         ) : (
           <img
             ref={bgRef}
-            src={backgroundSrc}
+            src={resolvedSrc}
             alt=""
             crossOrigin="anonymous"
             onError={() => {
-              if (backgroundSrc) setMediaFailed(true);
+              if (resolvedSrc) setMediaFailed(true);
             }}
             className="absolute inset-0 w-full h-full object-cover will-change-transform [transform:translateZ(0)]"
           />
@@ -173,11 +139,11 @@ export default function HeroSection({
           itemAs="div"
           open={true}
           splitBy="lines"
-          className={`font-[Poppins] font-semibold leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 transition-colors duration-300 ${
-            isDarkText
-              ? "text-[#858890]"
-              : "text-[#FCFBFA] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]"
-          }`}
+          className="font-[Poppins] font-semibold leading-[1.05] text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-5 transition-colors duration-300"
+          style={{
+            color: colors.heading,
+            textShadow: colors.shadow !== "none" ? colors.shadow : undefined,
+          }}
         >
           {heading}
         </TrailText>
@@ -188,11 +154,11 @@ export default function HeroSection({
           open={true}
           splitBy="words"
           delay={300}
-          className={`font-[Poppins] font-normal text-sm sm:text-base leading-relaxed max-w-md transition-colors duration-300 ${
-            isDarkText
-              ? "text-[#555860]"
-              : "text-[#FCFBFA]/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
-          }`}
+          className="font-[Poppins] font-normal text-sm sm:text-base leading-relaxed max-w-md transition-colors duration-300"
+          style={{
+            color: colors.paragraph,
+            textShadow: colors.shadow !== "none" ? colors.shadow : undefined,
+          }}
         >
           {paragraph}
         </TrailText>

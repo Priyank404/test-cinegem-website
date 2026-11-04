@@ -21,6 +21,8 @@ src/
 ├── hooks/            # Custom React hooks
 │   ├── useCursor.js         – RAF-driven two-part custom cursor
 │   ├── useLenis.js          – Lenis + GSAP ScrollTrigger sync
+│   ├── useMediaFolder.js    – Cloudflare R2 media folder manifest consumer
+│   ├── useHomePageMedia.js  – Slot assignment for home page visuals & loops
 │   ├── useMouseParallax.js  – Normalised mouse position ref
 │   └── useScrollReveal.js   – GSAP ScrollTrigger fade-up
 ├── lib/
@@ -28,7 +30,8 @@ src/
 ├── components/
 │   ├── layout/       # Navigation, Footer
 │   ├── ui/           # Primitives: GlassChip, Buttons, Divider, Cursor, Loader
-│   ├── three/        # FloatingPanel, VaultScene (Three.js)
+│   ├── shared/       # UniversalMediaTile, MediaImage, GlassyGallery
+│   ├── three/        # FloatingPanel, VaultScene, RingHero (Three.js)
 │   └── sections/     # HeroVault, Services, Gallery, Process, About, Testimonials, Contact
 ├── styles/
 │   └── globals.css   # Tailwind imports + custom component/utility layer
@@ -49,6 +52,14 @@ Production build:
 npm run build
 npm run preview
 ```
+
+## Media Pipeline (Cloudflare R2 CDN)
+
+Media is served from Cloudflare R2 using pre-optimized AVIF/WebP images and streaming H.264 MP4 videos.
+
+- **Sync media:** `npm run media:sync` (builds variants from `media-originals/` and uploads to R2)
+- **Verify CDN:** `npm run media:verify` (verifies manifests, range requests, edge caching, and CORS)
+- **Media map & layout guide:** see [MEDIA_MAP.md](file:///c:/Users/admin/Documents/Cinegem/Projects/Cinegem%20Website/Cinegem/MEDIA_MAP.md)
 
 ## Design System
 

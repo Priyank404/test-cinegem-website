@@ -610,7 +610,7 @@ The codebase contains raw, unoptimized filenames such as:
 - `Band Ring With Enamel Marquise-Y-V1.jpg`
 
 #### 3. Prescribed Image SEO Protocol:
-Every image uploaded to Google Drive or the local `/public` folder must adhere to descriptive, keyword-rich kebab-case naming and specific alt descriptions:
+Every image uploaded to Cloudflare R2 media CDN or the local `/public` folder must adhere to descriptive, keyword-rich kebab-case naming and specific alt descriptions:
 
 ```
 ┌────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────┐

@@ -26,7 +26,7 @@
  * -------------------------------------------------------------------------
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSeo } from "@/seo/useSeo";
 import Lenis from "lenis";
@@ -35,6 +35,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import RingHero, { BEATS } from "@/components/three/RingHero";
 import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
 import { useHomePageMedia } from "@/hooks/useHomePageMedia";
+import MediaImage from "@/components/shared/MediaImage";
 import VantaFogControlPanel from "@/components/effects/VantaFogControlPanel";
 import {
   loadBeatFogPresets,
@@ -572,7 +573,7 @@ export default function HomePage() {
 
   const beat4OverlayRef = useRef(null);
 
-  // Live media dynamically fetched from Google Drive folder IDs in .env
+  // Optimized media assets dynamically fetched via R2 manifests
   const {
     beat2Images,
     beat2Video,
@@ -580,6 +581,53 @@ export default function HomePage() {
     beat3Video,
     beat4Image,
   } = useHomePageMedia();
+
+  const beat2ResolvedVideoSrc = useMemo(() => {
+    if (!beat2Video) return "";
+    const isNarrow = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.connection?.saveData);
+    return (isNarrow && beat2Video.srcLow) ? beat2Video.srcLow : (beat2Video.src || beat2Video.full || "");
+  }, [beat2Video]);
+
+  const beat3ResolvedVideoSrc = useMemo(() => {
+    if (!beat3Video) return "";
+    const isNarrow = typeof window !== "undefined" && (window.innerWidth < 768 || navigator.connection?.saveData);
+    return (isNarrow && beat3Video.srcLow) ? beat3Video.srcLow : (beat3Video.src || beat3Video.full || "");
+  }, [beat3Video]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!("IntersectionObserver" in window)) {
+      if (beat2VideoRef.current && beat2ResolvedVideoSrc && !beat2VideoRef.current.src) {
+        beat2VideoRef.current.src = beat2ResolvedVideoSrc;
+      }
+      if (beat3VideoRef.current && beat3ResolvedVideoSrc && !beat3VideoRef.current.src) {
+        beat3VideoRef.current.src = beat3ResolvedVideoSrc;
+      }
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const vid = entry.target;
+            const targetSrc = vid.dataset.src;
+            if (targetSrc && (!vid.src || !vid.src.includes(targetSrc))) {
+              vid.src = targetSrc;
+              vid.load();
+            }
+          }
+        });
+      },
+      { rootMargin: "600px" }
+    );
+
+    if (beat2VideoRef.current) observer.observe(beat2VideoRef.current);
+    if (beat3VideoRef.current) observer.observe(beat3VideoRef.current);
+
+    return () => observer.disconnect();
+  }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc]);
 
   // "Explore 3D Viewer" text link that fades in during the tail of Beat 5
   // (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME constants above) once the
@@ -961,6 +1009,10 @@ export default function HomePage() {
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
       if (beat2VideoRef.current) {
         if (dominant === 2) {
+          if (!beat2VideoRef.current.src && beat2ResolvedVideoSrc) {
+            beat2VideoRef.current.src = beat2ResolvedVideoSrc;
+            beat2VideoRef.current.load();
+          }
           if (beat2VideoRef.current.paused)
             beat2VideoRef.current.play().catch(() => {});
         } else {
@@ -1039,6 +1091,10 @@ export default function HomePage() {
       const dominant = trackProgress < 0.35 ? 0 : trackProgress < 0.7 ? 1 : 2;
       if (beat3VideoRef.current) {
         if (dominant === 2) {
+          if (!beat3VideoRef.current.src && beat3ResolvedVideoSrc) {
+            beat3VideoRef.current.src = beat3ResolvedVideoSrc;
+            beat3VideoRef.current.load();
+          }
           if (beat3VideoRef.current.paused)
             beat3VideoRef.current.play().catch(() => {});
         } else {
@@ -1244,6 +1300,18 @@ export default function HomePage() {
     };
   };
 
+  const getBeat3ContentCardStyle = () => {
+    const { contentLeft, contentTop, contentWidth } = layoutConfig;
+    return {
+      position: "absolute",
+      right: `calc(${contentLeft}% - 8px)`,
+      left: "auto",
+      top: `calc(${contentTop}% - 8px)`,
+      width: `calc(${pxToClampVw(contentWidth, 320)} + 16px)`,
+      bottom: "12px", // Matches Beat 2's exact full height and sizing
+    };
+  };
+
   return (
     <div className="hero2-page">
       <h1 className="sr-only">Cinegem Studio — jewellery 3D rendering and cinematic CGI</h1>
@@ -1331,14 +1399,17 @@ export default function HomePage() {
                 <div ref={beat2Slide1Ref} className="glassy-slide">
                   <div className="glassy-grid-2">
                     <div className="glassy-grid-item">
-                      <img
-                        src={beat2Images[0]?.src}
+                      <MediaImage
+                        item={beat2Images[0]}
+                        priority={true}
+                        sizes="(max-width: 768px) 50vw, 25vw"
                         alt={beat2Images[0]?.alt || "Solitaire Marquise Ring - Angle 1"}
                       />
                     </div>
                     <div className="glassy-grid-item">
-                      <img
-                        src={beat2Images[1]?.src}
+                      <MediaImage
+                        item={beat2Images[1]}
+                        sizes="(max-width: 768px) 50vw, 25vw"
                         alt={beat2Images[1]?.alt || "Solitaire Marquise Ring - Angle 2"}
                       />
                     </div>
@@ -1349,14 +1420,16 @@ export default function HomePage() {
                 <div ref={beat2Slide2Ref} className="glassy-slide">
                   <div className="glassy-grid-2">
                     <div className="glassy-grid-item">
-                      <img
-                        src={beat2Images[2]?.src}
+                      <MediaImage
+                        item={beat2Images[2]}
+                        sizes="(max-width: 768px) 50vw, 25vw"
                         alt={beat2Images[2]?.alt || "Solitaire Marquise Ring - Angle 3"}
                       />
                     </div>
                     <div className="glassy-grid-item">
-                      <img
-                        src={beat2Images[3]?.src}
+                      <MediaImage
+                        item={beat2Images[3]}
+                        sizes="(max-width: 768px) 50vw, 25vw"
                         alt={beat2Images[3]?.alt || "Solitaire Marquise Ring - Angle 4"}
                       />
                     </div>
@@ -1368,8 +1441,9 @@ export default function HomePage() {
                   <div className="glassy-video-container">
                     <video
                       ref={beat2VideoRef}
-                      src={beat2Video?.src || ""}
-                      preload="auto"
+                      data-src={beat2ResolvedVideoSrc}
+                      poster={beat2Video?.poster || beat2Video?.thumb}
+                      preload="none"
                       loop
                       muted
                       playsInline
@@ -1397,7 +1471,6 @@ export default function HomePage() {
                     width: pxToClampVw(layoutConfig.titleWidth, 200),
                   }
             }
-            subtitle="01 — PRODUCT SHOWCASE"
             title="Classic E-Commerce Visuals"
             description="High-fidelity 360° product photography, macro detail grids, and studio lighting tailored for luxury jewellery collections."
             href="/classic"
@@ -1418,65 +1491,66 @@ export default function HomePage() {
               window.innerWidth <= 1024 &&
               window.innerHeight > window.innerWidth
                 ? undefined
-                : {
-                    position: "absolute",
-                    left: `calc(100% - ${layoutConfig.contentLeft}% - ${pxToClampVw(layoutConfig.contentWidth, 320)} - 8px)`,
-                    top: `calc(${beat3LayoutConfig.contentTop}% - 8px)`,
-                    width: `calc(${pxToClampVw(layoutConfig.contentWidth, 320)} + 16px)`,
-                    bottom: "12px",
-                  }
+                : getBeat3ContentCardStyle()
             }
           >
             <div className="glassy-slide-container">
-              <div ref={beat3SlideTrackRef} className="glassy-slide-track">
-                {/* Slide 1: First 2 creative images */}
-                <div ref={beat3Slide1Ref} className="glassy-slide">
-                  <div className="glassy-grid-2">
-                    <div className="glassy-grid-item">
-                      <img
-                        src={beat3Images[0]?.src}
-                        alt={beat3Images[0]?.alt || "High Fashion Jewellery Beauty Shot"}
-                      />
-                    </div>
-                    <div className="glassy-grid-item">
-                      <img
-                        src={beat3Images[1]?.src}
-                        alt={beat3Images[1]?.alt || "Two-Tone Diamond Ring"}
-                      />
-                    </div>
-                  </div>
+              <div ref={beat3SlideTrackRef} className="creative-editorial-track">
+                {/* 1. Top Wide Banner (Macro Detail) */}
+                <div className="creative-grid-item creative-item-top">
+                  <MediaImage
+                    item={beat3Images[0]}
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    alt={beat3Images[0]?.alt || "Creative Visuals Macro Detail"}
+                  />
                 </div>
 
-                {/* Slide 2: Next 2 creative images */}
-                <div ref={beat3Slide2Ref} className="glassy-slide">
-                  <div className="glassy-grid-2">
-                    <div className="glassy-grid-item">
-                      <img
-                        src={beat3Images[2]?.src}
-                        alt={beat3Images[2]?.alt || "Figaro Bracelet Chain"}
-                      />
-                    </div>
-                    <div className="glassy-grid-item">
-                      <img
-                        src={beat3Images[3]?.src}
-                        alt={beat3Images[3]?.alt || "Yellow Gold Diamond Pendant"}
-                      />
-                    </div>
-                  </div>
+                {/* 2. Middle Left Tall Portrait (spans both middle rows, fully uncut) */}
+                <div className="creative-grid-item creative-item-mid-left">
+                  <MediaImage
+                    item={beat3Images[1]}
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    alt={beat3Images[1]?.alt || "Creative Visuals Side Profile"}
+                  />
                 </div>
 
-                {/* Slide 3: Featured cinematic video */}
-                <div ref={beat3Slide3Ref} className="glassy-slide">
-                  <div className="glassy-video-container">
+                {/* 3. Middle Right Top */}
+                <div className="creative-grid-item creative-item-mid-right-top">
+                  <MediaImage
+                    item={beat3Images[2]}
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    alt={beat3Images[2]?.alt || "Creative Visuals Angled View"}
+                  />
+                </div>
+
+                {/* 4. Middle Right Bottom */}
+                <div className="creative-grid-item creative-item-mid-right-bottom">
+                  <MediaImage
+                    item={beat3Images[3]}
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    alt={beat3Images[3]?.alt || "Creative Visuals Top View"}
+                  />
+                </div>
+
+                {/* 5. Bottom Wide Banner (Video) */}
+                <div className="creative-grid-item creative-item-bottom">
+                  {beat3Video?.src ? (
                     <video
                       ref={beat3VideoRef}
-                      src={beat3Video?.src || ""}
-                      preload="auto"
+                      data-src={beat3ResolvedVideoSrc}
+                      poster={beat3Video.poster || beat3Video.thumb}
+                      preload="none"
                       loop
                       muted
                       playsInline
                     />
-                  </div>
+                  ) : (
+                    <MediaImage
+                      item={beat3Images[4] || beat3Images[0]}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      alt={beat3Images[4]?.alt || "Creative Visuals Feature"}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1494,7 +1568,6 @@ export default function HomePage() {
                     width: pxToClampVw(layoutConfig.titleWidth, 200),
                   }
             }
-            subtitle="02 — CREATIVE CINEMATICS"
             title="Creative Visuals"
             description="Cinematic animations, dynamic lighting studies, and stylized visual storytelling that elevates your brand identity."
             href="/creative-visuals"
@@ -1508,19 +1581,17 @@ export default function HomePage() {
           ref={beat4OverlayRef}
           className="beat4-box-overlay group cursor-pointer block text-decoration-none relative overflow-hidden"
         >
-          <img
-            src={beat4Image?.src || ""}
+          <MediaImage
+            item={beat4Image}
+            sizes="100vw"
             alt={beat4Image?.alt || "On-Body Visualization Showcase"}
             className="beat4-media transition-opacity duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
-            <span className="text-[#C5A059] font-label text-[10px] tracking-[0.3em] uppercase font-semibold block mb-2">
-              03 — ON-BODY VISUALIZATION
-            </span>
-            <h2 className="font-[Poppins] font-semibold text-2xl sm:text-4xl md:text-5xl text-[#FCFBFA] mb-2 leading-tight">
+          <div className="absolute inset-0 bg-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
+            <h2 className="font-[Poppins] font-semibold text-2xl sm:text-4xl md:text-5xl text-[#FCFBFA] mb-2 leading-tight [text-shadow:0_2px_10px_rgba(0,0,0,0.8)]">
               On-Body Visuals
             </h2>
-            <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-5 leading-relaxed">
+            <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-5 leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
               Realistic digital human integration and high-contrast skin tone interaction showcasing jewellery scale, fit, and elegance.
             </p>
             <div className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit">

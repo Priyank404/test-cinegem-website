@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
-import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
 import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
@@ -719,7 +719,7 @@ export default function CreativeVisualsPage() {
     isFallback,
     lastSynced,
     refresh,
-  } = useDriveMedia("Creative visuals");
+  } = useMediaFolder("creative-visuals");
 
   const [galleryIndex, setGalleryIndex] = useState(null);
 
@@ -796,7 +796,6 @@ export default function CreativeVisualsPage() {
         backgroundSrc={heroBackgroundSrc}
         heading={["Creative", "Visuals"]}
         paragraph="A cascading edit of jewellery photography and motion — an interlocking mosaic of every piece."
-        theme="light-text"
       />
 
       <div className="relative z-10 w-full overflow-x-clip pb-40 md:pb-56">

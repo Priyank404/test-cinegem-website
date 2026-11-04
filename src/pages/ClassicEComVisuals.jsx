@@ -5,7 +5,7 @@ import { BackToVault } from "@/components/shared/BackToVault";
 
 import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
-import { useDriveMedia } from "@/hooks/useDriveMedia";
+import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
 import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
@@ -662,7 +662,7 @@ export default function ClassicEComVisuals({
     isFallback,
     lastSynced,
     refresh,
-  } = useDriveMedia("E-Com Visuals");
+  } = useMediaFolder("classic");
 
   // Helper to categorize media item by filename / alt / code
   const categorizeJewelry = (item) => {
@@ -816,7 +816,6 @@ export default function ClassicEComVisuals({
         backgroundSrc={heroBackgroundSrc}
         heading={["Classic", "E-Commerce", "Visuals"]}
         paragraph="Premium product photography and cinematic videos crafted for luxury jewellery brands."
-        theme="dark-text"
       />
 
       <div ref={containerRef} className="relative z-10">

@@ -22,7 +22,7 @@ export default function GlassyGallery({
   const isOpen = activeIndex !== null && activeIndex >= 0 && activeIndex < images.length;
 
   const current = isOpen ? images[activeIndex] : null;
-  const currentSrc = typeof current === "string" ? current : current?.src;
+  const currentSrc = typeof current === "string" ? current : (current?.full || current?.src);
   const currentAlt = typeof current === "string" ? "" : current?.alt || "";
   const isVideo = isMediaVideo(current);
 

@@ -3,8 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useMemo, createContext, u
 import { ServicePageLayout } from "@/components/shared/ServicePageLayout";
 import HeroSection from "@/components/sections/HeroSection";
 import GlassyGallery from "@/components/shared/GlassyGallery";
-import { useDriveMedia } from "@/hooks/useDriveMedia";
-import { DRIVE_FOLDER_IDS } from "@/config/googleDriveConfig";
+import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
 import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
@@ -12,31 +11,8 @@ import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning"
 const ImageClickContext = createContext(null);
 
 /* ═══════════════════════════════════════════════════════════════════════
-   DATA
+   CONSTANTS
 ═══════════════════════════════════════════════════════════════════════ */
-
-const galleryImages = [
-  { src: "1.png", alt: "Solitaire diamond ring on hand model on-body 3D render — Cinegem Studio" },
-  { src: "2.png", alt: "Marquise diamond ring side angle on finger on-body 3D render — Cinegem Studio" },
-  { src: "3.png", alt: "Diamond engagement ring perspective on hand on-body 3D render — Cinegem Studio" },
-  { src: "4.png", alt: "Solitaire yellow gold ring close-up on hand on-body 3D render — Cinegem Studio" },
-  { src: "5.jpg", alt: "Diamond drop earrings on human ear on-body 3D render — Cinegem Studio" },
-  { src: "6.jpg", alt: "Fine jewellery pendant necklace on neck model on-body 3D render — Cinegem Studio" },
-  { src: "7.jpg", alt: "Luxury tennis bracelet on wrist on-body 3D render — Cinegem Studio" },
-  { src: "cinegem jewellery.png", alt: "Luxury high jewellery suite on-body 3D visualization — Cinegem Studio" },
-  {
-    src: "Band Ring With Enamel Marquise-Y-V1.jpg",
-    alt: "Yellow gold enamel band ring with marquise diamond on hand 3D render — Cinegem Studio",
-  },
-  {
-    src: "G7P25CLACRAW0113D00-TZPDP00005-14Y-V4-WB.png",
-    alt: "Diamond pendant necklace in 14K yellow gold on-body 3D render — Cinegem Studio",
-  },
-  {
-    src: "Gemini_Generated_Image_udnfihudnfihudnf.png",
-    alt: "Editorial fine jewellery necklace on human collarbone 3D render — Cinegem Studio",
-  },
-];
 
 const GAP_GLASSY = 4; // Minimal hairline gap for glassy container mode
 const GAP_ORIGINAL = 16; // Original generous gap from c111c47
@@ -548,14 +524,14 @@ function GlassyOnBodyGallery({ images }) {
 ═══════════════════════════════════════════════════════════════════════ */
 
 export default function OnBodyVisualizationPage() {
-  const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useDriveMedia(DRIVE_FOLDER_IDS.onBody);
+  const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useMediaFolder("onbody");
   const mediaPool = (dynamicItems && dynamicItems.length > 0) ? dynamicItems : (dynamicImages || []);
-  const basePool = mediaPool.length > 0 ? mediaPool : galleryImages;
+  const basePool = mediaPool;
 
   // Resolve media by position (1, 2, 3...)
   const activeImages = useMemo(() => {
-    return basePool.map((fallbackItem, i) => {
-      const resolved = resolveMediaForPosition(mediaPool, i + 1, fallbackItem);
+    return basePool.map((item, i) => {
+      const resolved = resolveMediaForPosition(mediaPool, i + 1, item);
       return {
         ...resolved,
         alt: cleanJewelryAlt(resolved, "On-Body"),
@@ -590,7 +566,7 @@ export default function OnBodyVisualizationPage() {
       return name.includes("banner") || name.includes("hero") || name.startsWith("0.") || name.startsWith("0_") || name.startsWith("0-");
     });
     if (banner) return banner.src;
-    return dynamicImages[0]?.src || dynamicItems[0]?.src || (galleryImages[0]?.src ? "/" + galleryImages[0]?.src : "");
+    return dynamicImages[0]?.src || dynamicItems[0]?.src || "";
   }, [dynamicItems, dynamicImages]);
 
   return (
@@ -603,7 +579,6 @@ export default function OnBodyVisualizationPage() {
         backgroundSrc={heroBackgroundSrc}
         heading={["On-Body", "Visualization"]}
         paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."
-        theme="dark-text"
       />
 
       <div ref={containerRef} className="relative z-10">
