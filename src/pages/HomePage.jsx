@@ -47,7 +47,7 @@ import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 import TimelineEditor from "@/components/three/TimelineEditor";
 import { metalPresets } from "@/components/three/metalMaterials";
-import PerfDevHud, { getPerfFlags } from "@/components/dev/PerfDevHud";
+import PerfDevHud, { usePerfFlags } from "@/components/dev/PerfDevHud";
 import "./HeroPage2.css";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import VerticalDotNav, {
@@ -477,7 +477,7 @@ export default function HomePage() {
   const [shouldStart3D, setShouldStart3D] = useState(false);
 
   // Dev-only performance A/B switches (?perf=noring,nofog,noblur,novideo)
-  const perfFlags = useMemo(() => getPerfFlags(), []);
+  const perfFlags = usePerfFlags();
 
   useEffect(() => {
     if (perfFlags.noring) {
