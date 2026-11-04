@@ -1,16 +1,13 @@
 // src/components/dev/PerfDevHud.jsx
 // Dev-only performance A/B testing overlay with interactive live toggles
 import { useState, useEffect, useRef } from "react";
+import { isDevMode } from "@/config/env";
 
 export function getPerfFlags() {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !isDevMode()) {
     return { noring: false, nofog: false, noblur: false, novideo: false, any: false, raw: "" };
   }
   const params = new URLSearchParams(window.location.search);
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev" || params.has("fps") || params.has("perf");
-  if (!isDev) {
-    return { noring: false, nofog: false, noblur: false, novideo: false, any: false, raw: "" };
-  }
   const perf = (params.get("perf") || "").toLowerCase().trim();
   const flags = perf ? perf.split(",").map((f) => f.trim()).filter(Boolean) : [];
   return {
@@ -27,6 +24,7 @@ export function usePerfFlags() {
   const [flags, setFlags] = useState(() => getPerfFlags());
 
   useEffect(() => {
+    if (!isDevMode()) return;
     const handleUpdate = () => {
       setFlags(getPerfFlags());
     };
@@ -42,7 +40,7 @@ export function usePerfFlags() {
 }
 
 export function togglePerfFlag(flagName) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !isDevMode()) return;
   const current = getPerfFlags();
   const nextValue = !current[flagName];
   const params = new URLSearchParams(window.location.search);
@@ -68,7 +66,7 @@ export function togglePerfFlag(flagName) {
 }
 
 export function resetPerfFlags() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !isDevMode()) return;
   const params = new URLSearchParams(window.location.search);
   params.delete("perf");
   const newUrl = `${window.location.pathname}${window.location.hash}`;
@@ -77,12 +75,7 @@ export function resetPerfFlags() {
 }
 
 export default function PerfDevHud() {
-  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const isDev =
-    import.meta.env.DEV ||
-    import.meta.env.VITE_APP_MODE === "dev" ||
-    params?.has("fps") ||
-    params?.has("perf");
+  const isDev = isDevMode();
   const [stats, setStats] = useState({ avg: 60, min: 60, maxDelta: 16 });
   const frameTimesRef = useRef([]);
 
@@ -145,6 +138,7 @@ export default function PerfDevHud() {
     return () => cancelAnimationFrame(animId);
   }, [isDev]);
 
+  // Completely disabled in production
   if (!isDev) return null;
 
   return (

@@ -10,6 +10,8 @@ import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
 import ThreeDViewerPage        from '@/pages/ThreeDViewerPage'
 import FaqPage                 from '@/pages/FaqPage'
 import NotFound                from '@/pages/NotFound'
+import HeroColorTuner          from '@/components/ui/HeroColorTuner'
+import { isDevMode }           from '@/config/env'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -86,6 +88,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <CustomCursor />
+      {isDevMode() && <HeroColorTuner />}
       <Routes>
         <Route path="/"                 element={<HomePage />} />
         <Route path="/hero2"            element={<Navigate to="/" replace />} />
