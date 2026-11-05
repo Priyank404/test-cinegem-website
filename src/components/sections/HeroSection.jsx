@@ -1,23 +1,68 @@
 // HeroSection.jsx
 //
-// Cinematic scroll-zoom hero with independent per-page text color support.
-// An interactive floating panel allows the user to test hex values, pick colors,
-// and copy configurations in real time independently for each page.
+// Cinematic scroll-zoom hero with independent per-page text color styling.
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import TrailText from "@/components/shared/TrailText";
 import { isMediaVideo } from "@/utils/mediaPositioning";
-import { getSavedHeroColors, getPageKey } from "@/components/ui/HeroColorTuner";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const DEFAULT_HEADING_COLOR = "#FCFBFA";
+const DEFAULT_PARAGRAPH_COLOR = "#E0E0E0";
+const DEFAULT_SHADOW = "none";
+
+function getPageKey(pathname = "") {
+  let path = pathname;
+  if (!path && typeof window !== "undefined") {
+    path = window.location.pathname;
+  }
+  const clean = (path || "").toLowerCase().replace(/^\/|\/$/g, "");
+  return clean || "home";
+}
+
+function getHeroColors(pageKey, propHeading, propParagraph, propShadow) {
+  if (propHeading || propParagraph) {
+    return {
+      heading: propHeading || DEFAULT_HEADING_COLOR,
+      paragraph: propParagraph || DEFAULT_PARAGRAPH_COLOR,
+      shadow: propShadow || DEFAULT_SHADOW,
+    };
+  }
+  if (typeof window === "undefined") {
+    return {
+      heading: DEFAULT_HEADING_COLOR,
+      paragraph: DEFAULT_PARAGRAPH_COLOR,
+      shadow: DEFAULT_SHADOW,
+    };
+  }
+  const key = pageKey || getPageKey();
+  const heading =
+    localStorage.getItem(`cinegem_hero_heading_${key}`) ||
+    localStorage.getItem("cinegem_hero_heading_color") ||
+    DEFAULT_HEADING_COLOR;
+  const paragraph =
+    localStorage.getItem(`cinegem_hero_paragraph_${key}`) ||
+    localStorage.getItem("cinegem_hero_paragraph_color") ||
+    DEFAULT_PARAGRAPH_COLOR;
+  const shadow =
+    localStorage.getItem(`cinegem_hero_shadow_${key}`) ||
+    localStorage.getItem("cinegem_hero_shadow") ||
+    DEFAULT_SHADOW;
+
+  return { heading, paragraph, shadow };
+}
 
 export default function HeroSection({
   backgroundSrc = "",
   heading = ["Classic", "E-Commerce", "Visuals"],
   paragraph = "Premium product photography and cinematic videos crafted for luxury jewellery brands.",
   pageKey,
+  headingColor,
+  paragraphColor,
+  textShadow,
 }) {
   const location = useLocation();
   const currentPageKey = pageKey || getPageKey(location?.pathname);
@@ -25,7 +70,9 @@ export default function HeroSection({
   const bgRef = useRef(null);
   const contentRef = useRef(null);
   const [mediaFailed, setMediaFailed] = useState(false);
-  const [colors, setColors] = useState(() => getSavedHeroColors(currentPageKey));
+  const [colors, setColors] = useState(() =>
+    getHeroColors(currentPageKey, headingColor, paragraphColor, textShadow)
+  );
 
   const resolvedSrc = typeof backgroundSrc === "object" ? (backgroundSrc?.full || backgroundSrc?.src || "") : backgroundSrc;
   const isVideo = isMediaVideo(backgroundSrc || resolvedSrc);
@@ -38,23 +85,8 @@ export default function HeroSection({
 
   // Synchronize colors when navigating to a different page
   useEffect(() => {
-    setColors(getSavedHeroColors(currentPageKey));
-  }, [currentPageKey]);
-
-  // Synchronize live color updates for this specific page
-  useEffect(() => {
-    const onColorChange = (e) => {
-      if (e.detail && (!e.detail.pageKey || e.detail.pageKey === currentPageKey)) {
-        setColors({
-          heading: e.detail.heading,
-          paragraph: e.detail.paragraph,
-          shadow: e.detail.shadow,
-        });
-      }
-    };
-    window.addEventListener("hero-color-change", onColorChange);
-    return () => window.removeEventListener("hero-color-change", onColorChange);
-  }, [currentPageKey]);
+    setColors(getHeroColors(currentPageKey, headingColor, paragraphColor, textShadow));
+  }, [currentPageKey, headingColor, paragraphColor, textShadow]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
