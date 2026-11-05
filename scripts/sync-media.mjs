@@ -81,7 +81,8 @@ const ENCODE_VERSION = 2;
 
 // Command line arguments
 const args = process.argv.slice(2);
-const isPrune = args.includes('--prune');
+const isNoPrune = args.includes('--no-prune');
+const shouldPrune = !isNoPrune;
 const isForce = args.includes('--force');
 const targetFolderArg = (() => {
   const idx = args.indexOf('--folder');
@@ -607,6 +608,51 @@ async function main() {
     console.log(`   📄 Manifest compiled: ${prefix}.json (${items.length} items)`);
   }
 
+  // Clean up obsolete local variant folders and cache entries if prune is enabled
+  if (shouldPrune) {
+    for (const prefix of foldersToProcess) {
+      const outPrefixDir = path.join(outputDir, prefix);
+      if (!fs.existsSync(outPrefixDir)) continue;
+
+      const manifestPath = path.join(manifestsDir, `${prefix}.json`);
+      if (!fs.existsSync(manifestPath)) continue;
+
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        const activeSubfolders = new Set(
+          (manifest.items || [])
+            .map(item => {
+              const parts = (item.src || '').split('/');
+              return parts.length > 2 ? parts[1] : null;
+            })
+            .filter(Boolean)
+        );
+
+        const subdirs = fs.readdirSync(outPrefixDir, { withFileTypes: true });
+        for (const dirent of subdirs) {
+          if (dirent.isDirectory() && !activeSubfolders.has(dirent.name)) {
+            const obsoletePath = path.join(outPrefixDir, dirent.name);
+            fs.rmSync(obsoletePath, { recursive: true, force: true });
+          }
+        }
+      } catch (err) {
+        console.warn(`⚠️ Error pruning local folder for ${prefix}:`, err.message);
+      }
+    }
+
+    // Prune obsolete keys from cache where the source file no longer exists
+    for (const cacheKey of Object.keys(cache)) {
+      const match = cacheKey.match(/^([^/]+)\/([^:]+):v\d+$/);
+      if (match) {
+        const [, prefix, fileName] = match;
+        const origPath = path.join(baseSourceDir, prefix, fileName);
+        if (!fs.existsSync(origPath)) {
+          delete cache[cacheKey];
+        }
+      }
+    }
+  }
+
   saveCache(cache);
 
   // 2. Upload to Cloudflare R2
@@ -673,13 +719,18 @@ async function main() {
   console.log('\n📄 Uploading latest manifest files...');
   await Promise.all(manifestFiles.map(f => limit(() => uploadFile(f, true))));
 
-  // Prune orphans if --prune passed
-  if (isPrune) {
-    console.log('\n🧹 Checking for obsolete objects to prune (--prune enabled)...');
+  // Prune obsolete objects from Cloudflare R2 (enabled by default, disable with --no-prune)
+  let prunedCount = 0;
+  if (shouldPrune) {
+    console.log('\n🧹 Checking for obsolete objects to prune from Cloudflare R2...');
+    const MANAGED_PREFIXES = ['home/', 'creative-visuals/', 'classic/', 'onbody/'];
     const localKeys = new Set(allLocalFiles.map(f => f.relKey));
-    const keysToDelete = Array.from(remoteInventory.keys()).filter(k => !localKeys.has(k));
+    const keysToDelete = Array.from(remoteInventory.keys()).filter(
+      k => MANAGED_PREFIXES.some(p => k.startsWith(p)) && !localKeys.has(k)
+    );
+
     if (keysToDelete.length > 0) {
-      console.log(`   Deleting ${keysToDelete.length} obsolete objects from R2...`);
+      console.log(`   🗑️ Deleting ${keysToDelete.length} obsolete objects from R2 (old/renamed versions)...`);
       for (let i = 0; i < keysToDelete.length; i += 1000) {
         const chunk = keysToDelete.slice(i, i + 1000);
         await s3.send(new DeleteObjectsCommand({
@@ -687,9 +738,10 @@ async function main() {
           Delete: { Objects: chunk.map(Key => ({ Key })) }
         }));
       }
-      console.log(`   ✅ Pruned ${keysToDelete.length} obsolete items.`);
+      prunedCount = keysToDelete.length;
+      console.log(`   ✅ Successfully pruned ${keysToDelete.length} obsolete items from R2.`);
     } else {
-      console.log('   ✅ No obsolete items found.');
+      console.log('   ✅ R2 bucket is completely clean. No obsolete items found.');
     }
   }
 
@@ -720,6 +772,7 @@ async function main() {
   console.log(`   • Original Media Files Processed: ${totalOriginalsCount}`);
   console.log(`   • New Variations Built This Run : ${totalVariantsBuilt}`);
   console.log(`   • Files Uploaded to Cloudflare R2: ${uploadedMediaCount + manifestFiles.length}`);
+  console.log(`   • Obsolete Files Pruned from R2 : ${prunedCount}`);
   console.log(`   • Unchanged Files Skipped (Fast): ${skippedMediaCount}`);
   console.log(`\n📁 Folder Breakdown:`);
   folderStats.forEach(s => {
