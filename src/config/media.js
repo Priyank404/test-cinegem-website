@@ -1,18 +1,10 @@
 // src/config/media.js
 // Configuration and folder mapping for Cloudflare R2 media CDN
 
-const rawBaseUrl = import.meta.env.VITE_MEDIA_BASE_URL;
+const DEFAULT_MEDIA_BASE_URL = "https://media.cinegemstudio.com";
+const rawBaseUrl = import.meta.env.VITE_MEDIA_BASE_URL || DEFAULT_MEDIA_BASE_URL;
 
-if (!rawBaseUrl) {
-  const errMsg = "VITE_MEDIA_BASE_URL is not set. Please configure VITE_MEDIA_BASE_URL in your .env file.";
-  if (import.meta.env.DEV) {
-    console.error(`[mediaConfig] ${errMsg}`);
-  } else {
-    console.error(`[mediaConfig] ${errMsg}`);
-  }
-}
-
-let normalizedBaseUrl = (rawBaseUrl || "").trim();
+let normalizedBaseUrl = (rawBaseUrl || DEFAULT_MEDIA_BASE_URL).trim();
 if (normalizedBaseUrl && !normalizedBaseUrl.startsWith("http://") && !normalizedBaseUrl.startsWith("https://")) {
   normalizedBaseUrl = `https://${normalizedBaseUrl}`;
 }

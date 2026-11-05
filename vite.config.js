@@ -92,6 +92,12 @@ export default defineConfig({
     cssTarget: "chrome87",
   },
 
+  define: {
+    "import.meta.env.VITE_MEDIA_BASE_URL": JSON.stringify(
+      process.env.VITE_MEDIA_BASE_URL || "https://media.cinegemstudio.com"
+    ),
+  },
+
   server: {
     host: true, // listen on all interfaces
     port: 5173,
