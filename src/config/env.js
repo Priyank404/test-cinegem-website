@@ -1,15 +1,10 @@
 /**
  * Application Environment Configuration
  * -------------------------------------------------------------------------
- * Manages mode switching between:
- *  - 'dev': Shows 3D timeline editor, material dev panels, Vanta fog controls
- *  - 'production': Clean viewer experience, hiding all developer overlays & controls
+ * DEFAULT MODE: PRODUCTION (pure website, zero controllers or overlays)
  *
- * Configured via .env:
- *   VITE_APP_MODE=dev | production
- *
- * Can also be overridden temporarily via URL query parameter for testing:
- *   ?mode=dev or ?mode=prod
+ * To temporarily enable development mode and reveal controllers:
+ *   Add query parameter: ?mode=dev (e.g. http://localhost:5173/?mode=dev)
  * -------------------------------------------------------------------------
  */
 
@@ -18,7 +13,7 @@ export const isDevMode = () => {
     const params = new URLSearchParams(window.location.search);
     const queryMode = params.get("mode") || params.get("env");
     if (queryMode) {
-      const q = queryMode.toLowerCase();
+      const q = queryMode.toLowerCase().trim();
       if (q === "dev" || q === "development") return true;
       if (q === "prod" || q === "production") return false;
     }
@@ -31,8 +26,8 @@ export const isDevMode = () => {
     if (normalized === "prod" || normalized === "production") return false;
   }
 
-  // Fallback to Vite standard DEV flag
-  return Boolean(import.meta.env.DEV);
+  // DEFAULT: STRICT PRODUCTION (zero controllers)
+  return false;
 };
 
 export const isProductionMode = () => !isDevMode();
