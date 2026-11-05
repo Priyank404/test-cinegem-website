@@ -181,10 +181,10 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                     <div className="flex flex-col gap-1 -mx-3">
                       {group.items.map((item) => {
                         const isItemActive = item.route === currentPage
-                        const itemClassName = `font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 -my-0.5 transition-colors duration-200 ${
+                        const itemClassName = `font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 -my-0.5 transition-all duration-200 ${
                           theme === 'dark'
-                            ? isItemActive ? 'text-[#C5A059] bg-white/5' : 'text-white/80 hover:text-[#C5A059] hover:bg-white/5'
-                            : isItemActive ? 'text-[#C5A059]' : 'text-[#121212]/80 hover:text-[#C5A059] hover:bg-[#121212]/[0.05]'
+                            ? isItemActive ? 'text-[#C5A059] bg-white/10' : 'text-white/80 hover:text-[#C5A059] hover:bg-white/10'
+                            : isItemActive ? 'text-[#C5A059] bg-[#121212]/[0.06]' : 'text-[#121212]/80 hover:text-[#C5A059] hover:bg-[#121212]/[0.06]'
                         }`
                         return (
                           <motion.div key={item.route} variants={ITEM_VARIANTS}>
