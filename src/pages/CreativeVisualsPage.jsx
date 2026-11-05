@@ -343,33 +343,29 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
           : null;
 
       // UNIVERSAL POSITION-BASED MEDIA RESOLUTION:
-      // Position 1: Featured Left (Section 1) — Blue Box
+      // Section 1: Featured Left (Pos 1) + 8 Grid Tiles (Pos 2..9)
       const s1Featured = resolveMediaForPosition(mediaItems, 1 + c * 20, v1Fallback);
-
-      // Positions 2..9: 8 Grid Tiles (Section 1) — Red Box is Position 2
       const s1Grid = [2, 3, 4, 5, 6, 7, 8, 9].map((pos, i) =>
         resolveMediaForPosition(mediaItems, pos + c * 20, s1FallbackImages[i])
       );
 
-      // Positions 10..17: 8 Grid Tiles (Section 2)
-      const s2Grid = [10, 11, 12, 13, 14, 15, 16, 17].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 20, s2FallbackImages[i])
-      );
-
-      // Position 18: Featured Right (Section 2)
-      const s2Featured = resolveMediaForPosition(mediaItems, 18 + c * 20, v2Fallback);
-
-      // Section 3: Full-Screen Showcase 1 (explicitly mapped via full-1, full-3..., with fallback to pos 19)
+      // Section 2: Full-Screen Showcase 1 (explicitly mapped via full-1, full-3..., with fallback to pos 19)
       const full1Slot = 1 + c * 2;
-      const s3Media = resolveFullScreenMedia(
+      const s2FullScreen = resolveFullScreenMedia(
         mediaItems,
         full1Slot,
         resolveMediaForPosition(mediaItems, 19 + c * 20, v3Fallback)
       );
 
+      // Section 3: 8 Grid Tiles (Pos 10..17) + Featured Right (Pos 18)
+      const s3Grid = [10, 11, 12, 13, 14, 15, 16, 17].map((pos, i) =>
+        resolveMediaForPosition(mediaItems, pos + c * 20, s2FallbackImages[i])
+      );
+      const s3Featured = resolveMediaForPosition(mediaItems, 18 + c * 20, v2Fallback);
+
       // Section 4: Parallax Turntable Media (explicitly mapped via full-2, full-4..., with fallback to pos 20)
       const full2Slot = 2 + c * 2;
-      const s4Media = resolveFullScreenMedia(
+      const s4FullScreen = resolveFullScreenMedia(
         mediaItems,
         full2Slot,
         resolveMediaForPosition(mediaItems, 20 + c * 20, v4Fallback)
@@ -379,10 +375,10 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
         cycleIndex: c,
         s1Featured,
         s1Grid,
-        s2Grid,
-        s2Featured,
-        s3Media,
-        s4Media,
+        s2FullScreen,
+        s3Grid,
+        s3Featured,
+        s4FullScreen,
       });
     }
     return list;
@@ -390,7 +386,7 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2Grid, s2Featured, s3Media, s4Media }) => (
+      {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2FullScreen, s3Grid, s3Featured, s4FullScreen }) => (
         <div key={`cycle-${cycleIndex}`} className="flex flex-col gap-16 md:gap-24">
           {/* Section 1: Featured Left (Pos 1) + 8 Grid Right (Pos 2..9) */}
           {s1Featured && s1Grid.length > 0 && (
@@ -401,24 +397,24 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
             />
           )}
 
-          {/* Section 2: 8 Grid Left (Pos 10..17) + Featured Right (Pos 18) */}
-          {s2Featured && s2Grid.length > 0 && (
+          {/* Section 2: Full-Width Showcase Video / Image (full-1) */}
+          {s2FullScreen && (
+            <FullWidthVideo media={s2FullScreen} src={s2FullScreen.src} onOpen={onOpen} />
+          )}
+
+          {/* Section 3: 8 Grid Left (Pos 10..17) + Featured Right (Pos 18) */}
+          {s3Featured && s3Grid.length > 0 && (
             <FullWidthVideoWithImagesBelow
-              featuredMedia={s2Featured}
-              gridMedia={s2Grid}
+              featuredMedia={s3Featured}
+              gridMedia={s3Grid}
               onOpen={onOpen}
               reverse={true}
             />
           )}
 
-          {/* Section 3: Full-Width Showcase Video / Image (full-1) */}
-          {s3Media && (
-            <FullWidthVideo media={s3Media} src={s3Media.src} onOpen={onOpen} />
-          )}
-
           {/* Section 4: Parallax Turntable Media (full-2) */}
-          {s4Media && (
-            <FullWidthVideo media={s4Media} src={s4Media.src} driftUp onOpen={onOpen} />
+          {s4FullScreen && (
+            <FullWidthVideo media={s4FullScreen} src={s4FullScreen.src} driftUp onOpen={onOpen} />
           )}
         </div>
       ))}

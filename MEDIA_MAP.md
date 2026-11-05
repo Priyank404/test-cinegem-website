@@ -42,7 +42,7 @@ Across all pages, special filenames designate specific roles:
 
 * **Source Directory:** `media-originals/creative-visuals/`
 * **R2 Prefix:** `creative-visuals/`
-* **Layout Structure:** An editorial story cycle containing **Featured Hero Tiles, 8-Cell Grids, Full-Screen Breakouts, and Dual Side-by-Side Media**.
+* **Layout Structure:** An alternating luxury story cycle: **Grid 1 → Full-Screen Breakout 1 → Grid 2 → Full-Screen Breakout 2**.
 
 ### Visual Mapping Diagram:
 
@@ -62,7 +62,16 @@ Across all pages, special filenames designate specific roles:
 └──────────────────────────┴──────────────────────────┘
 ```
 
-#### 3. Section 2: Inverted 8-Image Grid Left + Featured Right (50%)
+#### 3. Section 2: Full-Screen Showcase 1
+```
+┌─────────────────────────────────────────────────────┐
+│          full-1.mp4  (or  full-1.png)               │
+│       (Edge-to-Edge 100vw × 100vh Full-Screen)       │
+└─────────────────────────────────────────────────────┘
+```
+* Automatically detects video background colors (e.g. white or dark studio) for seamless edge blending and magnetic snapping.
+
+#### 4. Section 3: Inverted 8-Image Grid Left + Featured Right (50%)
 ```
 ┌──────────────────────────┬──────────────────────────┐
 │  [ 10.png ]   [ 11.png ] │                          │  ← Row 1
@@ -74,15 +83,6 @@ Across all pages, special filenames designate specific roles:
 │  [ 16.png ]   [ 17.png ] │                          │  ← Row 4
 └──────────────────────────┴──────────────────────────┘
 ```
-
-#### 4. Section 3: Full-Screen Showcase 1
-```
-┌─────────────────────────────────────────────────────┐
-│          full-1.mp4  (or  full-1.png)               │
-│       (Edge-to-Edge 100vw × 100vh Full-Screen)       │
-└─────────────────────────────────────────────────────┘
-```
-* Automatically detects video background colors (e.g. white or dark studio) for seamless edge blending and magnetic snapping.
 
 #### 5. Section 4: Full-Screen Showcase 2 (Turntable Parallax)
 ```
