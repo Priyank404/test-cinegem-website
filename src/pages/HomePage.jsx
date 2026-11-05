@@ -1264,7 +1264,7 @@ export default function HomePage() {
         if (beat2OverlayRef.current) {
           beat2OverlayRef.current.classList.toggle("video-active", isVideoActive);
         }
-        if (isVideoActive && (import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev")) {
+        if (isVideoActive && isDevMode()) {
           const v = beat2VideoRef.current;
           let buf = 0;
           try {
@@ -1355,7 +1355,7 @@ export default function HomePage() {
         if (beat3OverlayRef.current) {
           beat3OverlayRef.current.classList.toggle("video-active", isVideoActive);
         }
-        if (isVideoActive && (import.meta.env.DEV || import.meta.env.VITE_APP_MODE === "dev")) {
+        if (isVideoActive && isDevMode()) {
           const v = beat3VideoRef.current;
           let buf = 0;
           try {
@@ -2315,9 +2315,6 @@ export default function HomePage() {
           <img
             src="/Logo.png"
             alt="Cinegem Studio Logo"
-            loading="eager"
-            decoding="async"
-            onError={(e) => { e.currentTarget.style.opacity = "0"; }}
             className="h-28 sm:h-28 md:h-44 lg:h-52 w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
           />
         </Link>

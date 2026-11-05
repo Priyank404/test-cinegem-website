@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:prod": "vite --mode production",
     "build": "vite build && node scripts/seo-postbuild.mjs",
     "preview": "vite preview",
+    "prod": "npm run build && vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "media:build": "node scripts/media/build.mjs",
     "media:upload": "node scripts/media/upload.mjs",
