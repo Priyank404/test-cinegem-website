@@ -53,7 +53,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { TransparentOutputPass } from "./TransparentOutputPass";
-import { getDeviceTier } from "@/lib/deviceTier";
+import { getDeviceTier, recordContextLossDowngrade } from "@/lib/deviceTier";
 import { diagnostics } from "@/lib/diagnostics";
 import { Hero3DFallbackPoster } from "./Hero3DFallback";
 import { SpotDilator } from "./spotDilator";
@@ -440,6 +440,7 @@ export default function RingHero({
   const dismissedOnceRef = useRef(false);
   const [contextLost, setContextLost] = useState(false);
   const [gpuUnsupported, setGpuUnsupported] = useState(false);
+  const [isSceneReady, setIsSceneReady] = useState(false);
   const deviceTier = getDeviceTier();
   // ── Debug-only diagnostics for the interactive drag window ────────────
   // Keeps the last computed localFrame / range values around so the
@@ -838,6 +839,13 @@ export default function RingHero({
     // canvas at pointerEvents:"none" even while the ref said "active".
     // Reset it here too so mount always starts from a truly clean state.
     interactiveActiveRef.current = false;
+
+    if (deviceTier.tier === "minimal") {
+      onLoadingProgress?.(100, "2D Mode");
+      setIsSceneReady(true);
+      onLoaded?.();
+      return;
+    }
     let renderer, scene, camera, ring;
     let metalMaterial;
     let gemMaterials = []; // one instance per gem mesh — see note above
@@ -1123,26 +1131,60 @@ export default function RingHero({
     );
     camera.position.set(0, 0.2, 4.2);
 
+    // Progressive WebGLRenderer creation retry chain (Fix B6)
+    const creationErrors = [];
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: true,
         alpha: true,
+        depth: true,
+        stencil: true,
         powerPreference: deviceTier.tier === "low" ? "default" : "high-performance",
       });
-    } catch (glErr) {
-      console.warn("RingHero: WebGL high-performance context failed, falling back to standard:", glErr);
+    } catch (e1) {
+      creationErrors.push("Stage 1 (high-perf): " + e1.message);
       try {
         renderer = new THREE.WebGLRenderer({
           canvas,
           antialias: false,
           alpha: true,
+          depth: true,
+          stencil: true,
+          powerPreference: "default",
         });
-      } catch (fatalErr) {
-        console.error("RingHero: WebGL unsupported on this device:", fatalErr);
-        setGpuUnsupported(true);
-        onLoaded?.();
-        return;
+      } catch (e2) {
+        creationErrors.push("Stage 2 (default, no AA): " + e2.message);
+        try {
+          renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: false,
+            alpha: true,
+            depth: true,
+            stencil: false,
+            powerPreference: "default",
+          });
+        } catch (e3) {
+          creationErrors.push("Stage 3 (no stencil): " + e3.message);
+          try {
+            renderer = new THREE.WebGLRenderer({
+              canvas,
+              antialias: false,
+              alpha: true,
+              depth: false,
+              stencil: false,
+              powerPreference: "low-power",
+            });
+          } catch (fatalErr) {
+            creationErrors.push("Stage 4 (low-power): " + fatalErr.message);
+            console.error("RingHero: WebGL context creation failed across all retry tiers:", creationErrors.join("; "));
+            diagnostics.recordCreationFailure(fatalErr);
+            setGpuUnsupported(true);
+            setIsSceneReady(true);
+            onLoaded?.();
+            return;
+          }
+        }
       }
     }
 
@@ -1160,13 +1202,17 @@ export default function RingHero({
       e.preventDefault();
       console.warn("RingHero: WebGL context lost!");
       diagnostics.logContextLost("RingHero");
+      recordContextLossDowngrade(deviceTier.tier);
       setContextLost(true);
     };
+
+    const handleContextRestored = () => {
+      console.log("RingHero: WebGL context restored, triggering reload");
+      window.location.reload();
+    };
+
     canvas.addEventListener("webglcontextlost", handleContextLost, false);
-    canvas.addEventListener("webglcontextrestored", () => {
-      console.log("RingHero: WebGL context restored!");
-      setContextLost(false);
-    }, false);
+    canvas.addEventListener("webglcontextrestored", handleContextRestored, false);
 
     renderer.setSize(window.innerWidth, window.innerHeight, !RESPONSIVE_V2);
     renderer.setPixelRatio(
@@ -1216,7 +1262,9 @@ export default function RingHero({
       try {
         const w = viewport.w || canvas.clientWidth || window.innerWidth;
         const h = viewport.h || canvas.clientHeight || window.innerHeight;
-        const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal";
+        const glCaps = diagnostics.getWebGLCapabilities();
+        const hasHalfFloatTarget = Boolean(glCaps?.extensions?.EXT_color_buffer_half_float || glCaps?.extensions?.EXT_color_buffer_float);
+        const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal" || !hasHalfFloatTarget;
         const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" ? 2 : 0);
         const targetType = isLowTier ? THREE.UnsignedByteType : THREE.HalfFloatType;
         const stencil = !isLowTier;
@@ -1706,10 +1754,12 @@ export default function RingHero({
 
         // Model, materials, BVH, and initial scene frame are 100% ready
         onLoadingProgress?.(100, "Experience ready");
+        setIsSceneReady(true);
         onLoaded?.();
       })
       .catch((err) => {
         console.error("RingHero: failed to load assets", err);
+        setIsSceneReady(true);
         onLoaded?.();
       });
 
@@ -2902,6 +2952,11 @@ export default function RingHero({
       envPreviewRendererRef.current?.dispose?.();
       envPreviewRendererRef.current = null;
       pmrem?.dispose();
+      canvas?.removeEventListener("webglcontextlost", handleContextLost);
+      canvas?.removeEventListener("webglcontextrestored", handleContextRestored);
+      try {
+        renderer?.forceContextLoss();
+      } catch (e) {}
       composer?.dispose();
       renderer?.dispose();
     };
@@ -2935,8 +2990,11 @@ export default function RingHero({
           background: "linear-gradient(180deg, #0d0d10 0%, #1a1a1f 100%)",
         }}
       />
-      {(contextLost || gpuUnsupported || deviceTier.tier === "minimal") && (
-        <Hero3DFallbackPoster message={gpuUnsupported ? "WebGL disabled (standard 2D mode)" : contextLost ? "GPU context recovering..." : "2D Performance Mode"} />
+      {(contextLost || gpuUnsupported || deviceTier.tier === "minimal" || !isSceneReady) && (
+        <Hero3DFallbackPoster
+          message={contextLost ? "GPU recovering..." : "2D Mode"}
+          technicalError={gpuUnsupported ? (diagnostics.creationFailureReason || "WebGL initialization failed") : contextLost ? "WebGL context lost" : ""}
+        />
       )}
       <canvas
         ref={canvasRef}

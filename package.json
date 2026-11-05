@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:prod": "vite --mode production",
-    "build": "vite build && node scripts/seo-postbuild.mjs",
+    "build": "node scripts/validate-public-refs.mjs && vite build && node scripts/seo-postbuild.mjs",
+    "validate:assets": "node scripts/validate-public-refs.mjs",
     "preview": "vite preview",
     "prod": "npm run build && vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",

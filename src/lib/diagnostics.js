@@ -8,6 +8,10 @@ class DiagnosticBus {
     this.subscribers = new Set();
     this.rendererInfo = null;
     this.deviceTier = null;
+    this.probeStatus = "unknown"; // "ok" | "no-context" | "probe-ok-renderer-failed" | "context-lost"
+    this.creationFailureReason = null;
+    this.contextLossCount = 0;
+    this._cachedCapabilities = null;
     this.initErrorListeners();
   }
 
@@ -58,12 +62,27 @@ class DiagnosticBus {
     });
   }
 
+  recordCreationFailure(error) {
+    this.creationFailureReason = error?.message || String(error);
+    this.probeStatus = "probe-ok-renderer-failed";
+    console.error("[Diagnostics] WebGLRenderer creation failed:", error);
+    this.recordLog({
+      type: "renderer-creation-failed",
+      source: "THREE.WebGLRenderer",
+      message: this.creationFailureReason,
+      stack: error?.stack,
+      time: new Date().toLocaleTimeString(),
+    });
+  }
+
   logContextLost(source = "WebGL") {
-    console.warn(`[Diagnostics] Context lost on ${source}`);
+    this.contextLossCount++;
+    this.probeStatus = "context-lost";
+    console.warn(`[Diagnostics] Context lost on ${source} (count: ${this.contextLossCount})`);
     this.recordLog({
       type: "context-lost",
       source: `${source} Context Lost`,
-      message: "GPU watchdog or memory overflow triggered webglcontextlost",
+      message: `GPU watchdog or memory overflow triggered webglcontextlost (count: ${this.contextLossCount})`,
       time: new Date().toLocaleTimeString(),
     });
   }
@@ -79,8 +98,16 @@ class DiagnosticBus {
     });
   }
 
+  setProbeStatus(status) {
+    this.probeStatus = status;
+    this.notify();
+  }
+
   setRendererInfo(info) {
     this.rendererInfo = info;
+    if (this.probeStatus !== "context-lost" && this.probeStatus !== "probe-ok-renderer-failed") {
+      this.probeStatus = "ok";
+    }
     this.notify();
   }
 
@@ -105,6 +132,10 @@ class DiagnosticBus {
   }
 
   getWebGLCapabilities() {
+    if (this._cachedCapabilities) {
+      return this._cachedCapabilities;
+    }
+
     if (typeof document === "undefined") return null;
 
     try {
@@ -116,7 +147,9 @@ class DiagnosticBus {
       }
 
       if (!gl) {
-        return { supported: false, error: "WebGL completely unsupported" };
+        this.probeStatus = "no-context";
+        this._cachedCapabilities = { supported: false, error: "WebGL completely unsupported" };
+        return this._cachedCapabilities;
       }
 
       const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
@@ -131,7 +164,15 @@ class DiagnosticBus {
       const oesFloatLinear = Boolean(gl.getExtension("OES_texture_float_linear"));
       const extFloatBlend = Boolean(gl.getExtension("EXT_float_blend"));
 
-      return {
+      // Immediately release probe context to prevent context leak in GPU memory
+      try {
+        const loseExt = gl.getExtension("WEBGL_lose_context");
+        loseExt?.loseContext();
+      } catch (e) {
+        // ignore
+      }
+
+      this._cachedCapabilities = {
         supported: true,
         version: isWebGL2 ? "WebGL 2.0" : "WebGL 1.0",
         vendor,
@@ -145,10 +186,19 @@ class DiagnosticBus {
           EXT_float_blend: extFloatBlend,
         },
       };
+
+      if (this.probeStatus === "unknown") {
+        this.probeStatus = "probe-ok";
+      }
+
+      return this._cachedCapabilities;
     } catch (e) {
-      return { supported: false, error: String(e) };
+      this.probeStatus = "no-context";
+      this._cachedCapabilities = { supported: false, error: String(e) };
+      return this._cachedCapabilities;
     }
   }
 }
 
 export const diagnostics = new DiagnosticBus();
+

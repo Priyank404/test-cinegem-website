@@ -10,5 +10,9 @@ dist/
 .media-cache.json
 .media-out/
 media-originals/
-public/
+# Heavy local media (hosted on Cloudflare R2 - do not commit to git)
+public/Creative Image/
+public/Creative visuals/
+public/E-com Visuals/
+public/cinegem-ring-loader-handoff/
 seo-baseline/

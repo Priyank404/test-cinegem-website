@@ -13,7 +13,7 @@ const resolveSiteUrl = () => {
 
 export const SITE_URL = resolveSiteUrl();
 export const SITE_NAME = 'Cinegem Studio';
-export const DEFAULT_OG_IMAGE = '/4.png';
+export const DEFAULT_OG_IMAGE = '/hero-poster.jpg';
 export const LOGO_PATH = '/logo-white.png';
 export const CONTACT_EMAIL = 'info@cinegemstudio.com';
 

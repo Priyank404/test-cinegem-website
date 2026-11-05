@@ -1,0 +1,1027 @@
+{
+  "generatedAt": "2026-11-04T04:43:11.102Z",
+  "folders": {
+    "cinegem-ring-loader-handoff": {
+      "items": [
+        {
+          "filename": "preview-frames.png",
+          "src": "/cinegem-ring-loader-handoff/preview-frames.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "preview frames"
+        }
+      ],
+      "images": [
+        {
+          "filename": "preview-frames.png",
+          "src": "/cinegem-ring-loader-handoff/preview-frames.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "preview frames"
+        }
+      ],
+      "videos": [],
+      "total": 1
+    },
+    "Creative Image": {
+      "items": [
+        {
+          "filename": "A6-R3-HQ.mp4",
+          "src": "/Creative%20Image/A6-R3-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "A6 R3 HQ"
+        },
+        {
+          "filename": "Beauty.png",
+          "src": "/Creative%20Image/Beauty.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Beauty"
+        }
+      ],
+      "images": [
+        {
+          "filename": "Beauty.png",
+          "src": "/Creative%20Image/Beauty.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Beauty"
+        }
+      ],
+      "videos": [
+        {
+          "filename": "A6-R3-HQ.mp4",
+          "src": "/Creative%20Image/A6-R3-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "A6 R3 HQ"
+        }
+      ],
+      "total": 2
+    },
+    "Creative visuals": {
+      "items": [
+        {
+          "filename": "4 Ring Banner T4 HQ_.jpg",
+          "src": "/Creative%20visuals/4%20Ring%20Banner%20T4%20HQ_.jpg",
+          "type": "image",
+          "ext": ".jpg",
+          "alt": "4 Ring Banner T4 HQ"
+        },
+        {
+          "filename": "360 Turntable black.mp4",
+          "src": "/Creative%20visuals/360%20Turntable%20black.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "360 Turntable black"
+        },
+        {
+          "filename": "A6-R3-HQ.mp4",
+          "src": "/Creative%20visuals/A6-R3-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "A6 R3 HQ"
+        },
+        {
+          "filename": "B4 ANimated.mp4",
+          "src": "/Creative%20visuals/B4%20ANimated.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "B4 ANimated"
+        },
+        {
+          "filename": "Beauty.png",
+          "src": "/Creative%20visuals/Beauty.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Beauty"
+        },
+        {
+          "filename": "E commerce 1 with Music.mp4",
+          "src": "/Creative%20visuals/E%20commerce%201%20with%20Music.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "E commerce 1 with Music"
+        },
+        {
+          "filename": "Earring 1 YG BlackBG V0000.png",
+          "src": "/Creative%20visuals/Earring%201%20YG%20BlackBG%20V0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Earring 1 YG BlackBG V0000"
+        },
+        {
+          "filename": "Earring 1 YG BlackBG V0001.png",
+          "src": "/Creative%20visuals/Earring%201%20YG%20BlackBG%20V0001.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Earring 1 YG BlackBG V0001"
+        },
+        {
+          "filename": "Figaro-BR-CH-Y-V1.png",
+          "src": "/Creative%20visuals/Figaro-BR-CH-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Figaro BR CH Y V1"
+        },
+        {
+          "filename": "FK-A1-Final-HQ.mp4",
+          "src": "/Creative%20visuals/FK-A1-Final-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "FK A1 Final HQ"
+        },
+        {
+          "filename": "KC-A01-TR1 .mp4",
+          "src": "/Creative%20visuals/KC-A01-TR1%20.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "KC A01 TR1"
+        },
+        {
+          "filename": "M-Video.mp4",
+          "src": "/Creative%20visuals/M-Video.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "M Video"
+        },
+        {
+          "filename": "Multishot Brown.mp4",
+          "src": "/Creative%20visuals/Multishot%20Brown.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Multishot Brown"
+        },
+        {
+          "filename": "NB-1 LO R.png",
+          "src": "/Creative%20visuals/NB-1%20LO%20R.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NB 1 LO R"
+        },
+        {
+          "filename": "NP-1-YG-LS2-V2.png",
+          "src": "/Creative%20visuals/NP-1-YG-LS2-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NP 1 YG LS2 V2"
+        },
+        {
+          "filename": "R1-L2-P1-SB-Y-V4.png",
+          "src": "/Creative%20visuals/R1-L2-P1-SB-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R1 L2 P1 SB Y V4"
+        },
+        {
+          "filename": "R4-L2-Y-V4.png",
+          "src": "/Creative%20visuals/R4-L2-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R4 L2 Y V4"
+        },
+        {
+          "filename": "R6-L2-Y-V1.png",
+          "src": "/Creative%20visuals/R6-L2-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R6 L2 Y V1"
+        },
+        {
+          "filename": "RG01_Out2_0000.png",
+          "src": "/Creative%20visuals/RG01_Out2_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Out2 0000"
+        },
+        {
+          "filename": "RG01-Y-B-V1.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V1"
+        },
+        {
+          "filename": "RG01-Y-B-V2.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V2"
+        },
+        {
+          "filename": "RG01-Y-B-V3.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V3"
+        },
+        {
+          "filename": "RG01-Y-B-V4.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V4"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R3.png",
+          "src": "/Creative%20visuals/Ring%202-Color%20BG-V1-R3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R3"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R6.png",
+          "src": "/Creative%20visuals/Ring%202-Color%20BG-V1-R6.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R6"
+        },
+        {
+          "filename": "ring.png",
+          "src": "/Creative%20visuals/ring.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "ring"
+        },
+        {
+          "filename": "S4.mp4",
+          "src": "/Creative%20visuals/S4.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "S4"
+        },
+        {
+          "filename": "Screenshot 2023-07-15 183627.png",
+          "src": "/Creative%20visuals/Screenshot%202023-07-15%20183627.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 07 15 183627"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 184746.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20184746.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 184746"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 185126.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20185126.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 185126"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 185251.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20185251.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 185251"
+        },
+        {
+          "filename": "Screenshot 2023-12-20 080608.png",
+          "src": "/Creative%20visuals/Screenshot%202023-12-20%20080608.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 12 20 080608"
+        },
+        {
+          "filename": "Screenshot 2023-12-20 080659.png",
+          "src": "/Creative%20visuals/Screenshot%202023-12-20%20080659.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 12 20 080659"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184639.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184639.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184639"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184713.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184713.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184713"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184810.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184810.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184810"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184847.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184847.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184847"
+        },
+        {
+          "filename": "SR-B-3-Y-V4.png",
+          "src": "/Creative%20visuals/SR-B-3-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "SR B 3 Y V4"
+        },
+        {
+          "filename": "SR-B-9-Y-V1.png",
+          "src": "/Creative%20visuals/SR-B-9-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "SR B 9 Y V1"
+        },
+        {
+          "filename": "Test-R0.mp4",
+          "src": "/Creative%20visuals/Test-R0.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Test R0"
+        },
+        {
+          "filename": "Timeline 1.mp4",
+          "src": "/Creative%20visuals/Timeline%201.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Timeline 1"
+        },
+        {
+          "filename": "TR5-output with ending.mp4",
+          "src": "/Creative%20visuals/TR5-output%20with%20ending.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "TR5 output with ending"
+        },
+        {
+          "filename": "VIDEO.1.128.avi",
+          "src": "/Creative%20visuals/VIDEO.1.128.avi",
+          "type": "video",
+          "ext": ".avi",
+          "alt": "VIDEO.1.128"
+        },
+        {
+          "filename": "VIDEO.1.128.mp4",
+          "src": "/Creative%20visuals/VIDEO.1.128.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "VIDEO.1.128"
+        },
+        {
+          "filename": "Webptimized.mp4",
+          "src": "/Creative%20visuals/Webptimized.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Webptimized"
+        },
+        {
+          "filename": "ZBZ-A4-Final-HQ.mp4",
+          "src": "/Creative%20visuals/ZBZ-A4-Final-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "ZBZ A4 Final HQ"
+        }
+      ],
+      "images": [
+        {
+          "filename": "4 Ring Banner T4 HQ_.jpg",
+          "src": "/Creative%20visuals/4%20Ring%20Banner%20T4%20HQ_.jpg",
+          "type": "image",
+          "ext": ".jpg",
+          "alt": "4 Ring Banner T4 HQ"
+        },
+        {
+          "filename": "Beauty.png",
+          "src": "/Creative%20visuals/Beauty.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Beauty"
+        },
+        {
+          "filename": "Earring 1 YG BlackBG V0000.png",
+          "src": "/Creative%20visuals/Earring%201%20YG%20BlackBG%20V0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Earring 1 YG BlackBG V0000"
+        },
+        {
+          "filename": "Earring 1 YG BlackBG V0001.png",
+          "src": "/Creative%20visuals/Earring%201%20YG%20BlackBG%20V0001.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Earring 1 YG BlackBG V0001"
+        },
+        {
+          "filename": "Figaro-BR-CH-Y-V1.png",
+          "src": "/Creative%20visuals/Figaro-BR-CH-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Figaro BR CH Y V1"
+        },
+        {
+          "filename": "NB-1 LO R.png",
+          "src": "/Creative%20visuals/NB-1%20LO%20R.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NB 1 LO R"
+        },
+        {
+          "filename": "NP-1-YG-LS2-V2.png",
+          "src": "/Creative%20visuals/NP-1-YG-LS2-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NP 1 YG LS2 V2"
+        },
+        {
+          "filename": "R1-L2-P1-SB-Y-V4.png",
+          "src": "/Creative%20visuals/R1-L2-P1-SB-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R1 L2 P1 SB Y V4"
+        },
+        {
+          "filename": "R4-L2-Y-V4.png",
+          "src": "/Creative%20visuals/R4-L2-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R4 L2 Y V4"
+        },
+        {
+          "filename": "R6-L2-Y-V1.png",
+          "src": "/Creative%20visuals/R6-L2-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "R6 L2 Y V1"
+        },
+        {
+          "filename": "RG01_Out2_0000.png",
+          "src": "/Creative%20visuals/RG01_Out2_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Out2 0000"
+        },
+        {
+          "filename": "RG01-Y-B-V1.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V1"
+        },
+        {
+          "filename": "RG01-Y-B-V2.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V2"
+        },
+        {
+          "filename": "RG01-Y-B-V3.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V3"
+        },
+        {
+          "filename": "RG01-Y-B-V4.png",
+          "src": "/Creative%20visuals/RG01-Y-B-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V4"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R3.png",
+          "src": "/Creative%20visuals/Ring%202-Color%20BG-V1-R3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R3"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R6.png",
+          "src": "/Creative%20visuals/Ring%202-Color%20BG-V1-R6.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R6"
+        },
+        {
+          "filename": "ring.png",
+          "src": "/Creative%20visuals/ring.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "ring"
+        },
+        {
+          "filename": "Screenshot 2023-07-15 183627.png",
+          "src": "/Creative%20visuals/Screenshot%202023-07-15%20183627.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 07 15 183627"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 184746.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20184746.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 184746"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 185126.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20185126.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 185126"
+        },
+        {
+          "filename": "Screenshot 2023-08-26 185251.png",
+          "src": "/Creative%20visuals/Screenshot%202023-08-26%20185251.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 08 26 185251"
+        },
+        {
+          "filename": "Screenshot 2023-12-20 080608.png",
+          "src": "/Creative%20visuals/Screenshot%202023-12-20%20080608.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 12 20 080608"
+        },
+        {
+          "filename": "Screenshot 2023-12-20 080659.png",
+          "src": "/Creative%20visuals/Screenshot%202023-12-20%20080659.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2023 12 20 080659"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184639.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184639.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184639"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184713.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184713.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184713"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184810.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184810.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184810"
+        },
+        {
+          "filename": "Screenshot 2024-06-24 184847.png",
+          "src": "/Creative%20visuals/Screenshot%202024-06-24%20184847.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Screenshot 2024 06 24 184847"
+        },
+        {
+          "filename": "SR-B-3-Y-V4.png",
+          "src": "/Creative%20visuals/SR-B-3-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "SR B 3 Y V4"
+        },
+        {
+          "filename": "SR-B-9-Y-V1.png",
+          "src": "/Creative%20visuals/SR-B-9-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "SR B 9 Y V1"
+        }
+      ],
+      "videos": [
+        {
+          "filename": "360 Turntable black.mp4",
+          "src": "/Creative%20visuals/360%20Turntable%20black.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "360 Turntable black"
+        },
+        {
+          "filename": "A6-R3-HQ.mp4",
+          "src": "/Creative%20visuals/A6-R3-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "A6 R3 HQ"
+        },
+        {
+          "filename": "B4 ANimated.mp4",
+          "src": "/Creative%20visuals/B4%20ANimated.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "B4 ANimated"
+        },
+        {
+          "filename": "E commerce 1 with Music.mp4",
+          "src": "/Creative%20visuals/E%20commerce%201%20with%20Music.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "E commerce 1 with Music"
+        },
+        {
+          "filename": "FK-A1-Final-HQ.mp4",
+          "src": "/Creative%20visuals/FK-A1-Final-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "FK A1 Final HQ"
+        },
+        {
+          "filename": "KC-A01-TR1 .mp4",
+          "src": "/Creative%20visuals/KC-A01-TR1%20.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "KC A01 TR1"
+        },
+        {
+          "filename": "M-Video.mp4",
+          "src": "/Creative%20visuals/M-Video.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "M Video"
+        },
+        {
+          "filename": "Multishot Brown.mp4",
+          "src": "/Creative%20visuals/Multishot%20Brown.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Multishot Brown"
+        },
+        {
+          "filename": "S4.mp4",
+          "src": "/Creative%20visuals/S4.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "S4"
+        },
+        {
+          "filename": "Test-R0.mp4",
+          "src": "/Creative%20visuals/Test-R0.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Test R0"
+        },
+        {
+          "filename": "Timeline 1.mp4",
+          "src": "/Creative%20visuals/Timeline%201.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Timeline 1"
+        },
+        {
+          "filename": "TR5-output with ending.mp4",
+          "src": "/Creative%20visuals/TR5-output%20with%20ending.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "TR5 output with ending"
+        },
+        {
+          "filename": "VIDEO.1.128.avi",
+          "src": "/Creative%20visuals/VIDEO.1.128.avi",
+          "type": "video",
+          "ext": ".avi",
+          "alt": "VIDEO.1.128"
+        },
+        {
+          "filename": "VIDEO.1.128.mp4",
+          "src": "/Creative%20visuals/VIDEO.1.128.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "VIDEO.1.128"
+        },
+        {
+          "filename": "Webptimized.mp4",
+          "src": "/Creative%20visuals/Webptimized.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "Webptimized"
+        },
+        {
+          "filename": "ZBZ-A4-Final-HQ.mp4",
+          "src": "/Creative%20visuals/ZBZ-A4-Final-HQ.mp4",
+          "type": "video",
+          "ext": ".mp4",
+          "alt": "ZBZ A4 Final HQ"
+        }
+      ],
+      "total": 46
+    },
+    "draco": {
+      "items": [],
+      "images": [],
+      "videos": [],
+      "total": 0
+    },
+    "E-com Visuals": {
+      "items": [
+        {
+          "filename": "BR_0010_IR_01_WB.png",
+          "src": "/E-com%20Visuals/BR_0010_IR_01_WB.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR 0010 IR 01 WB"
+        },
+        {
+          "filename": "BR_IY_01_Output AOV 2_0000.png",
+          "src": "/E-com%20Visuals/BR_IY_01_Output%20AOV%202_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR IY 01 Output AOV 2 0000"
+        },
+        {
+          "filename": "BR_IY_03_Output AOV 1_0000.png",
+          "src": "/E-com%20Visuals/BR_IY_03_Output%20AOV%201_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR IY 03 Output AOV 1 0000"
+        },
+        {
+          "filename": "Figaro-BR-CH-Y-V1.png",
+          "src": "/E-com%20Visuals/Figaro-BR-CH-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Figaro BR CH Y V1"
+        },
+        {
+          "filename": "KJ01898P-RD-2-Y-V1.png",
+          "src": "/E-com%20Visuals/KJ01898P-RD-2-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01898P RD 2 Y V1"
+        },
+        {
+          "filename": "KJ01914R-EM-1-5-W-V1.png",
+          "src": "/E-com%20Visuals/KJ01914R-EM-1-5-W-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01914R EM 1 5 W V1"
+        },
+        {
+          "filename": "KJ01914R-EM-1-5-Y-V4.png",
+          "src": "/E-com%20Visuals/KJ01914R-EM-1-5-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01914R EM 1 5 Y V4"
+        },
+        {
+          "filename": "NP-1-YG-LS2-V2.png",
+          "src": "/E-com%20Visuals/NP-1-YG-LS2-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NP 1 YG LS2 V2"
+        },
+        {
+          "filename": "PD001-Y-V1_Output AOV 8_0000.png",
+          "src": "/E-com%20Visuals/PD001-Y-V1_Output%20AOV%208_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "PD001 Y V1 Output AOV 8 0000"
+        },
+        {
+          "filename": "PD001-Y-V2_Output AOV 8_0000.png",
+          "src": "/E-com%20Visuals/PD001-Y-V2_Output%20AOV%208_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "PD001 Y V2 Output AOV 8 0000"
+        },
+        {
+          "filename": "RG01-Y-B-V3.png",
+          "src": "/E-com%20Visuals/RG01-Y-B-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V3"
+        },
+        {
+          "filename": "RG01-Y-B-V4.png",
+          "src": "/E-com%20Visuals/RG01-Y-B-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V4"
+        },
+        {
+          "filename": "RG02-R-V3.png",
+          "src": "/E-com%20Visuals/RG02-R-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG02 R V3"
+        },
+        {
+          "filename": "RG02-W-V2.png",
+          "src": "/E-com%20Visuals/RG02-W-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG02 W V2"
+        },
+        {
+          "filename": "RG08-Y-V2.png",
+          "src": "/E-com%20Visuals/RG08-Y-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG08 Y V2"
+        },
+        {
+          "filename": "RG17-W-V1.png",
+          "src": "/E-com%20Visuals/RG17-W-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG17 W V1"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R3.png",
+          "src": "/E-com%20Visuals/Ring%202-Color%20BG-V1-R3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R3"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R6.png",
+          "src": "/E-com%20Visuals/Ring%202-Color%20BG-V1-R6.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R6"
+        }
+      ],
+      "images": [
+        {
+          "filename": "BR_0010_IR_01_WB.png",
+          "src": "/E-com%20Visuals/BR_0010_IR_01_WB.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR 0010 IR 01 WB"
+        },
+        {
+          "filename": "BR_IY_01_Output AOV 2_0000.png",
+          "src": "/E-com%20Visuals/BR_IY_01_Output%20AOV%202_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR IY 01 Output AOV 2 0000"
+        },
+        {
+          "filename": "BR_IY_03_Output AOV 1_0000.png",
+          "src": "/E-com%20Visuals/BR_IY_03_Output%20AOV%201_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "BR IY 03 Output AOV 1 0000"
+        },
+        {
+          "filename": "Figaro-BR-CH-Y-V1.png",
+          "src": "/E-com%20Visuals/Figaro-BR-CH-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Figaro BR CH Y V1"
+        },
+        {
+          "filename": "KJ01898P-RD-2-Y-V1.png",
+          "src": "/E-com%20Visuals/KJ01898P-RD-2-Y-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01898P RD 2 Y V1"
+        },
+        {
+          "filename": "KJ01914R-EM-1-5-W-V1.png",
+          "src": "/E-com%20Visuals/KJ01914R-EM-1-5-W-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01914R EM 1 5 W V1"
+        },
+        {
+          "filename": "KJ01914R-EM-1-5-Y-V4.png",
+          "src": "/E-com%20Visuals/KJ01914R-EM-1-5-Y-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "KJ01914R EM 1 5 Y V4"
+        },
+        {
+          "filename": "NP-1-YG-LS2-V2.png",
+          "src": "/E-com%20Visuals/NP-1-YG-LS2-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "NP 1 YG LS2 V2"
+        },
+        {
+          "filename": "PD001-Y-V1_Output AOV 8_0000.png",
+          "src": "/E-com%20Visuals/PD001-Y-V1_Output%20AOV%208_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "PD001 Y V1 Output AOV 8 0000"
+        },
+        {
+          "filename": "PD001-Y-V2_Output AOV 8_0000.png",
+          "src": "/E-com%20Visuals/PD001-Y-V2_Output%20AOV%208_0000.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "PD001 Y V2 Output AOV 8 0000"
+        },
+        {
+          "filename": "RG01-Y-B-V3.png",
+          "src": "/E-com%20Visuals/RG01-Y-B-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V3"
+        },
+        {
+          "filename": "RG01-Y-B-V4.png",
+          "src": "/E-com%20Visuals/RG01-Y-B-V4.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG01 Y B V4"
+        },
+        {
+          "filename": "RG02-R-V3.png",
+          "src": "/E-com%20Visuals/RG02-R-V3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG02 R V3"
+        },
+        {
+          "filename": "RG02-W-V2.png",
+          "src": "/E-com%20Visuals/RG02-W-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG02 W V2"
+        },
+        {
+          "filename": "RG08-Y-V2.png",
+          "src": "/E-com%20Visuals/RG08-Y-V2.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG08 Y V2"
+        },
+        {
+          "filename": "RG17-W-V1.png",
+          "src": "/E-com%20Visuals/RG17-W-V1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "RG17 W V1"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R3.png",
+          "src": "/E-com%20Visuals/Ring%202-Color%20BG-V1-R3.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R3"
+        },
+        {
+          "filename": "Ring 2-Color BG-V1-R6.png",
+          "src": "/E-com%20Visuals/Ring%202-Color%20BG-V1-R6.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "Ring 2 Color BG V1 R6"
+        }
+      ],
+      "videos": [],
+      "total": 18
+    },
+    "hdr": {
+      "items": [],
+      "images": [],
+      "videos": [],
+      "total": 0
+    },
+    "images": {
+      "items": [
+        {
+          "filename": "ring_gallery_1.png",
+          "src": "/images/ring_gallery_1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "ring gallery 1"
+        }
+      ],
+      "images": [
+        {
+          "filename": "ring_gallery_1.png",
+          "src": "/images/ring_gallery_1.png",
+          "type": "image",
+          "ext": ".png",
+          "alt": "ring gallery 1"
+        }
+      ],
+      "videos": [],
+      "total": 1
+    },
+    "models": {
+      "items": [],
+      "images": [],
+      "videos": [],
+      "total": 0
+    }
+  },
+  "availableFolders": [
+    "cinegem-ring-loader-handoff",
+    "Creative Image",
+    "Creative visuals",
+    "draco",
+    "E-com Visuals",
+    "hdr",
+    "images",
+    "models"
+  ]
+}

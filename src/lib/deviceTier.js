@@ -5,6 +5,41 @@ import { diagnostics } from "@/lib/diagnostics";
 
 let cachedTierResult = null;
 
+const DOWNGRADE_KEY = "cinegem:3d-downgrade";
+
+/**
+ * Record a crash/context-loss downgrade to sessionStorage so subsequent reloads
+ * automatically protect the phone from entering a crash loop.
+ */
+export function recordContextLossDowngrade(currentTier = "high") {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const tierOrder = ["high", "mid", "low", "minimal"];
+    const currentIndex = tierOrder.indexOf(currentTier);
+    const nextTier = currentIndex >= 0 && currentIndex < tierOrder.length - 1
+      ? tierOrder[currentIndex + 1]
+      : "minimal";
+
+    sessionStorage.setItem(DOWNGRADE_KEY, nextTier);
+    console.warn(`[deviceTier] Recorded crash downgrade: ${currentTier} -> ${nextTier}`);
+  } catch (e) {
+    // ignore sessionStorage errors
+  }
+}
+
+/**
+ * Reset crash recovery memory (e.g. when user clicks "Retry 3D" in debug HUD)
+ */
+export function clearDowngradeRecovery() {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(DOWNGRADE_KEY);
+    cachedTierResult = null;
+  } catch (e) {
+    // ignore
+  }
+}
+
 /**
  * Returns the detected device tier: "high" | "mid" | "low" | "minimal"
  * and an object with detailed reasoning and hardware capabilities.
@@ -57,6 +92,21 @@ export function getDeviceTier() {
     return result;
   }
 
+  // WebGL 1.0 cannot run Three.js r163+ (0.185+) -> must be "minimal"
+  if (glCaps.version !== "WebGL 2.0") {
+    reasons.push("Only WebGL 1.0 supported (Three.js 0.185+ requires WebGL 2.0)");
+    const result = {
+      tier: "minimal",
+      isMobile: true,
+      isLowOrMinimal: true,
+      reasons,
+      capabilities: glCaps,
+    };
+    cachedTierResult = result;
+    diagnostics.setDeviceTier(result);
+    return result;
+  }
+
   const renderer = (glCaps.renderer || "").toLowerCase();
   const isTouch = navigator.maxTouchPoints > 0;
   const isFinePointer = window.matchMedia("(pointer: fine)").matches;
@@ -85,14 +135,10 @@ export function getDeviceTier() {
     return result;
   }
 
-  // 4. Missing WebGL2 or missing Half-Float buffer support -> max "low"
+  // 4. Missing Half-Float buffer support -> max "low"
   const hasHalfFloatTarget =
     glCaps.version === "WebGL 2.0" &&
     (glCaps.extensions.EXT_color_buffer_half_float || glCaps.extensions.EXT_color_buffer_float);
-
-  if (glCaps.version !== "WebGL 2.0") {
-    reasons.push("Only WebGL 1.0 supported (lacks integer sampler for BVH shader)");
-  }
 
   if (!hasHalfFloatTarget) {
     reasons.push("Lacks EXT_color_buffer_half_float (cannot allocate HalfFloat HDR render target)");
@@ -117,10 +163,10 @@ export function getDeviceTier() {
     reasons.push("User requested reduced motion");
   }
 
-  // Determine final tier
+  // Determine initial tier
   let tier = "high";
 
-  if (!hasHalfFloatTarget || glCaps.version !== "WebGL 2.0") {
+  if (!hasHalfFloatTarget) {
     tier = "low";
   } else if (isWeakGpu || saveData || reducedMotion) {
     tier = "low";
@@ -144,6 +190,22 @@ export function getDeviceTier() {
     }
   }
 
+  // 6. Crash-loop recovery check: session downgrade
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      const savedDowngrade = sessionStorage.getItem(DOWNGRADE_KEY);
+      if (savedDowngrade && ["high", "mid", "low", "minimal"].includes(savedDowngrade)) {
+        const tierRank = { high: 3, mid: 2, low: 1, minimal: 0 };
+        if (tierRank[savedDowngrade] < tierRank[tier]) {
+          reasons.push(`Crash recovery active: downgraded to ${savedDowngrade} from previous GPU crash`);
+          tier = savedDowngrade;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const result = {
     tier,
     isMobile,
@@ -156,3 +218,5 @@ export function getDeviceTier() {
   diagnostics.setDeviceTier(result);
   return result;
 }
+
+

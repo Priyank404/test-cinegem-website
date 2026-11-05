@@ -2,6 +2,7 @@
 // Mobile-friendly on-screen diagnostic overlay activated by ?debug in URL
 import { useEffect, useState, useRef } from "react";
 import { diagnostics } from "@/lib/diagnostics";
+import { clearDowngradeRecovery } from "@/lib/deviceTier";
 
 export default function MobileDebugOverlay() {
   const [visible, setVisible] = useState(false);
@@ -12,6 +13,7 @@ export default function MobileDebugOverlay() {
   const [fps, setFps] = useState(0);
   const [rendererStats, setRendererStats] = useState(null);
   const [tierInfo, setTierInfo] = useState(diagnostics.deviceTier);
+  const [probeStatus, setProbeStatus] = useState(diagnostics.probeStatus);
 
   // FPS calculation
   const frameCountRef = useRef(0);
@@ -28,6 +30,7 @@ export default function MobileDebugOverlay() {
       setLogs([...bus.logs]);
       if (bus.rendererInfo) setRendererStats({ ...bus.rendererInfo });
       if (bus.deviceTier) setTierInfo(bus.deviceTier);
+      setProbeStatus(bus.probeStatus);
     });
 
     // FPS loop
@@ -53,13 +56,21 @@ export default function MobileDebugOverlay() {
 
   if (!visible) return null;
 
+  const retry3D = () => {
+    clearDowngradeRecovery();
+    window.location.reload();
+  };
+
   const copyReport = () => {
     const report = {
       timestamp: new Date().toISOString(),
       url: window.location.href,
       fps,
       tier: tierInfo,
+      probeStatus,
       capabilities: info,
+      creationFailureReason: diagnostics.creationFailureReason,
+      contextLossCount: diagnostics.contextLossCount,
       device: {
         dpr: window.devicePixelRatio,
         cores: navigator.hardwareConcurrency,
@@ -94,7 +105,7 @@ export default function MobileDebugOverlay() {
           cursor: "pointer",
         }}
       >
-        🐞 Debug: {fps} FPS | {logs.length} errs
+        🐞 Debug: {fps} FPS | Tier: {tierInfo?.tier || "?"} | {logs.length} errs
       </button>
     );
   }
@@ -106,7 +117,7 @@ export default function MobileDebugOverlay() {
         top: 0,
         left: 0,
         right: 0,
-        maxHeight: "65vh",
+        maxHeight: "70vh",
         overflowY: "auto",
         zIndex: 999999,
         background: "rgba(10, 10, 14, 0.95)",
@@ -121,7 +132,7 @@ export default function MobileDebugOverlay() {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ color: "#C5A059", fontWeight: "bold", fontSize: 13 }}>
             ⚡ CINEGEM DEBUG HUD
           </span>
@@ -131,8 +142,32 @@ export default function MobileDebugOverlay() {
           <span style={{ color: "#94a3b8" }}>
             Tier: <strong style={{ color: "#38bdf8" }}>{tierInfo?.tier || "detecting..."}</strong>
           </span>
+          <span style={{
+            background: probeStatus === "ok" ? "#065f46" : probeStatus === "context-lost" ? "#991b1b" : "#854d0e",
+            color: "#f8fafc",
+            padding: "1px 6px",
+            borderRadius: 4,
+            fontSize: 10,
+          }}>
+            Status: {probeStatus}
+          </span>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={retry3D}
+            title="Clear crash downgrade and reload 3D"
+            style={{
+              background: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: 4,
+              padding: "3px 8px",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            ↻ Retry 3D
+          </button>
           <button
             onClick={copyReport}
             style={{
@@ -181,6 +216,11 @@ export default function MobileDebugOverlay() {
           <div style={{ color: "#C5A059" }}>GPU / Context:</div>
           <div>{info?.version || "No WebGL"}</div>
           <div style={{ color: "#94a3b8", wordBreak: "break-word" }}>{info?.renderer || "Unknown"}</div>
+          {diagnostics.creationFailureReason && (
+            <div style={{ color: "#f87171", fontSize: 10, marginTop: 4 }}>
+              Creation error: {diagnostics.creationFailureReason}
+            </div>
+          )}
         </div>
         <div>
           <div style={{ color: "#C5A059" }}>Display & Hardware:</div>

@@ -115,6 +115,16 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       initialOpts.scaleMobile = 4.0;
     }
 
+    let vantaCanvas = null;
+    const handleVantaContextLost = (e) => {
+      e.preventDefault();
+      diagnostics.logContextLost("Vanta Fog");
+      try {
+        effectRef.current?.destroy?.();
+      } catch (err) {}
+      effectRef.current = null;
+    };
+
     try {
       if (typeof window !== "undefined") {
         window.THREE = THREE;
@@ -125,14 +135,9 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
         ...initialOpts,
       });
 
-      const vantaCanvas = el.querySelector("canvas");
+      vantaCanvas = el.querySelector("canvas");
       if (vantaCanvas) {
-        vantaCanvas.addEventListener("webglcontextlost", (e) => {
-          e.preventDefault();
-          diagnostics.logContextLost("Vanta Fog");
-          effectRef.current?.destroy?.();
-          effectRef.current = null;
-        }, false);
+        vantaCanvas.addEventListener("webglcontextlost", handleVantaContextLost, false);
       }
     } catch (err) {
       console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);
@@ -164,8 +169,23 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      effectRef.current?.destroy();
-      effectRef.current = null;
+      if (vantaCanvas) {
+        vantaCanvas.removeEventListener("webglcontextlost", handleVantaContextLost);
+        try {
+          const gl = vantaCanvas.getContext("webgl") || vantaCanvas.getContext("webgl2");
+          gl?.getExtension("WEBGL_lose_context")?.loseContext();
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (effectRef.current) {
+        try {
+          effectRef.current.destroy();
+        } catch (e) {
+          // ignore
+        }
+        effectRef.current = null;
+      }
       lastStateKeyRef.current = "";
     };
   }, []);
