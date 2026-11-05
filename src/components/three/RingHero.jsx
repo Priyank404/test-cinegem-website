@@ -1100,88 +1100,6 @@ export default function RingHero({
       }
       composer?.setSize(w, h);
       settleFramesRef.current = 0;
-      if (interactiveActiveRef.current) {
-        updateDynamicInteractiveBox();
-      }
-    }
-
-    const lastBoxBounds = { left: 0, top: 0, width: 0, height: 0 };
-
-    function updateDynamicInteractiveBox() {
-      const boxEl = interactiveBoxRef.current;
-      if (!boxEl || !ring || !camera) return;
-
-      const isPortrait = RESPONSIVE_V2 && viewport.profile === "portrait";
-      if (!isPortrait || !interactiveActiveRef.current) return;
-
-      ring.updateMatrixWorld(true);
-      camera.updateMatrixWorld(true);
-
-      const worldBox = new THREE.Box3().setFromObject(ring);
-      if (worldBox.isEmpty()) return;
-
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const min = worldBox.min;
-      const max = worldBox.max;
-
-      const corners = [
-        new THREE.Vector3(min.x, min.y, min.z),
-        new THREE.Vector3(min.x, min.y, max.z),
-        new THREE.Vector3(min.x, max.y, min.z),
-        new THREE.Vector3(min.x, max.y, max.z),
-        new THREE.Vector3(max.x, min.y, min.z),
-        new THREE.Vector3(max.x, min.y, max.z),
-        new THREE.Vector3(max.x, max.y, min.z),
-        new THREE.Vector3(max.x, max.y, max.z),
-      ];
-
-      let minX = Infinity, maxX = -Infinity;
-      let minY = Infinity, maxY = -Infinity;
-
-      for (let i = 0; i < 8; i++) {
-        const p = corners[i].project(camera);
-        const sx = (p.x * 0.5 + 0.5) * w;
-        const sy = (-p.y * 0.5 + 0.5) * h;
-        if (sx < minX) minX = sx;
-        if (sx > maxX) maxX = sx;
-        if (sy < minY) minY = sy;
-        if (sy > maxY) maxY = sy;
-      }
-
-      const ringCenterX = (minX + maxX) / 2;
-      const ringCenterY = (minY + maxY) / 2;
-      const ringHeight = maxY - minY;
-      const ringWidth = maxX - minX;
-
-      // Stable width across 360-degree rotation (prevents box horizontal jitter while rotating)
-      const effectiveWidth = Math.max(ringWidth, ringHeight * 0.88);
-
-      const paddingY = Math.max(22, Math.round(ringHeight * 0.07));
-      const paddingX = Math.max(20, Math.round(effectiveWidth * 0.08));
-
-      const boxHeight = Math.round(ringHeight + paddingY * 2);
-      const maxAllowedWidth = w - 32;
-      const boxWidth = Math.round(Math.min(maxAllowedWidth, effectiveWidth + paddingX * 2));
-      const boxLeft = Math.round(ringCenterX);
-      const boxTop = Math.round(ringCenterY);
-
-      if (
-        Math.abs(lastBoxBounds.left - boxLeft) > 1 ||
-        Math.abs(lastBoxBounds.top - boxTop) > 1 ||
-        Math.abs(lastBoxBounds.width - boxWidth) > 1 ||
-        Math.abs(lastBoxBounds.height - boxHeight) > 1
-      ) {
-        lastBoxBounds.left = boxLeft;
-        lastBoxBounds.top = boxTop;
-        lastBoxBounds.width = boxWidth;
-        lastBoxBounds.height = boxHeight;
-
-        boxEl.style.left = `${boxLeft}px`;
-        boxEl.style.top = `${boxTop}px`;
-        boxEl.style.width = `${boxWidth}px`;
-        boxEl.style.height = `${boxHeight}px`;
-      }
     }
 
     scene = new THREE.Scene();
@@ -1927,9 +1845,6 @@ export default function RingHero({
                 interactiveBoxRef.current.style.display = showBox
                   ? "block"
                   : "none";
-                if (showBox) {
-                  updateDynamicInteractiveBox();
-                }
               }
 
               if (rangeChanged) {
@@ -2709,10 +2624,6 @@ export default function RingHero({
         // ── Render ────────────────────────────────────────────────────────
         if (composer) composer.render(dt);
         else if (renderer && scene && camera) renderer.render(scene, camera);
-
-        if (interactiveActiveRef.current && RESPONSIVE_V2 && viewport.profile === "portrait") {
-          updateDynamicInteractiveBox();
-        }
       };
       // Run the ticker once synchronously before registering it.
       currentTickerFn();
@@ -2902,29 +2813,16 @@ export default function RingHero({
         }}
       />
       {/* Visual interaction guide box around the ring on portrait/mobile screens in Beat 5.
-          Dynamically sized and centered directly from the 3D ring geometry and camera projection.
           Allows complete 360° rotation and vertical tilt without triggering page scroll.
-          Outside this box, touches scroll the website naturally. */}
+          Outside this box, touches scroll the website naturally.
+          Positioning and sizing dynamically driven by .ringhero-interactive-box in HeroPage2.css */}
       <div
         ref={interactiveBoxRef}
+        className="ringhero-interactive-box"
         aria-label="Interactive 3D ring rotation area"
         style={{
-          position: "fixed",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          zIndex: 4,
-          touchAction: "none",
-          userSelect: "none",
-          WebkitUserSelect: "none",
-          pointerEvents: "none",
           display: "none",
-          cursor: "grab",
-          boxSizing: "border-box",
-          border: "1px solid rgba(197, 160, 89, 0.38)",
-          borderRadius: "20px",
-          background: "transparent",
-          transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+          pointerEvents: "none",
         }}
       />
       {/* "Drag to explore" hint — purely visual, pointerEvents:"none" so it
@@ -2934,9 +2832,9 @@ export default function RingHero({
         style={{
           position: "fixed",
           left: "50%",
-          bottom: "8%",
+          bottom: "clamp(24px, 4.5vh, 44px)",
           transform: "translateX(-50%)",
-          zIndex: 3,
+          zIndex: 5,
           pointerEvents: "none",
           display: "flex",
           alignItems: "center",

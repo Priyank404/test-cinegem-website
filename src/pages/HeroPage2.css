@@ -1270,3 +1270,51 @@ html.perf-noblur .glassy-card {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
 }
+
+/* =============================================================================
+   Interactive 3D Ring Guide Box (Mobile & Tablet Portrait - Beat 4 / 5)
+   Dynamically sized relative to screen: a bit less than the whole screen,
+   completely covering the 3D ring (diamond halo to shank bottom) with
+   luxury gold boundary. Inside = rotate ring; outside = scroll page.
+   ============================================================================= */
+.ringhero-interactive-box {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  top: clamp(210px, 26vh, 235px);
+  bottom: clamp(16px, 2.5vh, 24px);
+  width: auto;
+  max-width: 440px;
+  margin: 0 auto;
+  z-index: 4;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  display: none;
+  cursor: grab;
+  box-sizing: border-box;
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  border-radius: 18px;
+  background: transparent;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Tablet portrait */
+@media (min-width: 641px) and (max-width: 1024px) and (max-aspect-ratio: 1.25/1) {
+  .ringhero-interactive-box {
+    left: 24px;
+    right: 24px;
+    top: clamp(270px, 27vh, 310px);
+    bottom: clamp(24px, 3.5vh, 40px);
+    max-width: 580px;
+    border-radius: 24px;
+  }
+}
+
+/* Desktop landscape: fully disabled */
+@media (min-width: 1025px), (min-aspect-ratio: 1.25/1) {
+  .ringhero-interactive-box {
+    display: none !important;
+  }
+}
