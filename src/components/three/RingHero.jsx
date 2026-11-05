@@ -594,32 +594,40 @@ export default function RingHero({
       mat.userData._hdrTrim = 1.0;
 
       if (mat.isRoughRefractionMaterial) {
-        // Global debugView & gammaMode
-        mat.debugView = debugView;
-        mat.gammaMode = gammaMode;
-        mat.aberrationStrength = dispersion;
-        mat.updateDefines();
+        if (mat.baseScale) {
+          // Desktop Octane dual-EXR material
+          mat.debugView = debugView;
+          mat.gammaMode = gammaMode;
+          mat.aberrationStrength = dispersion;
+          if (typeof mat.updateDefines === "function") {
+            try {
+              mat.updateDefines();
+            } catch (e) {}
+          }
 
-        // Base EXR slot parameters (Octane 2D transformation & exposure)
-        mat.basePower = typeof baseEnv.power === "number" ? baseEnv.power : 1.0;
-        mat.baseGamma = typeof baseEnv.gamma === "number" ? baseEnv.gamma : 1.2;
-        mat.baseRot = degToRad(baseEnv.rot ?? 0);
-        mat.baseScale.set(baseEnv.scaleU ?? 1.0, baseEnv.scaleV ?? 1.0);
-        mat.baseTrans.set(baseEnv.transU ?? 0.0, baseEnv.transV ?? 0.0);
-        mat.baseScaleInvert = baseEnv.scaleInvert ? 1.0 : 0.0;
-        mat.baseLod = typeof baseEnv.lod === "number" ? baseEnv.lod : 0.5;
-        mat.baseMono = baseEnv.mono ? 1.0 : 0.0;
+          mat.basePower = typeof baseEnv.power === "number" ? baseEnv.power : 1.0;
+          mat.baseGamma = typeof baseEnv.gamma === "number" ? baseEnv.gamma : 1.2;
+          mat.baseRot = degToRad(baseEnv.rot ?? 0);
+          mat.baseScale.set(baseEnv.scaleU ?? 1.0, baseEnv.scaleV ?? 1.0);
+          mat.baseTrans.set(baseEnv.transU ?? 0.0, baseEnv.transV ?? 0.0);
+          mat.baseScaleInvert = baseEnv.scaleInvert ? 1.0 : 0.0;
+          mat.baseLod = typeof baseEnv.lod === "number" ? baseEnv.lod : 0.5;
+          mat.baseMono = baseEnv.mono ? 1.0 : 0.0;
 
-        // Spotlight EXR slot parameters (Octane 2D transformation & exposure)
-        mat.spotPower = typeof spotEnv.power === "number" ? spotEnv.power : 4.0;
-        mat.spotGamma = typeof spotEnv.gamma === "number" ? spotEnv.gamma : 1.8;
-        mat.spotRot = degToRad(spotEnv.rot ?? 0);
-        mat.spotScale.set(spotEnv.scaleU ?? 1.0, spotEnv.scaleV ?? 1.0);
-        mat.spotTrans.set(spotEnv.transU ?? 0.0, spotEnv.transV ?? 0.0);
-        mat.spotScaleInvert = spotEnv.scaleInvert ? 1.0 : 0.0;
-        mat.spotLod = typeof spotEnv.lod === "number" ? spotEnv.lod : 0.0;
-        mat.spotMono = spotEnv.mono ? 1.0 : 0.0;
-
+          mat.spotPower = typeof spotEnv.power === "number" ? spotEnv.power : 4.0;
+          mat.spotGamma = typeof spotEnv.gamma === "number" ? spotEnv.gamma : 1.8;
+          mat.spotRot = degToRad(spotEnv.rot ?? 0);
+          mat.spotScale.set(spotEnv.scaleU ?? 1.0, spotEnv.scaleV ?? 1.0);
+          mat.spotTrans.set(spotEnv.transU ?? 0.0, spotEnv.transV ?? 0.0);
+          mat.spotScaleInvert = spotEnv.scaleInvert ? 1.0 : 0.0;
+          mat.spotLod = typeof spotEnv.lod === "number" ? spotEnv.lod : 0.0;
+          mat.spotMono = spotEnv.mono ? 1.0 : 0.0;
+        } else {
+          // Mobile single-environment material
+          if (typeof cfg.dispersionStrength === "number") {
+            mat.aberrationStrength = cfg.dispersionStrength;
+          }
+        }
         mat.needsUpdate = true;
       }
     });
@@ -1780,6 +1788,13 @@ export default function RingHero({
       })
       .catch((err) => {
         console.error("RingHero: failed to load assets", err);
+        diagnostics.recordLog({
+          type: "asset-load-failure",
+          source: "RingHero.catch",
+          message: err?.message || String(err),
+          stack: err?.stack,
+          time: new Date().toLocaleTimeString(),
+        });
         setSceneStatus("failed");
         onLoadingProgress?.(100, "Failed to load 3D scene");
         onLoaded?.();
@@ -3049,7 +3064,15 @@ export default function RingHero({
               ? "2D Mode"
               : ""
           }
-          technicalError={gpuUnsupported ? (diagnostics.creationFailureReason || "WebGL initialization failed") : contextLost ? "WebGL context lost" : ""}
+          technicalError={
+            gpuUnsupported
+              ? (diagnostics.creationFailureReason || "WebGL initialization failed")
+              : contextLost
+              ? "WebGL context lost"
+              : sceneStatus === "failed"
+              ? (diagnostics.logs.find((l) => l.type === "asset-load-failure")?.message || "Asset load failed")
+              : ""
+          }
         />
       )}
       <canvas

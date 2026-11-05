@@ -233,6 +233,26 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
 
     this.isRoughRefractionMaterial = true;
 
+    // Safety fallback properties for any external HDR inspector / config listeners
+    this.baseScale = new THREE.Vector2(1, 1);
+    this.baseTrans = new THREE.Vector2(0, 0);
+    this.spotScale = new THREE.Vector2(1, 1);
+    this.spotTrans = new THREE.Vector2(0, 0);
+    this.basePower = 1.0;
+    this.baseGamma = 1.2;
+    this.baseRot = 0.0;
+    this.baseScaleInvert = 0.0;
+    this.baseLod = 0.5;
+    this.baseMono = 1.0;
+    this.spotPower = 4.0;
+    this.spotGamma = 1.8;
+    this.spotRot = 0.0;
+    this.spotScaleInvert = 0.0;
+    this.spotLod = 0.0;
+    this.spotMono = 1.0;
+    this.debugView = 0;
+    this.gammaMode = 0;
+
     const validKeys = [
       "alphaTest","alphaToCoverage","blendDst","blendDstAlpha","blendEquation",
       "blendEquationAlpha","blending","blendSrc","blendSrcAlpha","clipIntersection",
@@ -301,3 +321,4 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
   get projectionMatrixInverse() { return this.uniforms?.projectionMatrixInverse?.value; }
   set projectionMatrixInverse(v){ if (this.uniforms?.projectionMatrixInverse) this.uniforms.projectionMatrixInverse.value = v; }
 }
+

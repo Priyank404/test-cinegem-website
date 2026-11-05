@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:prod": "vite --mode production",
-    "build": "node scripts/validate-public-refs.mjs && vite build && node scripts/seo-postbuild.mjs",
+    "build": "node scripts/copy-draco.mjs && node scripts/validate-public-refs.mjs && vite build && node scripts/seo-postbuild.mjs",
     "validate:assets": "node scripts/validate-public-refs.mjs",
     "preview": "vite preview",
     "prod": "npm run build && vite preview",
