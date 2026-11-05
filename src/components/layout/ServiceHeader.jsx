@@ -178,10 +178,10 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                         {group.heading}
                       </span>
                     )}
-                    <div className="flex flex-col gap-1 -mx-3">
+                    <div className="flex flex-col gap-1.5 -mx-2.5">
                       {group.items.map((item) => {
                         const isItemActive = item.route === currentPage
-                        const itemClassName = `font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 -my-0.5 transition-all duration-200 ${
+                        const itemClassName = `w-full font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors duration-150 ${
                           theme === 'dark'
                             ? isItemActive ? 'text-[#C5A059] bg-white/10' : 'text-white/80 hover:text-[#C5A059] hover:bg-white/10'
                             : isItemActive ? 'text-[#C5A059] bg-[#121212]/[0.06]' : 'text-[#121212]/80 hover:text-[#C5A059] hover:bg-[#121212]/[0.06]'
