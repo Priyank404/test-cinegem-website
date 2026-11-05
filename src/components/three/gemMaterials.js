@@ -25,7 +25,14 @@ import {
   shaderStructs,
   shaderIntersectFunction,
   MeshBVH,
+  SAH,
 } from "three-mesh-bvh";
+import {
+  RoughRefractionMaterialMobile,
+  buildGemProceduralEnv,
+} from "./RoughRefractionMaterialMobile";
+
+export { RoughRefractionMaterialMobile, buildGemProceduralEnv };
 
 // ---------------------------------------------------------------------------
 // Diamond preset — ported verbatim from Frontend/src/gems/presets/diamond.js
@@ -53,24 +60,21 @@ export const diamondPreset = {
 // want to swap the stone later — same shape as Frontend/src/gems/presets/*.
 
 // ---------------------------------------------------------------------------
-// Cheap matte / physical gem material (fallback for low-tier devices and mobile)
+// Cheap physical diamond material (fallback for low-tier devices and mobile)
+// High metalness + low roughness + studio HDR gives sparkling brilliant facets
+// without heavy raytracing or transmission passes.
 // ---------------------------------------------------------------------------
 export function buildMatteGemMaterial(preset, envMap) {
   return new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(preset.color || "#ffffff"),
-    roughness: preset.roughness ?? 0.04,
-    metalness: preset.metalness ?? 0.0,
-    transmission: 0.88,
-    ior: preset.ior ?? 2.417,
-    thickness: 1.8,
+    roughness: 0.02,
+    metalness: 0.95,
     specularIntensity: 1.0,
     specularColor: new THREE.Color("#ffffff"),
-    iridescence: preset.iridescence ?? 0.15,
-    iridescenceIOR: preset.iridescenceIOR ?? 1.33,
     envMap: envMap || null,
-    envMapIntensity: 2.2,
-    transparent: true,
-    opacity: 0.95,
+    envMapIntensity: 2.5,
+    transparent: false,
+    emissive: new THREE.Color(0x111111),
     side: THREE.FrontSide,
   });
 }
@@ -511,11 +515,21 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
 /**
  * Build the BVH for a gem mesh and wire it into the material.
  * Call this once per gem mesh, after the mesh's geometry is available.
+ * Uses SAH strategy on non-indexed geometry matching 3DViewer reference engine.
  */
 export function attachBvhToGemMaterial(mesh, material) {
-  const bvh = new MeshBVH(mesh.geometry);
+  let bvhGeometry = mesh.geometry;
+  let shouldDispose = false;
+  if (mesh.geometry.index) {
+    bvhGeometry = mesh.geometry.clone().toNonIndexed();
+    shouldDispose = true;
+  }
+  const bvh = new MeshBVH(bvhGeometry, { strategy: SAH });
   material.bvh = new MeshBVHUniformStruct();
   material.bvh.updateFrom(bvh);
+  if (shouldDispose) {
+    bvhGeometry.dispose();
+  }
 }
 
 /**
@@ -525,7 +539,7 @@ export function attachBvhToGemMaterial(mesh, material) {
  * @param {object} preset - Gem preset (diamond, ruby, etc.)
  * @param {THREE.Texture} envMapBase - Base EXR environment texture
  * @param {THREE.Texture} [envMapSpot] - Spotlight EXR environment texture
- * @param {string} [tier] - Device tier: "high" | "mid" | "low" | "minimal"
+ * @param {string} [tier] - Device tier: "high" | "mid" | "mobile" | "low" | "minimal"
  * @param {THREE.Texture} [pmremFallback] - Studio PMREM environment map for low-tier reflection
  */
 export function buildGemMaterial(
@@ -537,6 +551,24 @@ export function buildGemMaterial(
 ) {
   if (tier === "low" || tier === "minimal" || preset.materialType === "matte") {
     return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+  }
+
+  if (tier === "mobile") {
+    try {
+      return new RoughRefractionMaterialMobile({
+        envMap: pmremFallback || envMapBase,
+        ior: preset.ior ?? 2.417,
+        bounces: 3,
+        fresnel: preset.fresnel ?? 0.1,
+        roughness: preset.roughness ?? 0.0,
+        aberrationStrength: 0.003,
+        color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
+        envMapIntensity: 2.0,
+      });
+    } catch (err) {
+      console.warn("RoughRefractionMaterialMobile creation failed, using physical diamond fallback:", err);
+      return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+    }
   }
 
   const bounces = tier === "mid" ? Math.min(preset.bounces ?? 3, 3) : (preset.bounces ?? 5);

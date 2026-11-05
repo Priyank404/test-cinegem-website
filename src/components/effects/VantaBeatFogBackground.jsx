@@ -95,10 +95,11 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     const el = containerRef.current;
     if (!el) return;
 
-    // Check device tier: low and minimal devices skip the second WebGL context
-    // entirely to protect memory and prevent context-loss crashes on phones.
-    const { tier, isLowOrMinimal } = getDeviceTier();
-    if (isLowOrMinimal) {
+    // Check device tier: mobile, low, and minimal devices skip the second WebGL context
+    // entirely to protect GPU memory and prevent context-loss crashes on phones.
+    // The container already has the dark gradient CSS background.
+    const { tier, isLowOrMinimal, isMobile } = getDeviceTier();
+    if (isLowOrMinimal || isMobile || tier === "mobile") {
       return;
     }
 

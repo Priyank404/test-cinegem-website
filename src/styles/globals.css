@@ -134,6 +134,8 @@
    Small / Body text = Poppins Light 300
    ───────────────────────────────────────────────────────────────────────────── */
 html, body {
+  background-color: #000000;
+  color-scheme: dark;
   font-family: "Poppins", sans-serif !important;
   font-weight: 300;
 }

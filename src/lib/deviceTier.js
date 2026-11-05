@@ -6,42 +6,86 @@ import { diagnostics } from "@/lib/diagnostics";
 let cachedTierResult = null;
 
 const DOWNGRADE_KEY = "cinegem:3d-downgrade";
+const DOWNGRADE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+// Module-level context loss history to distinguish benign app-switches from actual GPU crashes
+let recentLossTimestamps = [];
+let lastVisibleTimestamp = typeof Date !== "undefined" ? Date.now() : 0;
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      lastVisibleTimestamp = Date.now();
+    }
+  });
+}
 
 /**
- * Record a crash/context-loss downgrade to sessionStorage so subsequent reloads
- * automatically protect the phone from entering a crash loop.
+ * Record a crash/context-loss downgrade to sessionStorage with a 10-minute expiry.
+ * Strictly ignores benign background app-switches and requires >= 2 losses in 60s.
  */
-export function recordContextLossDowngrade(currentTier = "high") {
-  if (typeof sessionStorage === "undefined") return;
+export function recordContextLossDowngrade(currentTier = "mobile") {
+  if (typeof sessionStorage === "undefined" || typeof document === "undefined") return;
+
+  // 1. Never downgrade if document is hidden or just resumed within 3s (benign OS/tab switch)
+  if (document.hidden || document.visibilityState !== "visible") {
+    console.warn("[deviceTier] Context loss while tab hidden; ignoring benign app-switch");
+    return;
+  }
+  if (Date.now() - lastVisibleTimestamp < 3000) {
+    console.warn("[deviceTier] Context loss immediately after tab resume; ignoring benign app-switch");
+    return;
+  }
+
+  // 2. Require at least 2 context losses within 60s before downgrading
+  const now = Date.now();
+  recentLossTimestamps = recentLossTimestamps.filter((t) => now - t < 60000);
+  recentLossTimestamps.push(now);
+  if (recentLossTimestamps.length < 2) {
+    console.warn("[deviceTier] Single context loss recorded; downgrade requires >= 2 losses within 60s");
+    return;
+  }
+
+  // 3. Never downgrade below "mobile" tier due to context loss
+  if (currentTier === "mobile" || currentTier === "low" || currentTier === "minimal") {
+    console.warn(`[deviceTier] Current tier (${currentTier}) is already at/below mobile; refusing further context-loss downgrade`);
+    return;
+  }
+
   try {
-    const tierOrder = ["high", "mid", "low", "minimal"];
+    const tierOrder = ["high", "mid", "mobile", "low", "minimal"];
     const currentIndex = tierOrder.indexOf(currentTier);
     const nextTier = currentIndex >= 0 && currentIndex < tierOrder.length - 1
       ? tierOrder[currentIndex + 1]
-      : "minimal";
+      : "mobile";
 
-    sessionStorage.setItem(DOWNGRADE_KEY, nextTier);
-    console.warn(`[deviceTier] Recorded crash downgrade: ${currentTier} -> ${nextTier}`);
+    const payload = JSON.stringify({
+      tier: nextTier,
+      ts: now,
+    });
+    sessionStorage.setItem(DOWNGRADE_KEY, payload);
+    console.warn(`[deviceTier] Recorded crash downgrade: ${currentTier} -> ${nextTier} (expires in 10m)`);
   } catch (e) {
     // ignore sessionStorage errors
   }
 }
 
 /**
- * Reset crash recovery memory (e.g. when user clicks "Retry 3D" in debug HUD)
+ * Reset crash recovery memory (e.g. when user clicks "Retry 3D" or via ?retry3d URL)
  */
 export function clearDowngradeRecovery() {
   if (typeof sessionStorage === "undefined") return;
   try {
     sessionStorage.removeItem(DOWNGRADE_KEY);
     cachedTierResult = null;
+    recentLossTimestamps = [];
   } catch (e) {
     // ignore
   }
 }
 
 /**
- * Returns the detected device tier: "high" | "mid" | "low" | "minimal"
+ * Returns the detected device tier: "high" | "mid" | "mobile" | "low" | "minimal"
  * and an object with detailed reasoning and hardware capabilities.
  */
 export function getDeviceTier() {
@@ -59,10 +103,16 @@ export function getDeviceTier() {
 
   const reasons = [];
 
-  // 1. URL Query Override (?tier=high | mid | low | minimal)
+  // 1. URL Query Override (?tier=high | mid | mobile | low | minimal & ?retry3d)
   const urlParams = new URLSearchParams(window.location.search);
+
+  if (urlParams.has("retry3d")) {
+    clearDowngradeRecovery();
+    reasons.push("URL query ?retry3d cleared crash downgrade memory");
+  }
+
   const tierOverride = urlParams.get("tier")?.toLowerCase().trim();
-  if (tierOverride && ["high", "mid", "low", "minimal"].includes(tierOverride)) {
+  if (tierOverride && ["high", "mid", "mobile", "low", "minimal"].includes(tierOverride)) {
     reasons.push(`URL query override: ?tier=${tierOverride}`);
     const result = {
       tier: tierOverride,
@@ -166,19 +216,12 @@ export function getDeviceTier() {
   // Determine initial tier
   let tier = "high";
 
-  if (!hasHalfFloatTarget) {
-    tier = "low";
-  } else if (isWeakGpu || saveData || reducedMotion) {
+  if (!hasHalfFloatTarget || isWeakGpu || saveData || reducedMotion) {
     tier = "low";
   } else if (isMobile) {
-    // Mobile tiers: flagships get 'mid', others get 'low'
-    if (cores <= 4 || memory <= 3 || glCaps.maxTextureSize <= 4096) {
-      reasons.push(`Low-spec mobile device (cores: ${cores}, ram: ${memory}GB, maxTex: ${glCaps.maxTextureSize})`);
-      tier = "low";
-    } else {
-      reasons.push(`Capable mobile device with WebGL2 (cores: ${cores}, ram: ${memory}GB)`);
-      tier = "mid";
-    }
+    // All WebGL2 mobile phones get the optimized "mobile" tier (viewer-style single-env BVH)
+    reasons.push(`Mobile WebGL2 device -> tier "mobile" (cores: ${cores}, ram: ${memory}GB, maxTex: ${glCaps.maxTextureSize})`);
+    tier = "mobile";
   } else {
     // Desktop
     if (cores >= 6 && memory >= 6 && glCaps.maxTextureSize >= 8192) {
@@ -190,15 +233,30 @@ export function getDeviceTier() {
     }
   }
 
-  // 6. Crash-loop recovery check: session downgrade
+  // 6. Crash-loop recovery check: session downgrade with 10-minute expiry
   if (typeof sessionStorage !== "undefined") {
     try {
-      const savedDowngrade = sessionStorage.getItem(DOWNGRADE_KEY);
-      if (savedDowngrade && ["high", "mid", "low", "minimal"].includes(savedDowngrade)) {
-        const tierRank = { high: 3, mid: 2, low: 1, minimal: 0 };
-        if (tierRank[savedDowngrade] < tierRank[tier]) {
-          reasons.push(`Crash recovery active: downgraded to ${savedDowngrade} from previous GPU crash`);
-          tier = savedDowngrade;
+      const rawSaved = sessionStorage.getItem(DOWNGRADE_KEY);
+      if (rawSaved) {
+        let savedDowngrade = null;
+        let savedTs = 0;
+        try {
+          const parsed = JSON.parse(rawSaved);
+          savedDowngrade = parsed.tier;
+          savedTs = parsed.ts;
+        } catch {
+          savedDowngrade = rawSaved; // backward compat with raw string
+        }
+
+        // Expire downgrade after 10 minutes
+        if (savedTs && Date.now() - savedTs > DOWNGRADE_EXPIRY_MS) {
+          sessionStorage.removeItem(DOWNGRADE_KEY);
+        } else if (savedDowngrade && ["high", "mid", "mobile", "low", "minimal"].includes(savedDowngrade)) {
+          const tierRank = { high: 4, mid: 3, mobile: 2, low: 1, minimal: 0 };
+          if (tierRank[savedDowngrade] < tierRank[tier]) {
+            reasons.push(`Crash recovery active: downgraded to ${savedDowngrade} from previous GPU crash (expires in 10m)`);
+            tier = savedDowngrade;
+          }
         }
       }
     } catch (e) {
@@ -210,6 +268,7 @@ export function getDeviceTier() {
     tier,
     isMobile,
     isLowOrMinimal: tier === "low" || tier === "minimal",
+    isMobileTier: tier === "mobile",
     reasons,
     capabilities: glCaps,
   };
@@ -218,5 +277,3 @@ export function getDeviceTier() {
   diagnostics.setDeviceTier(result);
   return result;
 }
-
-

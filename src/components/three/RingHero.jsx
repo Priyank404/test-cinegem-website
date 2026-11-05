@@ -41,6 +41,7 @@ import {
   diamondPreset,
   buildGemMaterial,
   attachBvhToGemMaterial,
+  buildGemProceduralEnv,
 } from "./gemMaterials";
 import { classifyRingMeshes } from "./classifyMesh";
 import {
@@ -441,6 +442,9 @@ export default function RingHero({
   const [contextLost, setContextLost] = useState(false);
   const [gpuUnsupported, setGpuUnsupported] = useState(false);
   const [isSceneReady, setIsSceneReady] = useState(false);
+  const [sceneStatus, setSceneStatus] = useState("loading"); // "loading" | "ready" | "failed"
+  const [sceneEpoch, setSceneEpoch] = useState(0);
+  const rebuildCountRef = useRef(0);
   const deviceTier = getDeviceTier();
   // ── Debug-only diagnostics for the interactive drag window ────────────
   // Keeps the last computed localFrame / range values around so the
@@ -849,7 +853,7 @@ export default function RingHero({
     let renderer, scene, camera, ring;
     let metalMaterial;
     let gemMaterials = []; // one instance per gem mesh — see note above
-    let metalEnvMap, gemEnvBaseMap, gemEnvSpotMap;
+    let metalEnvMap, gemEnvBaseMap, gemEnvSpotMap, proceduralGemEnv = null;
     let disposed = false;
     let camState = null;
     let rotState = null;
@@ -1207,8 +1211,12 @@ export default function RingHero({
     };
 
     const handleContextRestored = () => {
-      console.log("RingHero: WebGL context restored, triggering reload");
-      window.location.reload();
+      console.log("RingHero: WebGL context restored, attempting in-place recovery");
+      setContextLost(false);
+      if (rebuildCountRef.current < 2) {
+        rebuildCountRef.current++;
+        setSceneEpoch((n) => n + 1);
+      }
     };
 
     canvas.addEventListener("webglcontextlost", handleContextLost, false);
@@ -1220,7 +1228,7 @@ export default function RingHero({
         window.devicePixelRatio,
         deviceTier.tier === "high"
           ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
-          : (deviceTier.tier === "mid" ? 1.5 : 1.0)
+          : (deviceTier.tier === "mid" ? 1.5 : (deviceTier.tier === "mobile" ? 1.25 : 1.0))
       )
     );
     renderer.setClearColor(0x000000, 0);
@@ -1228,16 +1236,19 @@ export default function RingHero({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
-    try {
-      spotDilatorRef.current = new SpotDilator(renderer);
-    } catch (e) {
-      console.warn("RingHero: SpotDilator init failed, continuing without dilation:", e);
-    }
+    const isDesktopTier = deviceTier.tier === "high" || deviceTier.tier === "mid";
+    if (isDesktopTier) {
+      try {
+        spotDilatorRef.current = new SpotDilator(renderer);
+      } catch (e) {
+        console.warn("RingHero: SpotDilator init failed, continuing without dilation:", e);
+      }
 
-    try {
-      envPreviewRendererRef.current = new EnvPreviewRenderer(renderer);
-    } catch (e) {
-      console.warn("RingHero: EnvPreviewRenderer init failed:", e);
+      try {
+        envPreviewRendererRef.current = new EnvPreviewRenderer(renderer);
+      } catch (e) {
+        console.warn("RingHero: EnvPreviewRenderer init failed:", e);
+      }
     }
 
     if (onRegisterEnvPreview) {
@@ -1265,9 +1276,10 @@ export default function RingHero({
         const glCaps = diagnostics.getWebGLCapabilities();
         const hasHalfFloatTarget = Boolean(glCaps?.extensions?.EXT_color_buffer_half_float || glCaps?.extensions?.EXT_color_buffer_float);
         const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal" || !hasHalfFloatTarget;
+        const isMobileTier = deviceTier.tier === "mobile";
         const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" ? 2 : 0);
-        const targetType = isLowTier ? THREE.UnsignedByteType : THREE.HalfFloatType;
-        const stencil = !isLowTier;
+        const targetType = (isLowTier || isMobileTier) ? THREE.UnsignedByteType : THREE.HalfFloatType;
+        const stencil = !isLowTier && !isMobileTier;
 
         let composerTarget;
         try {
@@ -1302,7 +1314,7 @@ export default function RingHero({
           bCfg.threshold ?? 0.96
         );
         bloomPass.materialHighPassFilter.uniforms.smoothWidth.value = 0.2;
-        bloomPass.enabled = isLowTier ? false : (bCfg.enabled ?? true);
+        bloomPass.enabled = (isLowTier || isMobileTier) ? false : (bCfg.enabled ?? true);
         if (bloomPass.blendMaterial) {
           bloomPass.blendMaterial.blending = THREE.CustomBlending;
           bloomPass.blendMaterial.blendSrc = THREE.OneFactor;
@@ -1560,11 +1572,11 @@ export default function RingHero({
 
     const hardTimeoutMs = (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? 10000 : 16000;
     const safetyTimeout = setTimeout(() => {
-      console.warn("RingHero: Asset loading timed out, forcing scene reveal");
+      console.warn("RingHero: Asset loading timed out, dismissing loading screen");
       diagnostics.recordLog({
         type: "warning",
         source: "RingHero.safetyTimeout",
-        message: "Asset load exceeded time limit, revealing scene",
+        message: "Asset load exceeded time limit",
         time: new Date().toLocaleTimeString(),
       });
       onLoadingProgress?.(100, "Loaded");
@@ -1614,7 +1626,7 @@ export default function RingHero({
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
         return null;
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(effectiveBaseHdrUrl, {
+      (deviceTier.tier === "mobile" || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(effectiveBaseHdrUrl, {
         mono: gemBaseEnv?.mono ?? true,
         fileName: baseFileNameHint,
         onProgress: (xhr) => {
@@ -1625,7 +1637,7 @@ export default function RingHero({
         console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(gemSpotHdrUrl, {
+      (deviceTier.tier === "mobile" || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(gemSpotHdrUrl, {
         mono: gemSpotEnv?.mono ?? true,
         fileName: spotFileNameHint,
         onProgress: (xhr) => {
@@ -1645,6 +1657,14 @@ export default function RingHero({
         gemEnvTexturesRef.current.base = loadedBaseResult?.texture || null;
         gemEnvTexturesRef.current.baseMeta = loadedBaseResult?.meta || null;
         gemEnvTexturesRef.current.rawSpot = loadedSpotResult?.texture || null;
+
+        if (deviceTier.tier === "mobile") {
+          try {
+            proceduralGemEnv = buildGemProceduralEnv(renderer);
+          } catch (pErr) {
+            console.warn("RingHero: buildGemProceduralEnv failed, falling back to metalEnvMap:", pErr);
+          }
+        }
 
         const spotSize = gemSpotEnv?.size ?? 2;
         let effectiveSpot = loadedSpotResult?.texture || null;
@@ -1686,7 +1706,7 @@ export default function RingHero({
             gemEnvTexturesRef.current.base,
             effectiveSpot,
             deviceTier.tier,
-            metalEnvMap
+            proceduralGemEnv || metalEnvMap
           );
           if ("envMapIntensity" in mat) {
             mat.envMapIntensity = BEATS[0].gemEnvIntensity;
@@ -1754,12 +1774,14 @@ export default function RingHero({
 
         // Model, materials, BVH, and initial scene frame are 100% ready
         onLoadingProgress?.(100, "Experience ready");
+        setSceneStatus("ready");
         setIsSceneReady(true);
         onLoaded?.();
       })
       .catch((err) => {
         console.error("RingHero: failed to load assets", err);
-        setIsSceneReady(true);
+        setSceneStatus("failed");
+        onLoadingProgress?.(100, "Failed to load 3D scene");
         onLoaded?.();
       });
 
@@ -2138,7 +2160,7 @@ export default function RingHero({
                     gemEnvTexturesRef.current.base,
                     gemEnvTexturesRef.current.spot,
                     deviceTier.tier,
-                    metalEnvMap
+                    proceduralGemEnv || metalEnvMap
                   );
                   if ("envMapIntensity" in mat) {
                     mat.envMapIntensity =
@@ -2793,8 +2815,29 @@ export default function RingHero({
 
         if (typeof document !== "undefined" && document.hidden) return;
 
+        // ── Update mobile/gem camera matrices & uniforms for raytracer ───
+        if (gemMeshesRef.current && gemMeshesRef.current.length > 0 && camera) {
+          for (let i = 0; i < gemMeshesRef.current.length; i++) {
+            const gMat = gemMeshesRef.current[i].material;
+            if (gMat && gMat.isRoughRefractionMaterial) {
+              if (gMat.viewMatrixInverse) {
+                gMat.viewMatrixInverse.copy(camera.matrixWorld);
+              }
+              if (gMat.projectionMatrixInverse) {
+                gMat.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+              }
+              if (gMat.uniforms?.resolution?.value && renderer) {
+                gMat.uniforms.resolution.value.set(
+                  renderer.domElement.width,
+                  renderer.domElement.height
+                );
+              }
+            }
+          }
+        }
+
         // ── Render ────────────────────────────────────────────────────────
-        if (renderer && Math.random() < 0.05) {
+        if (typeof window !== "undefined" && window.location.search.includes("debug") && renderer && Math.random() < 0.05) {
           diagnostics.setRendererInfo({
             calls: renderer.info.render.calls,
             triangles: renderer.info.render.triangles,
@@ -2932,6 +2975,12 @@ export default function RingHero({
       metalMaterial?.dispose?.();
       gemMaterials.forEach((mat) => mat?.dispose?.());
       metalEnvMap?.dispose?.();
+      if (proceduralGemEnv) {
+        try {
+          proceduralGemEnv.dispose?.();
+        } catch (e) {}
+        proceduralGemEnv = null;
+      }
       if (gemEnvTexturesRef.current.base) {
         gemEnvTexturesRef.current.base.dispose?.();
       }
@@ -2970,6 +3019,7 @@ export default function RingHero({
     scrollContainerSelector,
     postFxEnabled,
     experimentalAtmosphere,
+    sceneEpoch,
   ]);
 
   return (
@@ -2992,7 +3042,13 @@ export default function RingHero({
       />
       {(contextLost || gpuUnsupported || deviceTier.tier === "minimal" || !isSceneReady) && (
         <Hero3DFallbackPoster
-          message={contextLost ? "GPU recovering..." : "2D Mode"}
+          message={
+            contextLost
+              ? "GPU recovering..."
+              : gpuUnsupported || deviceTier.tier === "minimal" || sceneStatus === "failed"
+              ? "2D Mode"
+              : ""
+          }
           technicalError={gpuUnsupported ? (diagnostics.creationFailureReason || "WebGL initialization failed") : contextLost ? "WebGL context lost" : ""}
         />
       )}
