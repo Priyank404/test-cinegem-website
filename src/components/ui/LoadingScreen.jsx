@@ -112,6 +112,8 @@ export default function LoadingScreen({
           <img
             src="/Logo.png"
             alt="Cinegem Studio"
+            loading="eager"
+            onError={(e) => { e.currentTarget.style.opacity = "0"; }}
             className="w-48 sm:w-56 md:w-60 h-auto object-contain select-none pointer-events-none"
           />
         </div>

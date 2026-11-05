@@ -100,11 +100,18 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       0,
     );
 
-    effectRef.current = vantaFog({
-      el,
-      THREE,
-      ...initialOpts,
-    });
+    try {
+      if (typeof window !== "undefined") {
+        window.THREE = THREE;
+      }
+      effectRef.current = vantaFog({
+        el,
+        THREE,
+        ...initialOpts,
+      });
+    } catch (err) {
+      console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);
+    }
 
     function tick() {
       rafRef.current = requestAnimationFrame(tick);
@@ -147,6 +154,7 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
         width: "100vw",
         height: "100vh",
         pointerEvents: "none",
+        background: "linear-gradient(180deg, #0d0d10 0%, #161219 50%, #0c0d16 100%)",
       }}
     />
   );

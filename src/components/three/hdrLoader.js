@@ -119,9 +119,9 @@ export function loadRawEquirect(
 
           texture.wrapS = THREE.RepeatWrapping;
           texture.wrapT = THREE.RepeatWrapping;
-          texture.minFilter = THREE.LinearMipmapLinearFilter;
+          texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
-          texture.generateMipmaps = true;
+          texture.generateMipmaps = false;
           texture.colorSpace = THREE.NoColorSpace;
           texture.needsUpdate = true;
 

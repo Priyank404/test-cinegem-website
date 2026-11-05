@@ -123,34 +123,50 @@ export class SpotDilator {
       return sourceTexture;
     }
 
-    const width = sourceTexture.image?.width || 2048;
-    const height = sourceTexture.image?.height || 1024;
-    this.ensureRenderTargets(width, height);
+    let oldRenderTarget = null;
+    let oldAutoClear = true;
 
-    const oldRenderTarget = this.renderer.getRenderTarget();
-    const oldAutoClear = this.renderer.autoClear;
-    this.renderer.autoClear = false;
+    try {
+      const width = sourceTexture.image?.width || 2048;
+      const height = sourceTexture.image?.height || 1024;
+      this.ensureRenderTargets(width, height);
 
-    // Pass 1: Horizontal Dilation (src -> rtA)
-    this.material.uniforms.src.value = sourceTexture;
-    this.material.uniforms.texel.value.set(1.0 / this.currentWidth, 1.0 / this.currentHeight);
-    this.material.uniforms.axis.value.set(1.0, 0.0);
-    this.material.uniforms.radius.value = radius;
+      if (!this.rtA || !this.rtB) {
+        return sourceTexture;
+      }
 
-    this.renderer.setRenderTarget(this.rtA);
-    this.renderer.render(this.scene, this.camera);
+      oldRenderTarget = this.renderer.getRenderTarget();
+      oldAutoClear = this.renderer.autoClear;
+      this.renderer.autoClear = false;
 
-    // Pass 2: Vertical Dilation (rtA.texture -> rtB)
-    this.material.uniforms.src.value = this.rtA.texture;
-    this.material.uniforms.axis.value.set(0.0, 1.0);
+      // Pass 1: Horizontal Dilation (src -> rtA)
+      this.material.uniforms.src.value = sourceTexture;
+      this.material.uniforms.texel.value.set(1.0 / this.currentWidth, 1.0 / this.currentHeight);
+      this.material.uniforms.axis.value.set(1.0, 0.0);
+      this.material.uniforms.radius.value = radius;
 
-    this.renderer.setRenderTarget(this.rtB);
-    this.renderer.render(this.scene, this.camera);
+      this.renderer.setRenderTarget(this.rtA);
+      this.renderer.render(this.scene, this.camera);
 
-    this.renderer.setRenderTarget(oldRenderTarget);
-    this.renderer.autoClear = oldAutoClear;
+      // Pass 2: Vertical Dilation (rtA.texture -> rtB)
+      this.material.uniforms.src.value = this.rtA.texture;
+      this.material.uniforms.axis.value.set(0.0, 1.0);
 
-    return this.rtB.texture;
+      this.renderer.setRenderTarget(this.rtB);
+      this.renderer.render(this.scene, this.camera);
+
+      this.renderer.setRenderTarget(oldRenderTarget);
+      this.renderer.autoClear = oldAutoClear;
+
+      return this.rtB.texture;
+    } catch (err) {
+      console.warn("[SpotDilator] GPU dilation failed, using raw source texture:", err);
+      try {
+        if (oldRenderTarget !== null) this.renderer.setRenderTarget(oldRenderTarget);
+        this.renderer.autoClear = oldAutoClear;
+      } catch (_) {}
+      return sourceTexture;
+    }
   }
 
   disposeRenderTargets() {

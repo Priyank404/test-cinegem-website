@@ -1117,12 +1117,34 @@ export default function RingHero({
     );
     camera.position.set(0, 0.2, 4.2);
 
-    renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance",
+      });
+    } catch (glErr) {
+      console.warn("RingHero: WebGL high-performance context failed, falling back to standard:", glErr);
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: false,
+          alpha: true,
+        });
+      } catch (fatalErr) {
+        console.error("RingHero: WebGL unsupported on this device:", fatalErr);
+        onLoaded?.();
+        return;
+      }
+    }
+
+    const handleContextLost = (e) => {
+      e.preventDefault();
+      console.warn("RingHero: WebGL context lost!");
+    };
+    canvas.addEventListener("webglcontextlost", handleContextLost, false);
+
     renderer.setSize(window.innerWidth, window.innerHeight, !RESPONSIVE_V2);
     renderer.setPixelRatio(
       Math.min(window.devicePixelRatio, RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
@@ -1132,8 +1154,18 @@ export default function RingHero({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
-    spotDilatorRef.current = new SpotDilator(renderer);
-    envPreviewRendererRef.current = new EnvPreviewRenderer(renderer);
+    try {
+      spotDilatorRef.current = new SpotDilator(renderer);
+    } catch (e) {
+      console.warn("RingHero: SpotDilator init failed, continuing without dilation:", e);
+    }
+
+    try {
+      envPreviewRendererRef.current = new EnvPreviewRenderer(renderer);
+    } catch (e) {
+      console.warn("RingHero: EnvPreviewRenderer init failed:", e);
+    }
+
     if (onRegisterEnvPreview) {
       onRegisterEnvPreview((c, opts) => {
         if (envPreviewRendererRef.current) {
@@ -1153,47 +1185,65 @@ export default function RingHero({
     let composer = null;
     let bloomPass = null;
     function buildComposer() {
-      const w = viewport.w || canvas.clientWidth || window.innerWidth;
-      const h = viewport.h || canvas.clientHeight || window.innerHeight;
-      const msaa = RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4;
-      const composerTarget = new THREE.WebGLRenderTarget(w, h, {
-        type: THREE.HalfFloatType,
-        samples: msaa,
-        stencilBuffer: true,
-      });
-      composer = new EffectComposer(renderer, composerTarget);
-      composer.addPass(new RenderPass(scene, camera));
+      try {
+        const w = viewport.w || canvas.clientWidth || window.innerWidth;
+        const h = viewport.h || canvas.clientHeight || window.innerHeight;
+        const isMobile = viewport.profile === "portrait" || (typeof window !== "undefined" && window.innerWidth < 768);
+        const msaa = isMobile ? 0 : 4;
+        const targetType = isMobile ? THREE.UnsignedByteType : THREE.HalfFloatType;
 
-      const bCfg = hdrConfigRef.current.bloomConfig || {
-        enabled: true,
-        threshold: 0.96,
-        intensity: 0.035,
-        radius: 0.28,
-      };
+        let composerTarget;
+        try {
+          composerTarget = new THREE.WebGLRenderTarget(w, h, {
+            type: targetType,
+            samples: msaa,
+            stencilBuffer: true,
+          });
+          composer = new EffectComposer(renderer, composerTarget);
+        } catch (rtErr) {
+          console.warn("RingHero: MSAA/Float render target failed, falling back to 0-sample UnsignedByteType:", rtErr);
+          composerTarget = new THREE.WebGLRenderTarget(w, h, {
+            type: THREE.UnsignedByteType,
+            samples: 0,
+          });
+          composer = new EffectComposer(renderer, composerTarget);
+        }
 
-      bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(w, h),
-        bCfg.intensity ?? 0.035,
-        bCfg.radius ?? 0.28,
-        bCfg.threshold ?? 0.96
-      );
-      bloomPass.materialHighPassFilter.uniforms.smoothWidth.value = 0.2;
-      bloomPass.enabled = bCfg.enabled ?? true;
-      if (bloomPass.blendMaterial) {
-        // Must use CustomBlending so Three.js honors separate alpha blend equations:
-        // Additive RGB bloom onto destination, but ZERO alpha pollution into transparent background.
-        bloomPass.blendMaterial.blending = THREE.CustomBlending;
-        bloomPass.blendMaterial.blendSrc = THREE.OneFactor;
-        bloomPass.blendMaterial.blendDst = THREE.OneFactor;
-        bloomPass.blendMaterial.blendEquation = THREE.AddEquation;
-        bloomPass.blendMaterial.blendSrcAlpha = THREE.ZeroFactor;
-        bloomPass.blendMaterial.blendDstAlpha = THREE.OneFactor;
-        bloomPass.blendMaterial.blendEquationAlpha = THREE.AddEquation;
+        composer.addPass(new RenderPass(scene, camera));
+
+        const bCfg = hdrConfigRef.current.bloomConfig || {
+          enabled: true,
+          threshold: 0.96,
+          intensity: 0.035,
+          radius: 0.28,
+        };
+
+        bloomPass = new UnrealBloomPass(
+          new THREE.Vector2(w, h),
+          bCfg.intensity ?? 0.035,
+          bCfg.radius ?? 0.28,
+          bCfg.threshold ?? 0.96
+        );
+        bloomPass.materialHighPassFilter.uniforms.smoothWidth.value = 0.2;
+        bloomPass.enabled = bCfg.enabled ?? true;
+        if (bloomPass.blendMaterial) {
+          bloomPass.blendMaterial.blending = THREE.CustomBlending;
+          bloomPass.blendMaterial.blendSrc = THREE.OneFactor;
+          bloomPass.blendMaterial.blendDst = THREE.OneFactor;
+          bloomPass.blendMaterial.blendEquation = THREE.AddEquation;
+          bloomPass.blendMaterial.blendSrcAlpha = THREE.ZeroFactor;
+          bloomPass.blendMaterial.blendDstAlpha = THREE.OneFactor;
+          bloomPass.blendMaterial.blendEquationAlpha = THREE.AddEquation;
+        }
+        composer.addPass(bloomPass);
+
+        composer.addPass(new TransparentOutputPass());
+        bloomEffectRef.current = bloomPass;
+      } catch (compErr) {
+        console.warn("RingHero: EffectComposer setup failed, will use direct forward renderer:", compErr);
+        composer = null;
+        bloomEffectRef.current = null;
       }
-      composer.addPass(bloomPass);
-
-      composer.addPass(new TransparentOutputPass());
-      bloomEffectRef.current = bloomPass;
     }
     buildComposer();
 
@@ -1255,8 +1305,6 @@ export default function RingHero({
       }
       if (interactiveBoxRef.current && interactiveActiveRef.current) {
         interactiveBoxRef.current.style.cursor = "grab";
-        interactiveBoxRef.current.style.borderColor = "rgba(197, 160, 89, 0.38)";
-        interactiveBoxRef.current.style.boxShadow = "none";
       }
     }
     function onCanvasMouseDown(e) {
@@ -1316,15 +1364,13 @@ export default function RingHero({
     });
     canvas.addEventListener("touchend", onInteractiveUp);
 
-    // Dedicated 360-degree interaction box for mobile & touch devices:
+    // Dedicated 360-degree invisible interaction box for mobile & touch devices:
     const box = interactiveBoxRef.current;
     function onBoxPointerDown(e) {
       if (!interactiveActiveRef.current) return;
       if (box) {
         try { box.setPointerCapture(e.pointerId); } catch (_) {}
         box.style.cursor = "grabbing";
-        box.style.borderColor = "rgba(197, 160, 89, 0.85)";
-        box.style.boxShadow = "0 0 20px rgba(197, 160, 89, 0.15), inset 0 0 20px rgba(197, 160, 89, 0.05)";
       }
       onInteractiveDown(e.clientX, e.clientY);
     }
@@ -1336,18 +1382,12 @@ export default function RingHero({
       if (box) {
         try { box.releasePointerCapture(e.pointerId); } catch (_) {}
         box.style.cursor = "grab";
-        box.style.borderColor = "rgba(197, 160, 89, 0.38)";
-        box.style.boxShadow = "none";
       }
       onInteractiveUp();
     }
     function onBoxTouchStart(e) {
       if (!interactiveActiveRef.current) return;
       if (e.touches.length === 1) {
-        if (box) {
-          box.style.borderColor = "rgba(197, 160, 89, 0.85)";
-          box.style.boxShadow = "0 0 20px rgba(197, 160, 89, 0.15), inset 0 0 20px rgba(197, 160, 89, 0.05)";
-        }
         onInteractiveDown(e.touches[0].clientX, e.touches[0].clientY);
       }
     }
@@ -1358,13 +1398,6 @@ export default function RingHero({
         onInteractiveMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     }
-    function onBoxTouchEnd() {
-      if (box) {
-        box.style.borderColor = "rgba(197, 160, 89, 0.38)";
-        box.style.boxShadow = "none";
-      }
-      onInteractiveUp();
-    }
     if (box) {
       box.addEventListener("pointerdown", onBoxPointerDown);
       box.addEventListener("pointermove", onBoxPointerMove);
@@ -1372,8 +1405,8 @@ export default function RingHero({
       box.addEventListener("pointercancel", onBoxPointerUp);
       box.addEventListener("touchstart", onBoxTouchStart, { passive: true });
       box.addEventListener("touchmove", onBoxTouchMove, { passive: false });
-      box.addEventListener("touchend", onBoxTouchEnd);
-      box.addEventListener("touchcancel", onBoxTouchEnd);
+      box.addEventListener("touchend", onInteractiveUp);
+      box.addEventListener("touchcancel", onInteractiveUp);
     }
 
     // ── Debug-only: always-on diagnostic pointerdown listener ───────────
@@ -1449,29 +1482,47 @@ export default function RingHero({
     onLoadingProgress?.(10, "Fetching 3D assets...");
 
     Promise.all([
-      new Promise((resolve, reject) =>
-        gltfLoader.load(
-          glbUrl,
-          (gltf) => {
-            progressMap.glb.loaded = progressMap.glb.total;
-            updateOverallProgress("Ring geometry downloaded");
-            resolve(gltf);
-          },
-          (xhr) => {
-            if (xhr.lengthComputable && xhr.total > 0) {
-              progressMap.glb.loaded = xhr.loaded;
-              progressMap.glb.total = xhr.total;
-            } else if (xhr.loaded) {
-              progressMap.glb.loaded = xhr.loaded;
+      new Promise((resolve, reject) => {
+        const loadWithFallback = (decoderPath, isRetry = false) => {
+          const dLoader = new DRACOLoader();
+          dLoader.setDecoderPath(decoderPath);
+          const gLoader = new GLTFLoader();
+          gLoader.setDRACOLoader(dLoader);
+
+          gLoader.load(
+            glbUrl,
+            (gltf) => {
+              progressMap.glb.loaded = progressMap.glb.total;
+              updateOverallProgress("Ring geometry downloaded");
+              resolve(gltf);
+            },
+            (xhr) => {
+              if (xhr.lengthComputable && xhr.total > 0) {
+                progressMap.glb.loaded = xhr.loaded;
+                progressMap.glb.total = xhr.total;
+              } else if (xhr.loaded) {
+                progressMap.glb.loaded = xhr.loaded;
+              }
+              updateOverallProgress("Loading 3D ring model...");
+            },
+            (err) => {
+              if (!isRetry) {
+                console.warn("RingHero: Local draco decoder failed, retrying with official CDN decoder...", err);
+                loadWithFallback("https://www.gstatic.com/draco/versioned/decoders/1.5.7/", true);
+              } else {
+                reject(err);
+              }
             }
-            updateOverallProgress("Loading 3D ring model...");
-          },
-          reject,
-        ),
-      ),
+          );
+        };
+        loadWithFallback(dracoDecoderPath);
+      }),
       loadEnvironmentTexture(metalHdrUrl, pmrem, (xhr) => {
         if (xhr.loaded) progressMap.metalHdr.loaded = xhr.loaded;
         updateOverallProgress("Studio lighting loaded");
+      }).catch((err) => {
+        console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
+        return null;
       }),
       loadRawEquirect(effectiveBaseHdrUrl, {
         mono: gemBaseEnv?.mono ?? true,
@@ -1480,6 +1531,9 @@ export default function RingHero({
           if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond base environment loaded");
         },
+      }).catch((err) => {
+        console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
+        return { texture: null, meta: null };
       }),
       loadRawEquirect(gemSpotHdrUrl, {
         mono: gemSpotEnv?.mono ?? true,
@@ -1488,6 +1542,9 @@ export default function RingHero({
           if (xhr.loaded) progressMap.gemSpotHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond spotlight environment loaded");
         },
+      }).catch((err) => {
+        console.warn("RingHero: Diamond spot HDRI failed to load, continuing with fallback:", err);
+        return { texture: null, meta: null };
       }),
     ])
       .then(([gltf, loadedMetalEnv, loadedBaseResult, loadedSpotResult]) => {
@@ -1501,7 +1558,12 @@ export default function RingHero({
         const spotSize = gemSpotEnv?.size ?? 2;
         let effectiveSpot = loadedSpotResult?.texture || null;
         if (spotDilatorRef.current && loadedSpotResult?.texture && spotSize > 0) {
-          effectiveSpot = spotDilatorRef.current.dilate(loadedSpotResult.texture, spotSize);
+          try {
+            effectiveSpot = spotDilatorRef.current.dilate(loadedSpotResult.texture, spotSize);
+          } catch (e) {
+            console.warn("RingHero: Dilate failed, using raw texture:", e);
+            effectiveSpot = loadedSpotResult.texture;
+          }
         }
         gemEnvTexturesRef.current.spot = effectiveSpot;
         gemEnvTexturesRef.current.spotMeta = loadedSpotResult?.meta || null;
@@ -1838,11 +1900,10 @@ export default function RingHero({
               }
 
               if (interactiveBoxRef.current) {
-                const showBox = inInteractiveRange && isPortrait;
-                interactiveBoxRef.current.style.pointerEvents = showBox
+                interactiveBoxRef.current.style.pointerEvents = inInteractiveRange
                   ? "auto"
                   : "none";
-                interactiveBoxRef.current.style.display = showBox
+                interactiveBoxRef.current.style.display = inInteractiveRange
                   ? "block"
                   : "none";
               }
@@ -1857,8 +1918,6 @@ export default function RingHero({
                   dragStateRef.current.dragging = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
-                    interactiveBoxRef.current.style.borderColor = "rgba(197, 160, 89, 0.38)";
-                    interactiveBoxRef.current.style.boxShadow = "none";
                   }
                 }
                 setShowDragHint(
@@ -2622,8 +2681,17 @@ export default function RingHero({
         }
 
         // ── Render ────────────────────────────────────────────────────────
-        if (composer) composer.render(dt);
-        else if (renderer && scene && camera) renderer.render(scene, camera);
+        if (composer) {
+          try {
+            composer.render(dt);
+          } catch (cErr) {
+            console.warn("RingHero: composer.render failed on this GPU, falling back to direct render:", cErr);
+            composer = null;
+            if (renderer && scene && camera) renderer.render(scene, camera);
+          }
+        } else if (renderer && scene && camera) {
+          renderer.render(scene, camera);
+        }
       };
       // Run the ticker once synchronously before registering it.
       currentTickerFn();
@@ -2723,8 +2791,8 @@ export default function RingHero({
         box.removeEventListener("pointercancel", onBoxPointerUp);
         box.removeEventListener("touchstart", onBoxTouchStart);
         box.removeEventListener("touchmove", onBoxTouchMove);
-        box.removeEventListener("touchend", onBoxTouchEnd);
-        box.removeEventListener("touchcancel", onBoxTouchEnd);
+        box.removeEventListener("touchend", onInteractiveUp);
+        box.removeEventListener("touchcancel", onInteractiveUp);
       }
       if (debugPointerDown) {
         window.removeEventListener("pointerdown", debugPointerDown, {
@@ -2812,17 +2880,26 @@ export default function RingHero({
           touchAction: RESPONSIVE_V2 ? "pan-y" : undefined,
         }}
       />
-      {/* Visual interaction guide box around the ring on portrait/mobile screens in Beat 5.
+      {/* Invisible interaction box around the ring on portrait/mobile screens in Beat 5.
           Allows complete 360° rotation and vertical tilt without triggering page scroll.
-          Outside this box, touches scroll the website naturally.
-          Positioning and sizing dynamically driven by .ringhero-interactive-box in HeroPage2.css */}
+          Outside this box, touches scroll the website naturally. */}
       <div
         ref={interactiveBoxRef}
-        className="ringhero-interactive-box"
         aria-label="Interactive 3D ring rotation area"
         style={{
-          display: "none",
+          position: "fixed",
+          left: "50%",
+          top: "57%",
+          transform: "translate(-50%, -50%)",
+          width: "min(88vw, 420px)",
+          height: "min(52vh, 460px)",
+          zIndex: 4,
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           pointerEvents: "none",
+          display: "none",
+          cursor: "grab",
         }}
       />
       {/* "Drag to explore" hint — purely visual, pointerEvents:"none" so it
@@ -2832,9 +2909,9 @@ export default function RingHero({
         style={{
           position: "fixed",
           left: "50%",
-          bottom: "clamp(24px, 4.5vh, 44px)",
+          bottom: "8%",
           transform: "translateX(-50%)",
-          zIndex: 5,
+          zIndex: 3,
           pointerEvents: "none",
           display: "flex",
           alignItems: "center",
