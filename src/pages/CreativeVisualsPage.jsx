@@ -11,6 +11,8 @@ import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
 import FullScreenShowcase, { useViewportWidth, useVideoBgColor } from "@/components/shared/FullScreenShowcase";
+import CreativeVisualsDevControls from "@/components/dev/CreativeVisualsDevControls";
+import { isDevMode } from "@/config/env";
 import {
   resolveMediaForPosition,
   resolveFullScreenMedia,
@@ -25,20 +27,29 @@ const FullWidthVideo = FullScreenShowcase;
   LAYOUT COMPONENTS
 ═══════════════════════════════════════════════════════════════════════ */
 
-// Section 1 & 2 layout: featured media on one side (50% width), 2-column by 4-row square grid on the other.
+// Section 1 & 3 layout: featured media on one side (50% width), 2-column dynamic-row square grid on the other.
 // Both sides use UniversalMediaTile so any slot can be image or video based on filename position.
-// Crucially, the 8 grid items define their own aspect-square (1:1), so the container NEVER squeezes down.
+// Crucially, the grid items define their own aspect-square (1:1), so the container NEVER squeezes down.
+// Featured media automatically stretches to match whatever height the grid row count dictates (1 to 6 rows).
 function FullWidthVideoWithImagesBelow({
   featuredMedia,
   gridMedia = [],
   onOpen,
   reverse = false,
+  rows = 4,
   // legacy aliases for backward compatibility
   video,
   images,
 }) {
   const activeFeatured = featuredMedia || video;
   const activeGrid = gridMedia && gridMedia.length > 0 ? gridMedia : (images || []);
+  const maxItems = Math.max(2, rows * 2);
+  const displayItems = activeGrid.slice(0, maxItems);
+
+  // Compute row boundaries for corner classes
+  const lastLeftIndex = Math.max(0, (rows - 1) * 2);
+  const lastRightIndex = lastLeftIndex + 1;
+  const totalDisplay = displayItems.length;
 
   return (
     <section className="relative w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10">
@@ -49,7 +60,7 @@ function FullWidthVideoWithImagesBelow({
           }`}
         >
           {/* Featured media (Position 1 on left, or Position 18 on right):
-              Stretches to match the 4-row grid height. If media is 1:1, the container does NOT squeeze! */}
+              Stretches dynamically to match the grid height (whether 1, 2, 3, 4, 5, or 6 rows). */}
           <div
             onClick={() => onOpen?.(activeFeatured)}
             className={`w-full md:w-1/2 self-stretch min-h-0 relative overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none cursor-pointer flex items-center justify-center ${
@@ -70,28 +81,34 @@ function FullWidthVideoWithImagesBelow({
             />
           </div>
 
-          {/* 8-cell Grid (Positions 2..9 or 10..17):
+          {/* Dynamic 2-column Grid (1 to 6 rows):
               2 columns of true 1:1 squares (aspect-square).
               Because each cell is aspect-square, this container dictates its own natural height
               and is NEVER squeezed by whatever aspect ratio media is placed in the featured box! */}
           <div className="w-full md:w-1/2 grid grid-cols-2 gap-1 content-start overflow-hidden bg-transparent">
-            {activeGrid.slice(0, 8).map((item, i) => {
+            {displayItems.map((item, i) => {
               let cornerClass = "rounded-none";
 
               if (!reverse) {
                 // Featured is on left on desktop:
-                // Mobile (<md): top meets featured (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
-                // Desktop (md+): outer right has md:rounded-tr (i=1) and md:rounded-br (i=7); inner left is sharp (md:rounded-bl-none)
+                // Desktop: outer top right
                 if (i === 1) cornerClass = "rounded-none md:rounded-tr-[12px]";
-                else if (i === 6) cornerClass = "rounded-bl-[12px] md:rounded-bl-none";
-                else if (i === 7) cornerClass = "rounded-br-[12px]";
+                // Bottom row:
+                if (i === lastLeftIndex) {
+                  cornerClass = "rounded-bl-[12px] md:rounded-bl-none";
+                } else if (i === lastRightIndex || (i === totalDisplay - 1 && i % 2 === 1)) {
+                  cornerClass = "rounded-br-[12px]";
+                }
               } else {
                 // Featured is on right on desktop:
-                // Mobile (<md): top meets featured (sharp), bottom row has rounded-bl (i=6) and rounded-br (i=7)
-                // Desktop (md+): outer left has md:rounded-tl (i=0) and md:rounded-bl (i=6); inner right facing featured is sharp (md:rounded-br-none)
+                // Desktop: outer top left
                 if (i === 0) cornerClass = "rounded-none md:rounded-tl-[12px]";
-                else if (i === 6) cornerClass = "rounded-bl-[12px]";
-                else if (i === 7) cornerClass = "rounded-br-[12px] md:rounded-br-none";
+                // Bottom row:
+                if (i === lastLeftIndex) {
+                  cornerClass = "rounded-bl-[12px]";
+                } else if (i === lastRightIndex || (i === totalDisplay - 1 && i % 2 === 1)) {
+                  cornerClass = "rounded-br-[12px] md:rounded-br-none";
+                }
               }
 
               return (
@@ -304,7 +321,15 @@ function OriginalFullWidthVideo({ src, driftUp }) {
 }
 
 
-function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
+function ScrollStoryLayout({
+  mediaItems,
+  images,
+  videos,
+  onOpen,
+  isClean,
+  grid1Rows = 3,
+  grid2Rows = 4,
+}) {
   const findIndex = (src) => mediaItems.findIndex((m) => m.src === src);
 
   const getVideo = (index, fallbackSrc) => {
@@ -314,22 +339,26 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
     return { src: fallbackSrc, alt: "Cinegem Studio Video" };
   };
 
-  // Dynamically calculate the number of 16-image story cycles needed (8 grid in Sec 1 + 8 grid in Sec 2)
-  const numCycles = Math.max(1, Math.ceil(images.length / 16));
+  const grid1Count = Math.max(2, (grid1Rows || 3) * 2);
+  const grid2Count = Math.max(2, (grid2Rows || 4) * 2);
+  const cycleImagesCount = grid1Count + grid2Count;
+
+  // Dynamically calculate the number of story cycles needed
+  const numCycles = Math.max(1, Math.ceil(images.length / cycleImagesCount));
 
   const cycles = useMemo(() => {
     const list = [];
     const hasDriveVideos = videos && videos.length > 0;
 
     for (let c = 0; c < numCycles; c++) {
-      const cImages = images.slice(c * 16, (c + 1) * 16).map((img) => ({
+      const cImages = images.slice(c * cycleImagesCount, (c + 1) * cycleImagesCount).map((img) => ({
         ...img,
         mediaIndex: findIndex(img.src),
       }));
 
       // Fallback media if no numbered filename override is present
-      const s1FallbackImages = cImages.slice(0, 8);
-      const s2FallbackImages = cImages.slice(8, 16);
+      const s1FallbackImages = cImages.slice(0, grid1Count);
+      const s2FallbackImages = cImages.slice(grid1Count, grid1Count + grid2Count);
 
       const v1Fallback = getVideo(c * 4 + 0, "/Creative visuals/A6-R3-HQ.mp4");
       const v2Fallback = getVideo(c * 4 + 1, "/Creative visuals/KC-A01-TR1 .mp4");
@@ -343,11 +372,12 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
           : null;
 
       // UNIVERSAL POSITION-BASED MEDIA RESOLUTION:
-      // Section 1: Featured Left (Pos 1) + 8 Grid Tiles (Pos 2..9)
+      // Section 1: Featured Left (Pos 1) + Dynamic Grid Tiles (grid1Count)
       const s1Featured = resolveMediaForPosition(mediaItems, 1 + c * 20, v1Fallback);
-      const s1Grid = [2, 3, 4, 5, 6, 7, 8, 9].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 20, s1FallbackImages[i])
-      );
+      const s1Grid = [];
+      for (let i = 0; i < grid1Count; i++) {
+        s1Grid.push(resolveMediaForPosition(mediaItems, 2 + i + c * 20, s1FallbackImages[i]));
+      }
 
       // Section 2: Full-Screen Showcase 1 (explicitly mapped via full-1, full-3..., with fallback to pos 19)
       const full1Slot = 1 + c * 2;
@@ -357,11 +387,19 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
         resolveMediaForPosition(mediaItems, 19 + c * 20, v3Fallback)
       );
 
-      // Section 3: 8 Grid Tiles (Pos 10..17) + Featured Right (Pos 18)
-      const s3Grid = [10, 11, 12, 13, 14, 15, 16, 17].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 20, s2FallbackImages[i])
-      );
-      const s3Featured = resolveMediaForPosition(mediaItems, 18 + c * 20, v2Fallback);
+      // Section 3: Dynamic Grid Tiles (grid2Count) + Featured Right (Pos 18)
+      const s3Grid = [];
+      for (let i = 0; i < grid2Count; i++) {
+        const fixedPos = 10 + i + c * 20;
+        const seqPos = 2 + grid1Count + i + c * 20;
+        const resolved =
+          resolveMediaForPosition(mediaItems, fixedPos, null) ||
+          resolveMediaForPosition(mediaItems, seqPos, s2FallbackImages[i]);
+        s3Grid.push(resolved);
+      }
+      const s3Featured =
+        resolveMediaForPosition(mediaItems, 18 + c * 20, null) ||
+        resolveMediaForPosition(mediaItems, 2 + grid1Count + grid2Count + c * 20, v2Fallback);
 
       // Section 4: Parallax Turntable Media (explicitly mapped via full-2, full-4..., with fallback to pos 20)
       const full2Slot = 2 + c * 2;
@@ -382,17 +420,18 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
       });
     }
     return list;
-  }, [images, videos, numCycles, mediaItems]);
+  }, [images, videos, numCycles, mediaItems, grid1Count, grid2Count]);
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
       {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2FullScreen, s3Grid, s3Featured, s4FullScreen }) => (
         <div key={`cycle-${cycleIndex}`} className="flex flex-col gap-16 md:gap-24">
-          {/* Section 1: Featured Left (Pos 1) + 8 Grid Right (Pos 2..9) */}
+          {/* Section 1: Featured Left (Pos 1) + Dynamic Grid Right */}
           {s1Featured && s1Grid.length > 0 && (
             <FullWidthVideoWithImagesBelow
               featuredMedia={s1Featured}
               gridMedia={s1Grid}
+              rows={grid1Rows}
               onOpen={onOpen}
             />
           )}
@@ -402,11 +441,12 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
             <FullWidthVideo media={s2FullScreen} src={s2FullScreen.src} onOpen={onOpen} />
           )}
 
-          {/* Section 3: 8 Grid Left (Pos 10..17) + Featured Right (Pos 18) */}
+          {/* Section 3: Dynamic Grid Left + Featured Right */}
           {s3Featured && s3Grid.length > 0 && (
             <FullWidthVideoWithImagesBelow
               featuredMedia={s3Featured}
               gridMedia={s3Grid}
+              rows={grid2Rows}
               onOpen={onOpen}
               reverse={true}
             />
@@ -420,6 +460,39 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
       ))}
     </div>
   );
+}
+
+// Default grid configuration for production:
+// (Can be adjusted dynamically in development mode via the Dev Grid Controls)
+const DEFAULT_GRID_CONFIG = {
+  grid1Rows: 3, // Default 3 rows as requested
+  grid2Rows: 4,
+};
+
+const GRID_STORAGE_KEY = "cinegem_creative_grid_config";
+
+function getInitialGridConfig() {
+  if (typeof window !== "undefined" && isDevMode()) {
+    try {
+      const saved = localStorage.getItem(GRID_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          typeof parsed.grid1Rows === "number" &&
+          parsed.grid1Rows >= 1 &&
+          parsed.grid1Rows <= 6 &&
+          typeof parsed.grid2Rows === "number" &&
+          parsed.grid2Rows >= 1 &&
+          parsed.grid2Rows <= 6
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore storage read errors
+    }
+  }
+  return DEFAULT_GRID_CONFIG;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -438,6 +511,40 @@ export default function CreativeVisualsPage() {
   } = useMediaFolder("creative-visuals");
 
   const [galleryIndex, setGalleryIndex] = useState(null);
+  const [gridConfig, setGridConfig] = useState(getInitialGridConfig);
+
+  const handleUpdateGrid1Rows = (rows) => {
+    setGridConfig((prev) => {
+      const next = { ...prev, grid1Rows: rows };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+  };
+
+  const handleUpdateGrid2Rows = (rows) => {
+    setGridConfig((prev) => {
+      const next = { ...prev, grid2Rows: rows };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+  };
+
+  const handleResetGrid = () => {
+    setGridConfig(DEFAULT_GRID_CONFIG);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(GRID_STORAGE_KEY);
+      } catch {}
+    }
+  };
 
   // Hero background image: pick first banner, hero, or 0. item
   const heroBackgroundSrc = useMemo(() => {
@@ -517,6 +624,8 @@ export default function CreativeVisualsPage() {
           mediaItems={items}
           images={storyImages}
           videos={videos}
+          grid1Rows={gridConfig.grid1Rows}
+          grid2Rows={gridConfig.grid2Rows}
           onOpen={handleOpenMedia}
         />
       </div>
@@ -528,6 +637,17 @@ export default function CreativeVisualsPage() {
         onClose={() => setGalleryIndex(null)}
         onSelect={setGalleryIndex}
       />
+
+      {/* Dev Mode Grid Controls (strictly excluded in production) */}
+      {isDevMode() && (
+        <CreativeVisualsDevControls
+          grid1Rows={gridConfig.grid1Rows}
+          grid2Rows={gridConfig.grid2Rows}
+          onChangeGrid1Rows={handleUpdateGrid1Rows}
+          onChangeGrid2Rows={handleUpdateGrid2Rows}
+          onReset={handleResetGrid}
+        />
+      )}
     </ServicePageLayout>
   );
 }
