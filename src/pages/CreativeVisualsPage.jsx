@@ -46,8 +46,9 @@ function FullWidthVideoWithImagesBelow({
   const maxItems = Math.max(2, rows * 2);
   const displayItems = activeGrid.slice(0, maxItems);
 
-  // Compute row boundaries for corner classes
-  const lastLeftIndex = Math.max(0, (rows - 1) * 2);
+  // Compute row boundaries for corner classes based on actual rendered rows
+  const actualRows = Math.max(1, Math.ceil(displayItems.length / 2));
+  const lastLeftIndex = Math.max(0, (actualRows - 1) * 2);
   const lastRightIndex = lastLeftIndex + 1;
   const totalDisplay = displayItems.length;
 
@@ -60,32 +61,36 @@ function FullWidthVideoWithImagesBelow({
           }`}
         >
           {/* Featured media (Position 1 on left, or Position 18 on right):
-              Stretches dynamically to match the grid height (whether 1, 2, 3, 4, 5, or 6 rows). */}
+              Crucial: On desktop, this must NOT expand the flex container height.
+              The grid strictly dictates the row height, and this featured wrapper
+              stretches to match that exact height, shrinking the video and glassy container. */}
           <div
             onClick={() => onOpen?.(activeFeatured)}
-            className={`w-full md:w-1/2 self-stretch min-h-0 relative overflow-hidden isolate bg-black border-0 rounded-t-[12px] rounded-b-none cursor-pointer flex items-center justify-center ${
+            className={`w-full md:w-1/2 md:flex-1 relative self-stretch min-h-0 overflow-hidden isolate bg-black border-0 rounded-t-[12px] md:rounded-t-none cursor-pointer aspect-[4/5] sm:aspect-square md:aspect-auto ${
               reverse
                 ? "md:rounded-r-[12px] md:rounded-l-none"
                 : "md:rounded-l-[12px] md:rounded-r-none"
             }`}
           >
-            <UniversalMediaTile
-              media={activeFeatured}
-              className={`w-full h-full [border-radius:inherit] rounded-t-[12px] rounded-b-none ${
-                reverse
-                  ? "md:rounded-r-[12px] md:rounded-l-none"
-                  : "md:rounded-l-[12px] md:rounded-r-none"
-              }`}
-              videoClassName="w-full h-full object-cover block"
-              imageClassName="w-full h-full object-cover block"
-            />
+            <div className="w-full h-full md:absolute md:inset-0 overflow-hidden [border-radius:inherit] flex items-center justify-center">
+              <UniversalMediaTile
+                media={activeFeatured}
+                className={`w-full h-full [border-radius:inherit] rounded-t-[12px] md:rounded-t-none ${
+                  reverse
+                    ? "md:rounded-r-[12px] md:rounded-l-none"
+                    : "md:rounded-l-[12px] md:rounded-r-none"
+                }`}
+                videoClassName="w-full h-full object-cover block"
+                imageClassName="w-full h-full object-cover block"
+              />
+            </div>
           </div>
 
           {/* Dynamic 2-column Grid (1 to 6 rows):
               2 columns of true 1:1 squares (aspect-square).
               Because each cell is aspect-square, this container dictates its own natural height
-              and is NEVER squeezed by whatever aspect ratio media is placed in the featured box! */}
-          <div className="w-full md:w-1/2 grid grid-cols-2 gap-1 content-start overflow-hidden bg-transparent">
+              and controls the height of the entire section! */}
+          <div className="w-full md:w-1/2 md:flex-1 grid grid-cols-2 gap-1 content-start overflow-hidden bg-transparent">
             {displayItems.map((item, i) => {
               let cornerClass = "rounded-none";
 
