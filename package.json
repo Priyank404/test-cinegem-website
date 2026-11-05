@@ -10,7 +10,9 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "media:build": "node scripts/media/build.mjs",
     "media:upload": "node scripts/media/upload.mjs",
-    "media:sync": "node scripts/media/build.mjs && node scripts/media/upload.mjs",
+    "media:sync": "node scripts/sync-media.mjs",
+    "sync-media": "node scripts/sync-media.mjs",
+    "sync:media": "node scripts/sync-media.mjs",
     "media:verify": "node scripts/media/verify.mjs"
   },
   "dependencies": {
