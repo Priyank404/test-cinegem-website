@@ -14,6 +14,8 @@ export function buildGemProceduralEnv(renderer) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   pmrem.compileEquirectangularShader();
   const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(0x202028);
+
   const lightDefs = [
     [0xffffff, 40.0, 2, 6, 4],
     [0xffffff, 35.0, -3, 3, -2],
@@ -24,14 +26,26 @@ export function buildGemProceduralEnv(renderer) {
     [0xffffff, 10.0, 4, -2, 3],
     [0xffd0ff, 8.0, -4, 2, -3],
   ];
+
+  const sphereGeo = new THREE.SphereGeometry(1.5, 12, 12);
   lightDefs.forEach(([col, int, x, y, z]) => {
     const l = new THREE.DirectionalLight(col, int);
     l.position.set(x, y, z);
     envScene.add(l);
+
+    // Visible emissive light mesh so PMREM camera captures actual radiant light panels
+    const lightMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(col).multiplyScalar(Math.min(int, 20.0)),
+    });
+    const mesh = new THREE.Mesh(sphereGeo, lightMat);
+    mesh.position.set(x, y, z);
+    envScene.add(mesh);
   });
-  envScene.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.0));
-  const rt = pmrem.fromScene(envScene, 0.02);
+  envScene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
+
+  const rt = pmrem.fromScene(envScene, 0.04);
   pmrem.dispose();
+  sphereGeo.dispose();
   const texture = rt.texture;
   const _origDispose = texture.dispose.bind(texture);
   texture.dispose = () => {
@@ -54,11 +68,11 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       ior:                     { value: 2.417 },
       correctMips:             { value: true },
       aberrationStrength:      { value: 0.003 },
-      fresnel:                 { value: 0.1 },
+      fresnel:                 { value: 0.8 },
       roughness:               { value: 0.0 },
       envRotation:             { value: 0 },
       envRotationY:            { value: 0 },
-      envMapIntensity:         { value: 2.0 },
+      envMapIntensity:         { value: 3.5 },
       bvh:                     { value: new MeshBVHUniformStruct() },
       color:                   { value: new THREE.Color("white") },
       opacity:                 { value: 1.0 },
@@ -72,6 +86,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       CUBEUV_TEXEL_HEIGHT: "0.0",
       CUBEUV_MAX_MIP:      "0.0",
       FAST_CHROMA:         "",
+      CHROMATIC_ABERRATIONS: "",
     };
 
     const vertexShader = /* glsl */ `
@@ -214,7 +229,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
 
         vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
         float nFresnel = fresnelFunc(viewDirection, normal) * fresnel;
-        vec3 finalRgb  = mix(diffuseColor.rgb, vec3(1.0), nFresnel);
+        vec3 finalRgb  = mix(diffuseColor.rgb, vec3(1.0), nFresnel) + vec3(0.04);
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
         #include <tonemapping_fragment>
@@ -232,6 +247,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
     });
 
     this.isRoughRefractionMaterial = true;
+    this.isMobileGemMaterial = true;
 
     // Safety fallback properties for any external HDR inspector / config listeners
     this.baseScale = new THREE.Vector2(1, 1);
@@ -273,8 +289,8 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
     }
   }
 
-  updateDefines(envMap, aberrationStrength = 0.003, fastChroma = true) {
-    const imageHeight = envMap?.image?.height ?? 1024;
+  updateDefines(envMap = this.envMap, aberrationStrength = this.aberrationStrength ?? 0.003, fastChroma = true) {
+    const imageHeight = envMap?.image?.height ?? envMap?.height ?? 1024;
     const maxMip  = Math.max(1, Math.floor(Math.log2(imageHeight)) - 2);
     const mipSize = Math.pow(2, maxMip);
     const newTW   = `${1 / (3 * Math.max(mipSize, 112))}`;

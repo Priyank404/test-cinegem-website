@@ -9,3 +9,4 @@ const destination = path.join(root, "public/draco");
 await mkdir(destination, { recursive: true });
 await cp(source, destination, { recursive: true, force: true });
 console.log(`[build] Copied pinned Draco decoder assets to ${destination}`);
+

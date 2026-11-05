@@ -594,7 +594,7 @@ export default function RingHero({
       mat.userData._hdrTrim = 1.0;
 
       if (mat.isRoughRefractionMaterial) {
-        if (mat.baseScale) {
+        if (mat.isOctaneDualExr) {
           // Desktop Octane dual-EXR material
           mat.debugView = debugView;
           mat.gammaMode = gammaMode;
@@ -1666,7 +1666,7 @@ export default function RingHero({
         gemEnvTexturesRef.current.baseMeta = loadedBaseResult?.meta || null;
         gemEnvTexturesRef.current.rawSpot = loadedSpotResult?.texture || null;
 
-        if (deviceTier.tier === "mobile") {
+        if (deviceTier.tier === "mobile" && !loadedMetalEnv) {
           try {
             proceduralGemEnv = buildGemProceduralEnv(renderer);
           } catch (pErr) {
@@ -1708,16 +1708,18 @@ export default function RingHero({
         const { gemMeshes, metalMeshes, debugList } = classifyRingMeshes(ring);
         gemMeshesRef.current = gemMeshes;
 
+        const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
         gemMaterials = gemMeshes.map((child) => {
           let mat = buildGemMaterial(
             effectiveGemPreset,
             gemEnvTexturesRef.current.base,
             effectiveSpot,
             deviceTier.tier,
-            proceduralGemEnv || metalEnvMap
+            effectiveGemEnv
           );
           if ("envMapIntensity" in mat) {
-            mat.envMapIntensity = BEATS[0].gemEnvIntensity;
+            const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
+            mat.envMapIntensity = BEATS[0].gemEnvIntensity * mobileScale;
           }
           mat.fog = false;
           child.material = mat;
@@ -2169,19 +2171,21 @@ export default function RingHero({
                   classifyRingMeshes(ring);
                 gemMeshesRef.current = gemMeshes;
 
+                const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
                 gemMaterials = gemMeshes.map((child) => {
                   let mat = buildGemMaterial(
                     effectiveGemPreset,
                     gemEnvTexturesRef.current.base,
                     gemEnvTexturesRef.current.spot,
                     deviceTier.tier,
-                    proceduralGemEnv || metalEnvMap
+                    effectiveGemEnv
                   );
                   if ("envMapIntensity" in mat) {
+                    const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
                     mat.envMapIntensity =
-                      (getTimelineBeats()[0].gemEnvIntensity *
+                      ((getTimelineBeats()[0].gemEnvIntensity *
                         calculateDiamondEnvMapIntensityRaw({})) /
-                      5.0;
+                      5.0) * mobileScale;
                   }
                   child.material = mat;
                   if (mat.isRoughRefractionMaterial) {
@@ -2609,7 +2613,8 @@ export default function RingHero({
         gemMaterials.forEach((mat) => {
           if (!("envMapIntensity" in mat)) return;
           const trim = mat.userData?._hdrTrim ?? 1;
-          mat.envMapIntensity = gemEnvState.value * trim;
+          const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
+          mat.envMapIntensity = gemEnvState.value * trim * mobileScale;
         });
 
         /* [EXPERIMENTAL_ATMOSPHERE] Subtle idle float, micro-tilt shimmer & mouse parallax whenever ring is still (Beats 1–4) */

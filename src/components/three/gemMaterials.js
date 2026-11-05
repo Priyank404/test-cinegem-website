@@ -378,6 +378,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
 
     super({ uniforms, defines, vertexShader, fragmentShader, transparent: false, toneMapped: false });
     this.isRoughRefractionMaterial = true;
+    this.isOctaneDualExr = true;
     this.setValues(parameters);
 
     // Initialise envMapBase fallback if only envMap was passed
@@ -559,11 +560,11 @@ export function buildGemMaterial(
         envMap: pmremFallback || envMapBase,
         ior: preset.ior ?? 2.417,
         bounces: 3,
-        fresnel: preset.fresnel ?? 0.1,
+        fresnel: preset.fresnel ?? 0.8,
         roughness: preset.roughness ?? 0.0,
         aberrationStrength: 0.003,
         color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
-        envMapIntensity: 2.0,
+        envMapIntensity: 3.5,
       });
     } catch (err) {
       console.warn("RoughRefractionMaterialMobile creation failed, using physical diamond fallback:", err);
