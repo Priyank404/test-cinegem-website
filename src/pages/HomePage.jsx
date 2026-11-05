@@ -26,7 +26,8 @@
  * -------------------------------------------------------------------------
  */
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { Hero3DErrorBoundary } from "@/components/three/Hero3DFallback";
 import { Link } from "react-router-dom";
 import { useSeo } from "@/seo/useSeo";
 import Lenis from "lenis";
@@ -36,7 +37,9 @@ import RingHero, { BEATS } from "@/components/three/RingHero";
 import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
 import { useHomePageMedia } from "@/hooks/useHomePageMedia";
 import MediaImage from "@/components/shared/MediaImage";
-import VantaFogControlPanel from "@/components/effects/VantaFogControlPanel";
+const VantaFogControlPanel = import.meta.env.DEV
+  ? lazy(() => import("@/components/effects/VantaFogControlPanel"))
+  : () => null;
 import {
   loadBeatFogPresets,
   saveBeatFogPresets,
@@ -45,7 +48,9 @@ import {
 } from "@/components/effects/beatFogPresets";
 import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
-import TimelineEditor from "@/components/three/TimelineEditor";
+const TimelineEditor = import.meta.env.DEV
+  ? lazy(() => import("@/components/three/TimelineEditor"))
+  : () => null;
 import { metalPresets } from "@/components/three/metalMaterials";
 import { usePerfFlags } from "@/components/dev/PerfDevHud";
 import "./HeroPage2.css";
@@ -1707,7 +1712,8 @@ export default function HomePage() {
           this block for production if you don't want it shippable. */}
 
       {SHOW_DEV_PANEL && showFogPanel && (
-        <VantaFogControlPanel
+        <Suspense fallback={null}>
+          <VantaFogControlPanel
           beatIndex={fogPanelBeat}
           onBeatIndexChange={setFogPanelBeat}
           beatCount={beatFogOptions.length}
@@ -1738,6 +1744,7 @@ export default function HomePage() {
             setBeatFogOptions(BEAT_FOG_PRESETS);
           }}
         />
+        </Suspense>
       )}
 
       {/* Live scroll/beat readout integrated inside the Animation Timeline */}
@@ -1967,7 +1974,8 @@ export default function HomePage() {
       {/* Fixed 3D background — canvas + gradient overlay, pinned behind
           everything else via z-index (see RingHero.jsx inline styles) */}
       {shouldStart3D && !perfFlags.noring && (
-        <RingHero
+        <Hero3DErrorBoundary>
+          <RingHero
           glbUrl="/models/ring-draco.glb"
         metalHdrUrl={metalHdrUrl}
         gemBaseHdrUrl={gemBaseHdrUrl}
@@ -2073,7 +2081,8 @@ export default function HomePage() {
             }
           }, 150);
         }}
-      />
+          />
+        </Hero3DErrorBoundary>
       )}
 
       {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
@@ -2161,7 +2170,8 @@ export default function HomePage() {
       </footer>
 
       {!isLoading && SHOW_DEV_PANEL && timelineVisible && (
-        <TimelineEditor
+        <Suspense fallback={null}>
+          <TimelineEditor
           ref={timelineRef}
           values={coordValues}
           savedBeats={savedBeats}
@@ -2191,7 +2201,8 @@ export default function HomePage() {
           onMoveKeyframe={moveCoordKeyframe}
           experimentalAtmosphere={experimentalAtmosphere}
           onToggleAtmosphere={() => setExperimentalAtmosphere((v) => !v)}
-        />
+          />
+        </Suspense>
       )}
 
       {!isLoading && SHOW_DEV_PANEL && (
@@ -2907,7 +2918,6 @@ function MaterialDevPanel({
           setUrl={setGemBaseHdrUrl}
           presets={[
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
-            { label: "🌟 Mirrored LUMA HDR", value: "/hdr/LUMA-Unsaid-R_D-DIA-Mirrored-Automation-shapes-Wave-R3.hdr" },
             { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_001_d01c4504e0.hdr" },
           ]}
           config={gemBaseEnv}

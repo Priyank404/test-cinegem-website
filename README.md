@@ -79,3 +79,25 @@ Governed by the **Aetheric Studio System** (see `DESIGN.md` in project root).
 - **`useId`** for form labels — avoids SSR hydration mismatches
 - **Accessible forms** — proper `htmlFor`, `aria-required`, `role="status"` on success state
 - **External links** — footer social links get `rel="noopener noreferrer"`
+
+## Device Tiers & Diagnostic HUD
+
+The site features an automatic GPU & hardware tiering engine (`src/lib/deviceTier.js`) ensuring seamless degradation on mobile devices without ever showing a white screen or black diamonds:
+
+| Setting | high (Desktop) | mid (Flagship Phone) | low (Standard Mobile) | minimal (Unsupported) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Diamond Gem** | BVH Ray-traced (5 bounces) | BVH Ray-traced (3 bounces) | Pure Physical Refraction (PMREM) | 2D Luxury Poster |
+| **Vanta Fog** | Full WebGL Context | Scaled Half-Res WebGL | CSS Gradient (0 WebGL contexts) | CSS Gradient |
+| **HDR Maps** | 7.4MB Dual EXR + PMREM | 7.4MB Dual EXR + PMREM | 661KB Studio PMREM Only | None |
+| **MSAA / DPR** | MSAA 4x, DPR 2.0 | MSAA 2x, DPR 1.5 | MSAA 0x, DPR 1.0 | N/A |
+| **Bloom** | HalfFloat High-Pass Bloom | HalfFloat Bloom | Disabled | N/A |
+
+### URL Parameters for Testing
+
+- **`?debug`**: Toggles the real-time Mobile Diagnostic HUD overlay. Displays GPU renderer, WebGL capabilities, Half-Float extension support, live FPS, Three.js draw calls, memory, and any caught shader/asset errors. Includes a 1-tap "Copy Report" button.
+- **`?tier=high|mid|low|minimal`**: Overrides the automatic tier detection for local or real-device testing.
+  - `http://localhost:5173/?tier=low&debug`
+  - `http://localhost:5173/?tier=mid&debug`
+  - `http://localhost:5173/?tier=high&debug`
+  - `http://localhost:5173/?tier=minimal&debug`
+- **`?mode=dev`**: Activates dev mode with live animation timeline editor and tuning panels (development builds only).

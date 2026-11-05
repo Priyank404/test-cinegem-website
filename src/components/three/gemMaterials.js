@@ -53,17 +53,24 @@ export const diamondPreset = {
 // want to swap the stone later — same shape as Frontend/src/gems/presets/*.
 
 // ---------------------------------------------------------------------------
-// Cheap matte gem material — ported from gems/materials/matteGem.js
+// Cheap matte / physical gem material (fallback for low-tier devices and mobile)
 // ---------------------------------------------------------------------------
 export function buildMatteGemMaterial(preset, envMap) {
   return new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(preset.color),
-    roughness: preset.roughness ?? 0.1,
+    color: new THREE.Color(preset.color || "#ffffff"),
+    roughness: preset.roughness ?? 0.04,
     metalness: preset.metalness ?? 0.0,
-    iridescence: preset.iridescence ?? 0.0,
-    iridescenceIOR: preset.iridescenceIOR ?? 1.3,
-    envMap,
-    envMapIntensity: 2.0,
+    transmission: 0.88,
+    ior: preset.ior ?? 2.417,
+    thickness: 1.8,
+    specularIntensity: 1.0,
+    specularColor: new THREE.Color("#ffffff"),
+    iridescence: preset.iridescence ?? 0.15,
+    iridescenceIOR: preset.iridescenceIOR ?? 1.33,
+    envMap: envMap || null,
+    envMapIntensity: 2.2,
+    transparent: true,
+    opacity: 0.95,
     side: THREE.FrontSide,
   });
 }
@@ -230,7 +237,11 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         rayOrigin = vWorldPosition + rayDirection * 0.001;
         rayOrigin = (modelMatrixInverse * vec4(rayOrigin, 1.0)).xyz;
         rayDirection = normalize((modelMatrixInverse * vec4(rayDirection, 0.0)).xyz);
-        for (float i = 0.0; i < bounces; i++) {
+        #ifndef MAX_BOUNCES
+        #define MAX_BOUNCES 8
+        #endif
+        for (int i = 0; i < MAX_BOUNCES; i++) {
+          if (float(i) >= bounces) break;
           uvec4 faceIndices = uvec4(0u);
           vec3 faceNormal = vec3(0.0, 0.0, 1.0);
           vec3 barycoord = vec3(0.0);
@@ -514,21 +525,38 @@ export function attachBvhToGemMaterial(mesh, material) {
  * @param {object} preset - Gem preset (diamond, ruby, etc.)
  * @param {THREE.Texture} envMapBase - Base EXR environment texture
  * @param {THREE.Texture} [envMapSpot] - Spotlight EXR environment texture
+ * @param {string} [tier] - Device tier: "high" | "mid" | "low" | "minimal"
+ * @param {THREE.Texture} [pmremFallback] - Studio PMREM environment map for low-tier reflection
  */
-export function buildGemMaterial(preset, envMapBase, envMapSpot = null) {
-  if (preset.materialType === "matte") {
-    return buildMatteGemMaterial(preset, envMapBase);
+export function buildGemMaterial(
+  preset,
+  envMapBase,
+  envMapSpot = null,
+  tier = "high",
+  pmremFallback = null
+) {
+  if (tier === "low" || tier === "minimal" || preset.materialType === "matte") {
+    return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
   }
-  return new RoughRefractionMaterial({
-    envMapBase,
-    envMapSpot,
-    envMap: envMapBase,
-    ior: preset.ior ?? 2.417,
-    bounces: preset.bounces ?? 5,
-    fresnel: preset.fresnel ?? 0,
-    roughness: preset.roughness ?? 0,
-    aberrationStrength: preset.aberrationStrength ?? 0.006,
-    color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
-  });
+
+  const bounces = tier === "mid" ? Math.min(preset.bounces ?? 3, 3) : (preset.bounces ?? 5);
+  const aberration = tier === "mid" ? 0.003 : (preset.aberrationStrength ?? 0.006);
+
+  try {
+    return new RoughRefractionMaterial({
+      envMapBase,
+      envMapSpot,
+      envMap: envMapBase,
+      ior: preset.ior ?? 2.417,
+      bounces,
+      fresnel: preset.fresnel ?? 0,
+      roughness: preset.roughness ?? 0,
+      aberrationStrength: aberration,
+      color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
+    });
+  } catch (err) {
+    console.warn("RoughRefractionMaterial creation failed, using physical diamond fallback:", err);
+    return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+  }
 }
 

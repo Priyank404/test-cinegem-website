@@ -19,6 +19,8 @@ if (typeof window !== "undefined") {
   window.THREE = THREE;
 }
 import FOG from "vanta/src/vanta.fog";
+import { getDeviceTier } from "@/lib/deviceTier";
+import { diagnostics } from "@/lib/diagnostics";
 
 const vantaFog = typeof FOG === "function" ? FOG : FOG.default;
 import {
@@ -93,12 +95,25 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     const el = containerRef.current;
     if (!el) return;
 
+    // Check device tier: low and minimal devices skip the second WebGL context
+    // entirely to protect memory and prevent context-loss crashes on phones.
+    const { tier, isLowOrMinimal } = getDeviceTier();
+    if (isLowOrMinimal) {
+      return;
+    }
+
     // Initial options based on beat 0
     const initialOpts = getInterpolatedFogOptions(
       beatOptionsRef.current[0],
       beatOptionsRef.current[0],
       0,
     );
+
+    // On mid-tier phones/devices, reduce fog render scale to conserve GPU
+    if (tier === "mid") {
+      initialOpts.scale = 2.0;
+      initialOpts.scaleMobile = 4.0;
+    }
 
     try {
       if (typeof window !== "undefined") {
@@ -109,12 +124,23 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
         THREE,
         ...initialOpts,
       });
+
+      const vantaCanvas = el.querySelector("canvas");
+      if (vantaCanvas) {
+        vantaCanvas.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          diagnostics.logContextLost("Vanta Fog");
+          effectRef.current?.destroy?.();
+          effectRef.current = null;
+        }, false);
+      }
     } catch (err) {
       console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);
     }
 
     function tick() {
       rafRef.current = requestAnimationFrame(tick);
+      if (typeof document !== "undefined" && document.hidden) return;
       if (!effectRef.current) return;
 
       const { fromIndex, toIndex, weight } = blendRef.current;

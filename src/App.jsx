@@ -10,6 +10,7 @@ import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
 import ThreeDViewerPage        from '@/pages/ThreeDViewerPage'
 import FaqPage                 from '@/pages/FaqPage'
 import NotFound                from '@/pages/NotFound'
+import MobileDebugOverlay      from '@/components/dev/MobileDebugOverlay'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -86,6 +87,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <CustomCursor />
+      <MobileDebugOverlay />
       <Routes>
         <Route path="/"                 element={<HomePage />} />
         <Route path="/hero2"            element={<Navigate to="/" replace />} />

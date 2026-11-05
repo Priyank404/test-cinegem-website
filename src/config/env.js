@@ -9,6 +9,11 @@
  */
 
 export const isDevMode = () => {
+  // In production builds, dev mode is completely disabled
+  if (import.meta.env.PROD) {
+    return false;
+  }
+
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search);
     const queryMode = params.get("mode") || params.get("env");
