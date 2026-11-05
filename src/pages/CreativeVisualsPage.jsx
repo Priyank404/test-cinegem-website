@@ -10,19 +10,16 @@ import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
-import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
+import FullScreenShowcase, { useViewportWidth, useVideoBgColor } from "@/components/shared/FullScreenShowcase";
+import {
+  resolveMediaForPosition,
+  resolveFullScreenMedia,
+  filterGridMedia,
+  isMediaVideo,
+} from "@/utils/mediaPositioning";
 
-// Tracks the true, scrollbar-safe viewport width
-function useViewportWidth() {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const update = () => setWidth(document.documentElement.clientWidth);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return width;
-}
+// Backwards-compatible alias for FullScreenShowcase
+const FullWidthVideo = FullScreenShowcase;
 
 /* ═══════════════════════════════════════════════════════════════════════
   LAYOUT COMPONENTS
@@ -119,229 +116,7 @@ function FullWidthVideoWithImagesBelow({
   );
 }
 
-// Intelligent background detector for showcase videos:
-// Matches video background (e.g. gradient for turntable, #ffffff for white videos)
-// so the full-screen edge-to-edge section seamlessly extends the video background with zero visible seam.
-function useVideoBgColor(src, customBg) {
-  const [bgStyle, setBgStyle] = useState(() => {
-    if (customBg) return customBg;
-    if (!src) return "#141416";
-    const lower = src.toLowerCase();
-    if (
-      lower.includes("m-video") ||
-      lower.includes("white") ||
-      lower.includes("wb") ||
-      lower.includes("b4 animated") ||
-      lower.includes("e commerce 1") ||
-      lower.includes("fk-a1") ||
-      lower.includes("s4")
-    ) {
-      return "#ffffff";
-    }
-    if (lower.includes("turntable") || lower.includes("black")) {
-      return "linear-gradient(to bottom, #171717 0%, #131313 50%, #111111 100%)";
-    }
-    return "linear-gradient(to bottom, #171717 0%, #131313 50%, #111111 100%)";
-  });
-
-  useEffect(() => {
-    if (customBg) {
-      setBgStyle(customBg);
-      return;
-    }
-    if (!src) return;
-
-    const lower = src.toLowerCase();
-    const isKnownWhite =
-      lower.includes("m-video") ||
-      lower.includes("white") ||
-      lower.includes("wb") ||
-      lower.includes("b4 animated") ||
-      lower.includes("e commerce 1") ||
-      lower.includes("fk-a1") ||
-      lower.includes("s4");
-
-    if (isKnownWhite) {
-      setBgStyle("#ffffff");
-      return;
-    }
-
-    if (lower.includes("turntable") || lower.includes("black")) {
-      setBgStyle("linear-gradient(to bottom, #171717 0%, #131313 50%, #111111 100%)");
-      return;
-    }
-
-    // Dynamic color sampling from video first frame via offscreen canvas
-    const v = document.createElement("video");
-    v.crossOrigin = "anonymous";
-    v.muted = true;
-    v.playsInline = true;
-    v.src = src;
-
-    const onLoaded = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = 32;
-        canvas.height = 32;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        ctx.drawImage(v, 0, 0, 32, 32);
-
-        // Sample top edge and bottom edge
-        const topData = ctx.getImageData(16, 1, 1, 1).data;
-        const btmData = ctx.getImageData(16, 30, 1, 1).data;
-
-        const topLum = topData[0] * 0.299 + topData[1] * 0.587 + topData[2] * 0.114;
-        if (topLum > 230) {
-          setBgStyle("#ffffff");
-        } else {
-          const topRgb = `rgb(${topData[0]}, ${topData[1]}, ${topData[2]})`;
-          const btmRgb = `rgb(${btmData[0]}, ${btmData[1]}, ${btmData[2]})`;
-          setBgStyle(`linear-gradient(to bottom, ${topRgb} 0%, ${btmRgb} 100%)`);
-        }
-      } catch {
-        // Fallback remains current style
-      } finally {
-        v.remove();
-      }
-    };
-
-    v.addEventListener("loadeddata", onLoaded);
-    v.load();
-    return () => {
-      v.removeEventListener("loadeddata", onLoaded);
-      v.src = "";
-    };
-  }, [src, customBg]);
-
-  return bgStyle;
-}
-
-// Full-screen showcase media (Section 3 & 5)
-// Spans the full viewport width (100vw) and height (100vh).
-// Sticks to the whole screen with a magnetic lock for an immersive showcase.
-function FullWidthVideo({ src, media, driftUp, bgColor, onOpen }) {
-  const activeMedia = media || { src, isVideo: isMediaVideo(src) };
-  const trackRef = useRef(null);
-  const sectionRef = useRef(null);
-  const videoRef = useRef(null);
-  const [offset, setOffset] = useState(0);
-  const vw = useViewportWidth();
-  const bgStyle = useVideoBgColor(activeMedia?.src || src, bgColor);
-  const isSnappingRef = useRef(false);
-  const scrollTimeoutRef = useRef(null);
-  const isVideo = isMediaVideo(activeMedia);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const onScroll = () => {
-      const rect = track.getBoundingClientRect();
-      const vh = window.innerHeight;
-
-      if (driftUp) {
-        const total = rect.height - vh;
-        if (total > 0) {
-          const scrolled = -rect.top;
-          const progress = Math.min(1, Math.max(0, scrolled / total));
-          setOffset(progress * -40);
-        }
-      }
-
-      // Magnetic snap: when the user stops scrolling close to top: 0, lock it flush
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-
-      scrollTimeoutRef.current = setTimeout(() => {
-        if (isSnappingRef.current) return;
-        const currentRect = track.getBoundingClientRect();
-        // If within magnetic lock zone (-60px to 120px)
-        if (currentRect.top > -60 && currentRect.top < 120 && Math.abs(currentRect.top) > 2) {
-          isSnappingRef.current = true;
-          const targetScroll = window.scrollY + currentRect.top;
-          window.scrollTo({
-            top: targetScroll,
-            behavior: "smooth",
-          });
-          setTimeout(() => {
-            isSnappingRef.current = false;
-          }, 500);
-        }
-      }, 80);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    };
-  }, [driftUp]);
-
-  return (
-    <div
-      ref={trackRef}
-      className="fullscreen-video-track relative w-full"
-      style={{
-        height: "190vh",
-        scrollSnapAlign: "start",
-        scrollSnapStop: "normal",
-      }}
-    >
-      <section
-        ref={sectionRef}
-        className="sticky top-0 w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0 z-20"
-        style={{
-          background: bgStyle,
-          marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-          marginRight: vw ? `calc(50% - ${vw / 2}px)` : undefined,
-          width: vw ? `${vw}px` : "100vw",
-          height: "100vh",
-        }}
-      >
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={activeMedia?.src || src}
-            crossOrigin="anonymous"
-            onClick={() => onOpen?.(activeMedia)}
-            className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
-            style={{
-              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-            }}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-          />
-        ) : (
-          <img
-            src={activeMedia?.thumb || activeMedia?.src || src}
-            alt={activeMedia?.alt || "Cinegem Studio Showcase"}
-            onClick={() => onOpen?.(activeMedia)}
-            className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
-            style={{
-              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
-            }}
-          />
-        )}
-      </section>
-    </div>
-  );
-}
+// Section 3 & 5 full-screen showcase components are imported from @/components/shared/FullScreenShowcase
 
 // Long media pair (Section 4)
 function LongImagePair({ images, onOpen }) {
@@ -638,16 +413,26 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
       // Position 18: Featured Right (Section 2)
       const s2Featured = resolveMediaForPosition(mediaItems, 18 + c * 22, v2Fallback);
 
-      // Position 19: Full-width showcase video / image (Section 3)
-      const s3Media = resolveMediaForPosition(mediaItems, 19 + c * 22, v3Fallback);
+      // Section 3: Full-Screen Showcase 1 (explicitly mapped via full-1, full-3..., with fallback to pos 19)
+      const full1Slot = 1 + c * 2;
+      const s3Media = resolveFullScreenMedia(
+        mediaItems,
+        full1Slot,
+        resolveMediaForPosition(mediaItems, 19 + c * 22, v3Fallback)
+      );
 
       // Positions 20, 21: Dual side-by-side media (Section 4)
       const s4Media = [20, 21].map((pos, i) =>
         resolveMediaForPosition(mediaItems, pos + c * 22, s4FallbackImages[i])
       );
 
-      // Position 22: Parallax Turntable media (Section 5)
-      const s5Media = resolveMediaForPosition(mediaItems, 22 + c * 22, v4Fallback);
+      // Section 5: Full-Screen Showcase 2 (explicitly mapped via full-2, full-4..., with fallback to pos 22)
+      const full2Slot = 2 + c * 2;
+      const s5Media = resolveFullScreenMedia(
+        mediaItems,
+        full2Slot,
+        resolveMediaForPosition(mediaItems, 22 + c * 22, v4Fallback)
+      );
 
       list.push({
         cycleIndex: c,
@@ -734,12 +519,9 @@ export default function CreativeVisualsPage() {
     return "/Creative visuals/4 Ring Banner T4 HQ_.jpg";
   }, [items, images]);
 
-  // Separate story images so dedicated banner/hero image doesn't displace 1.png - 18.png
+  // Separate story images so dedicated banner/hero/full-screen images don't displace 1.png - 18.png
   const storyImages = useMemo(() => {
-    const filtered = images.filter((i) => {
-      const name = (i.filename || i.name || i.alt || i.src || "").toLowerCase();
-      return !name.includes("banner") && !name.includes("hero") && !name.startsWith("0.") && !name.startsWith("0_") && !name.startsWith("0-");
-    });
+    const filtered = filterGridMedia(images);
     const list = filtered.length > 0 ? filtered : images;
     return list.map((item) => ({
       ...item,

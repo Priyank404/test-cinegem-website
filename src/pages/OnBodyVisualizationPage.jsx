@@ -6,7 +6,13 @@ import GlassyGallery from "@/components/shared/GlassyGallery";
 import { useMediaFolder } from "@/hooks/useMediaFolder";
 import { cleanJewelryAlt } from "@/seo/alt";
 import { UniversalMediaTile } from "@/components/shared/UniversalMediaTile";
-import { resolveMediaForPosition, isMediaVideo } from "@/utils/mediaPositioning";
+import FullScreenShowcase from "@/components/shared/FullScreenShowcase";
+import {
+  resolveMediaForPosition,
+  resolveFullScreenMedia,
+  filterGridMedia,
+  isMediaVideo,
+} from "@/utils/mediaPositioning";
 
 const ImageClickContext = createContext(null);
 
@@ -525,26 +531,56 @@ function GlassyOnBodyGallery({ images }) {
 
 export default function OnBodyVisualizationPage() {
   const { items: dynamicItems, images: dynamicImages, videos: dynamicVideos } = useMediaFolder("onbody");
-  const mediaPool = (dynamicItems && dynamicItems.length > 0) ? dynamicItems : (dynamicImages || []);
-  const basePool = mediaPool;
+  const rawPool = (dynamicItems && dynamicItems.length > 0) ? dynamicItems : (dynamicImages || []);
+
+  // Filter out hero and full-screen assets so grid gets pure bento items
+  const gridPool = useMemo(() => filterGridMedia(rawPool), [rawPool]);
 
   // Resolve media by position (1, 2, 3...)
   const activeImages = useMemo(() => {
-    return basePool.map((item, i) => {
-      const resolved = resolveMediaForPosition(mediaPool, i + 1, item);
+    return gridPool.map((item, i) => {
+      const resolved = resolveMediaForPosition(gridPool, i + 1, item);
       return {
         ...resolved,
         alt: cleanJewelryAlt(resolved, "On-Body"),
       };
     });
-  }, [basePool, mediaPool]);
+  }, [gridPool]);
+
+  // Story blocks: 7 images per block (matching 2-3-2 luxury rhythm) followed by full-screen showcases (full-1, full-2...)
+  const storyBlocks = useMemo(() => {
+    const blocks = [];
+    const chunkSize = 7;
+    const totalBlocks = Math.max(1, Math.ceil(activeImages.length / chunkSize));
+
+    for (let b = 0; b < totalBlocks; b++) {
+      const blockImages = activeImages.slice(b * chunkSize, (b + 1) * chunkSize);
+      const fullMedia = resolveFullScreenMedia(dynamicItems, b + 1, null);
+      blocks.push({
+        blockIndex: b,
+        images: blockImages,
+        fullMedia,
+      });
+    }
+    return blocks;
+  }, [activeImages, dynamicItems]);
 
   const containerRef = useRef(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
 
   const allOnBodyMedia = useMemo(() => {
     const list = [...activeImages];
-    if (dynamicVideos && dynamicVideos.length > 0) {
+    if (dynamicItems && dynamicItems.length > 0) {
+      dynamicItems.forEach((item) => {
+        if (!list.some((existing) => existing.src === item.src)) {
+          list.push({
+            ...item,
+            isVideo: isMediaVideo(item),
+            alt: cleanJewelryAlt(item, "On-Body"),
+          });
+        }
+      });
+    } else if (dynamicVideos && dynamicVideos.length > 0) {
       dynamicVideos.forEach((v) => {
         if (v && v.src && !list.some((item) => item.src === v.src)) {
           list.push({ ...v, isVideo: true });
@@ -552,7 +588,7 @@ export default function OnBodyVisualizationPage() {
       });
     }
     return list;
-  }, [activeImages, dynamicVideos]);
+  }, [activeImages, dynamicItems, dynamicVideos]);
 
   const handleOpenMedia = (media) => {
     const targetSrc = typeof media === "string" ? media : media?.src;
@@ -582,9 +618,21 @@ export default function OnBodyVisualizationPage() {
         paragraph="Photorealistic on-model composites that place your pieces in context — without a single photoshoot. Effortless, scalable, and skin-accurate."
       />
 
-      <div ref={containerRef} className="relative z-10">
+      <div ref={containerRef} className="relative z-10 flex flex-col gap-12 md:gap-16">
         <ImageClickContext.Provider value={handleOpenMedia}>
-          <GlassyOnBodyGallery images={activeImages} />
+          {storyBlocks.map(({ blockIndex, images, fullMedia }) => (
+            <div key={`onbody-block-${blockIndex}`} className="flex flex-col gap-12 md:gap-16">
+              {images.length > 0 && <GlassyOnBodyGallery images={images} />}
+              {fullMedia && (
+                <FullScreenShowcase
+                  media={fullMedia}
+                  src={fullMedia.src}
+                  driftUp={blockIndex % 2 === 1}
+                  onOpen={handleOpenMedia}
+                />
+              )}
+            </div>
+          ))}
         </ImageClickContext.Provider>
       </div>
 
