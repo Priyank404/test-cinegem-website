@@ -1255,6 +1255,8 @@ export default function RingHero({
       }
       if (interactiveBoxRef.current && interactiveActiveRef.current) {
         interactiveBoxRef.current.style.cursor = "grab";
+        interactiveBoxRef.current.style.borderColor = "rgba(197, 160, 89, 0.38)";
+        interactiveBoxRef.current.style.boxShadow = "none";
       }
     }
     function onCanvasMouseDown(e) {
@@ -1314,13 +1316,15 @@ export default function RingHero({
     });
     canvas.addEventListener("touchend", onInteractiveUp);
 
-    // Dedicated 360-degree invisible interaction box for mobile & touch devices:
+    // Dedicated 360-degree interaction box for mobile & touch devices:
     const box = interactiveBoxRef.current;
     function onBoxPointerDown(e) {
       if (!interactiveActiveRef.current) return;
       if (box) {
         try { box.setPointerCapture(e.pointerId); } catch (_) {}
         box.style.cursor = "grabbing";
+        box.style.borderColor = "rgba(197, 160, 89, 0.85)";
+        box.style.boxShadow = "0 0 20px rgba(197, 160, 89, 0.15), inset 0 0 20px rgba(197, 160, 89, 0.05)";
       }
       onInteractiveDown(e.clientX, e.clientY);
     }
@@ -1332,12 +1336,18 @@ export default function RingHero({
       if (box) {
         try { box.releasePointerCapture(e.pointerId); } catch (_) {}
         box.style.cursor = "grab";
+        box.style.borderColor = "rgba(197, 160, 89, 0.38)";
+        box.style.boxShadow = "none";
       }
       onInteractiveUp();
     }
     function onBoxTouchStart(e) {
       if (!interactiveActiveRef.current) return;
       if (e.touches.length === 1) {
+        if (box) {
+          box.style.borderColor = "rgba(197, 160, 89, 0.85)";
+          box.style.boxShadow = "0 0 20px rgba(197, 160, 89, 0.15), inset 0 0 20px rgba(197, 160, 89, 0.05)";
+        }
         onInteractiveDown(e.touches[0].clientX, e.touches[0].clientY);
       }
     }
@@ -1348,6 +1358,13 @@ export default function RingHero({
         onInteractiveMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     }
+    function onBoxTouchEnd() {
+      if (box) {
+        box.style.borderColor = "rgba(197, 160, 89, 0.38)";
+        box.style.boxShadow = "none";
+      }
+      onInteractiveUp();
+    }
     if (box) {
       box.addEventListener("pointerdown", onBoxPointerDown);
       box.addEventListener("pointermove", onBoxPointerMove);
@@ -1355,8 +1372,8 @@ export default function RingHero({
       box.addEventListener("pointercancel", onBoxPointerUp);
       box.addEventListener("touchstart", onBoxTouchStart, { passive: true });
       box.addEventListener("touchmove", onBoxTouchMove, { passive: false });
-      box.addEventListener("touchend", onInteractiveUp);
-      box.addEventListener("touchcancel", onInteractiveUp);
+      box.addEventListener("touchend", onBoxTouchEnd);
+      box.addEventListener("touchcancel", onBoxTouchEnd);
     }
 
     // ── Debug-only: always-on diagnostic pointerdown listener ───────────
@@ -1821,10 +1838,11 @@ export default function RingHero({
               }
 
               if (interactiveBoxRef.current) {
-                interactiveBoxRef.current.style.pointerEvents = inInteractiveRange
+                const showBox = inInteractiveRange && isPortrait;
+                interactiveBoxRef.current.style.pointerEvents = showBox
                   ? "auto"
                   : "none";
-                interactiveBoxRef.current.style.display = inInteractiveRange
+                interactiveBoxRef.current.style.display = showBox
                   ? "block"
                   : "none";
               }
@@ -1839,6 +1857,8 @@ export default function RingHero({
                   dragStateRef.current.dragging = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
+                    interactiveBoxRef.current.style.borderColor = "rgba(197, 160, 89, 0.38)";
+                    interactiveBoxRef.current.style.boxShadow = "none";
                   }
                 }
                 setShowDragHint(
@@ -2703,8 +2723,8 @@ export default function RingHero({
         box.removeEventListener("pointercancel", onBoxPointerUp);
         box.removeEventListener("touchstart", onBoxTouchStart);
         box.removeEventListener("touchmove", onBoxTouchMove);
-        box.removeEventListener("touchend", onInteractiveUp);
-        box.removeEventListener("touchcancel", onInteractiveUp);
+        box.removeEventListener("touchend", onBoxTouchEnd);
+        box.removeEventListener("touchcancel", onBoxTouchEnd);
       }
       if (debugPointerDown) {
         window.removeEventListener("pointerdown", debugPointerDown, {
@@ -2792,7 +2812,7 @@ export default function RingHero({
           touchAction: RESPONSIVE_V2 ? "pan-y" : undefined,
         }}
       />
-      {/* Invisible interaction box around the ring on portrait/mobile screens in Beat 5.
+      {/* Visual interaction guide box around the ring on portrait/mobile screens in Beat 5.
           Allows complete 360° rotation and vertical tilt without triggering page scroll.
           Outside this box, touches scroll the website naturally. */}
       <div
@@ -2801,10 +2821,10 @@ export default function RingHero({
         style={{
           position: "fixed",
           left: "50%",
-          top: "57%",
+          top: "58%",
           transform: "translate(-50%, -50%)",
-          width: "min(88vw, 420px)",
-          height: "min(52vh, 460px)",
+          width: "min(calc(100% - 36px), 360px)",
+          height: "min(46vh, 390px)",
           zIndex: 4,
           touchAction: "none",
           userSelect: "none",
@@ -2812,6 +2832,11 @@ export default function RingHero({
           pointerEvents: "none",
           display: "none",
           cursor: "grab",
+          boxSizing: "border-box",
+          border: "1px solid rgba(197, 160, 89, 0.38)",
+          borderRadius: "20px",
+          background: "transparent",
+          transition: "border-color 0.25s ease, box-shadow 0.25s ease",
         }}
       />
       {/* "Drag to explore" hint — purely visual, pointerEvents:"none" so it

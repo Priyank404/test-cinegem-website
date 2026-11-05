@@ -445,7 +445,6 @@
     border-radius: 10px !important;
     overflow: hidden !important;
     isolation: isolate;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
   }
 
   .beat-2-layout .glassy-grid-item,
@@ -601,7 +600,6 @@
     border-radius: 8px !important;
     overflow: hidden !important;
     isolation: isolate;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
   }
 
   .beat-2-layout .glassy-grid-item,
@@ -1032,8 +1030,6 @@ html.perf-noblur .glassy-card {
   overflow: hidden;
   border-radius: 12px;
   isolation: isolate;
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-  mask-image: radial-gradient(white, black);
   transform: translateZ(0);
 }
 
@@ -1230,6 +1226,7 @@ html.perf-noblur .glassy-card {
   min-width: 0;
 }
 
+.creative-grid-item picture,
 .creative-grid-item img,
 .creative-grid-item video {
   width: 100%;
