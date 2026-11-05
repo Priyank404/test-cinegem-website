@@ -84,15 +84,7 @@ Across all pages, special filenames designate specific roles:
 ```
 * Automatically detects video background colors (e.g. white or dark studio) for seamless edge blending and magnetic snapping.
 
-#### 5. Section 4: Dual Media Side-by-Side (50% + 50%)
-```
-┌──────────────────────────┬──────────────────────────┐
-│          19.png          │          20.png          │
-│       (Left Half)        │       (Right Half)       │
-└──────────────────────────┴──────────────────────────┘
-```
-
-#### 6. Section 5: Full-Screen Showcase 2 (Turntable Parallax)
+#### 5. Section 4: Full-Screen Showcase 2 (Turntable Parallax)
 ```
 ┌─────────────────────────────────────────────────────┐
 │          full-2.mp4  (or  full-2.png)               │
@@ -100,7 +92,7 @@ Across all pages, special filenames designate specific roles:
 └─────────────────────────────────────────────────────┘
 ```
 
-*(If more than 20 items are supplied, subsequent story cycles automatically advance to `full-3`, `full-4`, etc.).*
+*(If more than 18 items are supplied, subsequent story cycles automatically advance to `full-3`, `full-4`, etc.).*
 
 ---
 

@@ -116,38 +116,7 @@ function FullWidthVideoWithImagesBelow({
   );
 }
 
-// Section 3 & 5 full-screen showcase components are imported from @/components/shared/FullScreenShowcase
-
-// Long media pair (Section 4)
-function LongImagePair({ images, onOpen }) {
-  return (
-    <section className="relative w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10">
-      <div className="glassy-container">
-        <div className="flex flex-col md:flex-row gap-1">
-          {images.map((item, i) => {
-            const cornerClass =
-              i === 0
-                ? "rounded-t-[12px] md:rounded-t-none md:rounded-l-[12px] md:rounded-r-none"
-                : "rounded-b-[12px] md:rounded-b-none md:rounded-r-[12px] md:rounded-l-none";
-            return (
-              <div
-                key={item?.src || i}
-                onClick={() => onOpen?.(item)}
-                className={`block ${images.length === 1 ? "w-full rounded-[12px]" : "w-full md:w-1/2"} cursor-pointer focus:outline-none group overflow-hidden bg-transparent border-0 ${images.length > 1 ? cornerClass : ""}`}
-              >
-                <UniversalMediaTile
-                  media={item}
-                  onClick={onOpen}
-                  className="block w-full h-auto"
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
+// Section 3 & 4 full-screen showcase components are imported from @/components/shared/FullScreenShowcase
 
 /* ═══════════════════════════════════════════════════════════════════════
   DYNAMIC SCROLL STORY LAYOUT
@@ -334,28 +303,6 @@ function OriginalFullWidthVideo({ src, driftUp }) {
   );
 }
 
-function OriginalLongImagePair({ images, onOpen }) {
-  return (
-    <div className="flex flex-col md:flex-row gap-4">
-      {images.map((img) => (
-        <button
-          key={img.src}
-          type="button"
-          onClick={() => onOpen?.(img)}
-          className="block w-full md:w-1/2 cursor-pointer focus:outline-none overflow-hidden group"
-        >
-          <img
-            src={img.thumb || img.src}
-            alt={img.alt}
-            loading="lazy"
-            decoding="async"
-            className="block w-full h-auto"
-          />
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
   const findIndex = (src) => mediaItems.findIndex((m) => m.src === src);
@@ -367,15 +314,15 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
     return { src: fallbackSrc, alt: "Cinegem Studio Video" };
   };
 
-  // Dynamically calculate the number of 18-image story cycles needed
-  const numCycles = Math.max(1, Math.ceil(images.length / 18));
+  // Dynamically calculate the number of 16-image story cycles needed (8 grid in Sec 1 + 8 grid in Sec 2)
+  const numCycles = Math.max(1, Math.ceil(images.length / 16));
 
   const cycles = useMemo(() => {
     const list = [];
     const hasDriveVideos = videos && videos.length > 0;
 
     for (let c = 0; c < numCycles; c++) {
-      const cImages = images.slice(c * 18, (c + 1) * 18).map((img) => ({
+      const cImages = images.slice(c * 16, (c + 1) * 16).map((img) => ({
         ...img,
         mediaIndex: findIndex(img.src),
       }));
@@ -383,7 +330,6 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
       // Fallback media if no numbered filename override is present
       const s1FallbackImages = cImages.slice(0, 8);
       const s2FallbackImages = cImages.slice(8, 16);
-      const s4FallbackImages = cImages.slice(16, 18);
 
       const v1Fallback = getVideo(c * 4 + 0, "/Creative visuals/A6-R3-HQ.mp4");
       const v2Fallback = getVideo(c * 4 + 1, "/Creative visuals/KC-A01-TR1 .mp4");
@@ -398,40 +344,35 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
 
       // UNIVERSAL POSITION-BASED MEDIA RESOLUTION:
       // Position 1: Featured Left (Section 1) — Blue Box
-      const s1Featured = resolveMediaForPosition(mediaItems, 1 + c * 22, v1Fallback);
+      const s1Featured = resolveMediaForPosition(mediaItems, 1 + c * 20, v1Fallback);
 
       // Positions 2..9: 8 Grid Tiles (Section 1) — Red Box is Position 2
       const s1Grid = [2, 3, 4, 5, 6, 7, 8, 9].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 22, s1FallbackImages[i])
+        resolveMediaForPosition(mediaItems, pos + c * 20, s1FallbackImages[i])
       );
 
       // Positions 10..17: 8 Grid Tiles (Section 2)
       const s2Grid = [10, 11, 12, 13, 14, 15, 16, 17].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 22, s2FallbackImages[i])
+        resolveMediaForPosition(mediaItems, pos + c * 20, s2FallbackImages[i])
       );
 
       // Position 18: Featured Right (Section 2)
-      const s2Featured = resolveMediaForPosition(mediaItems, 18 + c * 22, v2Fallback);
+      const s2Featured = resolveMediaForPosition(mediaItems, 18 + c * 20, v2Fallback);
 
       // Section 3: Full-Screen Showcase 1 (explicitly mapped via full-1, full-3..., with fallback to pos 19)
       const full1Slot = 1 + c * 2;
       const s3Media = resolveFullScreenMedia(
         mediaItems,
         full1Slot,
-        resolveMediaForPosition(mediaItems, 19 + c * 22, v3Fallback)
+        resolveMediaForPosition(mediaItems, 19 + c * 20, v3Fallback)
       );
 
-      // Positions 20, 21: Dual side-by-side media (Section 4)
-      const s4Media = [20, 21].map((pos, i) =>
-        resolveMediaForPosition(mediaItems, pos + c * 22, s4FallbackImages[i])
-      );
-
-      // Section 5: Full-Screen Showcase 2 (explicitly mapped via full-2, full-4..., with fallback to pos 22)
+      // Section 4: Parallax Turntable Media (explicitly mapped via full-2, full-4..., with fallback to pos 20)
       const full2Slot = 2 + c * 2;
-      const s5Media = resolveFullScreenMedia(
+      const s4Media = resolveFullScreenMedia(
         mediaItems,
         full2Slot,
-        resolveMediaForPosition(mediaItems, 22 + c * 22, v4Fallback)
+        resolveMediaForPosition(mediaItems, 20 + c * 20, v4Fallback)
       );
 
       list.push({
@@ -442,7 +383,6 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
         s2Featured,
         s3Media,
         s4Media,
-        s5Media,
       });
     }
     return list;
@@ -450,7 +390,7 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2Grid, s2Featured, s3Media, s4Media, s5Media }) => (
+      {cycles.map(({ cycleIndex, s1Featured, s1Grid, s2Grid, s2Featured, s3Media, s4Media }) => (
         <div key={`cycle-${cycleIndex}`} className="flex flex-col gap-16 md:gap-24">
           {/* Section 1: Featured Left (Pos 1) + 8 Grid Right (Pos 2..9) */}
           {s1Featured && s1Grid.length > 0 && (
@@ -471,19 +411,14 @@ function ScrollStoryLayout({ mediaItems, images, videos, onOpen, isClean }) {
             />
           )}
 
-          {/* Section 3: Full-Width Showcase Video / Image (Pos 19) */}
+          {/* Section 3: Full-Width Showcase Video / Image (full-1) */}
           {s3Media && (
             <FullWidthVideo media={s3Media} src={s3Media.src} onOpen={onOpen} />
           )}
 
-          {/* Section 4: Dual Media Side-by-Side (Pos 20, 21) */}
-          {s4Media.length > 0 && (
-            <LongImagePair images={s4Media} onOpen={onOpen} />
-          )}
-
-          {/* Section 5: Parallax Turntable Media (Pos 22) */}
-          {s5Media && (
-            <FullWidthVideo media={s5Media} src={s5Media.src} driftUp onOpen={onOpen} />
+          {/* Section 4: Parallax Turntable Media (full-2) */}
+          {s4Media && (
+            <FullWidthVideo media={s4Media} src={s4Media.src} driftUp onOpen={onOpen} />
           )}
         </div>
       ))}
