@@ -68,11 +68,11 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       ior:                     { value: 2.417 },
       correctMips:             { value: true },
       aberrationStrength:      { value: 0.003 },
-      fresnel:                 { value: 0.8 },
+      fresnel:                 { value: 0.1 },
       roughness:               { value: 0.0 },
       envRotation:             { value: 0 },
       envRotationY:            { value: 0 },
-      envMapIntensity:         { value: 3.5 },
+      envMapIntensity:         { value: 2.0 },
       bvh:                     { value: new MeshBVHUniformStruct() },
       color:                   { value: new THREE.Color("white") },
       opacity:                 { value: 1.0 },
@@ -229,7 +229,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
 
         vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
         float nFresnel = fresnelFunc(viewDirection, normal) * fresnel;
-        vec3 finalRgb  = mix(diffuseColor.rgb, vec3(1.0), nFresnel) + vec3(0.04);
+        vec3 finalRgb  = mix(diffuseColor.rgb, vec3(1.0), nFresnel);
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
         #include <tonemapping_fragment>

@@ -555,16 +555,34 @@ export function buildGemMaterial(
   }
 
   if (tier === "mobile") {
+    if (envMapBase) {
+      try {
+        return new RoughRefractionMaterial({
+          envMapBase,
+          envMapSpot,
+          envMap: envMapBase,
+          ior: preset.ior ?? 2.417,
+          bounces: 3,
+          fresnel: preset.fresnel ?? 0,
+          roughness: preset.roughness ?? 0,
+          aberrationStrength: 0.003,
+          color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
+        });
+      } catch (err) {
+        console.warn("RoughRefractionMaterial on mobile failed, trying mobile fallback:", err);
+      }
+    }
+
     try {
       return new RoughRefractionMaterialMobile({
         envMap: pmremFallback || envMapBase,
         ior: preset.ior ?? 2.417,
         bounces: 3,
-        fresnel: preset.fresnel ?? 0.8,
+        fresnel: 0.1,
         roughness: preset.roughness ?? 0.0,
         aberrationStrength: 0.003,
         color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
-        envMapIntensity: 3.5,
+        envMapIntensity: 2.0,
       });
     } catch (err) {
       console.warn("RoughRefractionMaterialMobile creation failed, using physical diamond fallback:", err);

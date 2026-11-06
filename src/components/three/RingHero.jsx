@@ -1286,7 +1286,7 @@ export default function RingHero({
         const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal" || !hasHalfFloatTarget;
         const isMobileTier = deviceTier.tier === "mobile";
         const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" ? 2 : 0);
-        const targetType = (isLowTier || isMobileTier) ? THREE.UnsignedByteType : THREE.HalfFloatType;
+        const targetType = (!hasHalfFloatTarget || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? THREE.UnsignedByteType : THREE.HalfFloatType;
         const stencil = !isLowTier && !isMobileTier;
 
         let composerTarget;
@@ -1634,9 +1634,9 @@ export default function RingHero({
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
         return null;
       }),
-      (deviceTier.tier === "mobile" || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(effectiveBaseHdrUrl, {
+      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
         mono: gemBaseEnv?.mono ?? true,
-        fileName: baseFileNameHint,
+        fileName: (deviceTier.tier === "mobile" ? "Diamond-Base-HDRI-mobile.exr" : baseFileNameHint),
         onProgress: (xhr) => {
           if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond base environment loaded");
@@ -1645,9 +1645,9 @@ export default function RingHero({
         console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
       }),
-      (deviceTier.tier === "mobile" || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(gemSpotHdrUrl, {
+      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
         mono: gemSpotEnv?.mono ?? true,
-        fileName: spotFileNameHint,
+        fileName: (deviceTier.tier === "mobile" ? "Diamond-Spotlight-HDRI-mobile.exr" : spotFileNameHint),
         onProgress: (xhr) => {
           if (xhr.loaded) progressMap.gemSpotHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond spotlight environment loaded");
@@ -1718,8 +1718,8 @@ export default function RingHero({
             effectiveGemEnv
           );
           if ("envMapIntensity" in mat) {
-            const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
-            mat.envMapIntensity = BEATS[0].gemEnvIntensity * mobileScale;
+            const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
+            mat.envMapIntensity = BEATS[0].gemEnvIntensity * intensityScale;
           }
           mat.fog = false;
           child.material = mat;
@@ -2181,11 +2181,11 @@ export default function RingHero({
                     effectiveGemEnv
                   );
                   if ("envMapIntensity" in mat) {
-                    const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
+                    const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
                     mat.envMapIntensity =
                       ((getTimelineBeats()[0].gemEnvIntensity *
                         calculateDiamondEnvMapIntensityRaw({})) /
-                      5.0) * mobileScale;
+                      5.0) * intensityScale;
                   }
                   child.material = mat;
                   if (mat.isRoughRefractionMaterial) {
@@ -2613,8 +2613,8 @@ export default function RingHero({
         gemMaterials.forEach((mat) => {
           if (!("envMapIntensity" in mat)) return;
           const trim = mat.userData?._hdrTrim ?? 1;
-          const mobileScale = (deviceTier.tier === "mobile") ? 2.5 : 1.0;
-          mat.envMapIntensity = gemEnvState.value * trim * mobileScale;
+          const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
+          mat.envMapIntensity = gemEnvState.value * trim * intensityScale;
         });
 
         /* [EXPERIMENTAL_ATMOSPHERE] Subtle idle float, micro-tilt shimmer & mouse parallax whenever ring is still (Beats 1–4) */
