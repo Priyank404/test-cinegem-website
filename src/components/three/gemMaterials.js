@@ -562,10 +562,10 @@ export function buildGemMaterial(
           envMapSpot,
           envMap: envMapBase,
           ior: preset.ior ?? 2.417,
-          bounces: 3,
+          bounces: 4,
           fresnel: preset.fresnel ?? 0,
           roughness: preset.roughness ?? 0,
-          aberrationStrength: 0.003,
+          aberrationStrength: preset.aberrationStrength ?? 0.006,
           color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
         });
       } catch (err) {

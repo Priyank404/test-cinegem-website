@@ -1236,7 +1236,7 @@ export default function RingHero({
         window.devicePixelRatio,
         deviceTier.tier === "high"
           ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
-          : (deviceTier.tier === "mid" ? 1.5 : (deviceTier.tier === "mobile" ? 1.25 : 1.0))
+          : (deviceTier.tier === "mid" || deviceTier.tier === "mobile" ? 1.5 : 1.0)
       )
     );
     renderer.setClearColor(0x000000, 0);
@@ -1285,7 +1285,7 @@ export default function RingHero({
         const hasHalfFloatTarget = Boolean(glCaps?.extensions?.EXT_color_buffer_half_float || glCaps?.extensions?.EXT_color_buffer_float);
         const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal" || !hasHalfFloatTarget;
         const isMobileTier = deviceTier.tier === "mobile";
-        const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" ? 2 : 0);
+        const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" || deviceTier.tier === "mobile" ? 2 : 0);
         const targetType = (!hasHalfFloatTarget || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? THREE.UnsignedByteType : THREE.HalfFloatType;
         const stencil = !isLowTier && !isMobileTier;
 
