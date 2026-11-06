@@ -42,7 +42,7 @@ function lerpColor(c1, c2, w) {
   return col1.getHex();
 }
 
-function getInterpolatedFogOptions(fromRaw = {}, toRaw = {}, weight = 0) {
+function getInterpolatedFogOptions(fromRaw = {}, toRaw = {}, weight = 0, tier = "high") {
   const from = { ...DEFAULT_FOG_OPTIONS, ...normalizeFogOptions(fromRaw) };
   const to = { ...DEFAULT_FOG_OPTIONS, ...normalizeFogOptions(toRaw) };
   const w = Math.max(0, Math.min(1, weight));
@@ -55,11 +55,17 @@ function getInterpolatedFogOptions(fromRaw = {}, toRaw = {}, weight = 0) {
   const speed = rawSpeed === 0 ? 0.00001 : rawSpeed;
   const zoom = from.zoom ?? 0.6;
 
+  const isMobileOrMid = tier === "mobile" || tier === "mid" || tier === "low";
+  const scale = isMobileOrMid ? 2.0 : (from.scale ?? 1.0);
+  const scaleMobile = isMobileOrMid ? 4.0 : (from.scaleMobile ?? 2.0);
+
   return {
     ...from,
     mouseControls: false,
     touchControls: false,
     gyroControls: false,
+    scale,
+    scaleMobile,
     // Only transition colors across scroll beats
     highlightColor: lerpColor(from.highlightColor, to.highlightColor, w),
     midtoneColor: lerpColor(from.midtoneColor, to.midtoneColor, w),
@@ -95,11 +101,11 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     const el = containerRef.current;
     if (!el) return;
 
-    // Check device tier: mobile, low, and minimal devices skip the second WebGL context
-    // entirely to protect GPU memory and prevent context-loss crashes on phones.
-    // The container already has the dark gradient CSS background.
-    const { tier, isLowOrMinimal, isMobile } = getDeviceTier();
-    if (isLowOrMinimal || isMobile || tier === "mobile") {
+    // Check device tier: minimal devices skip the second WebGL context
+    // entirely to protect GPU memory and prevent context-loss crashes on low-end hardware.
+    // Mobile and mid-tier devices run fog smoothly at scaleMobile: 4.0 (1/4 fillrate).
+    const { tier } = getDeviceTier();
+    if (tier === "minimal") {
       return;
     }
 
@@ -108,13 +114,8 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       beatOptionsRef.current[0],
       beatOptionsRef.current[0],
       0,
+      tier,
     );
-
-    // On mid-tier phones/devices, reduce fog render scale to conserve GPU
-    if (tier === "mid") {
-      initialOpts.scale = 2.0;
-      initialOpts.scaleMobile = 4.0;
-    }
 
     let vantaCanvas = null;
     const handleVantaContextLost = (e) => {
@@ -162,7 +163,7 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       if (stateKey === lastStateKeyRef.current) return;
       lastStateKeyRef.current = stateKey;
 
-      const interpolated = getInterpolatedFogOptions(fromOpts, toOpts, weight);
+      const interpolated = getInterpolatedFogOptions(fromOpts, toOpts, weight, tier);
       effectRef.current.setOptions(interpolated);
     }
 
