@@ -534,9 +534,9 @@ body::-webkit-scrollbar,
     padding: 0 16px !important;
   }
 
-  /* Compact, luxury top title card centered on mobile */
+  /* Compact, luxury top title card centered on mobile, matching the exact logo gap of Beat 5 */
   .beat-title-right {
-    top: clamp(108px, 14.5vh, 124px) !important;
+    top: clamp(74px, 9.5vh, 84px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
