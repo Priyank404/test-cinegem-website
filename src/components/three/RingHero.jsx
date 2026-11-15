@@ -996,10 +996,10 @@ export default function RingHero({
       s *= isColumnBeats > 0.0001 ? scalePulse23 : 1.0;
 
       // In Footer Reveal (frames 245–260), dynamically target the exact NDC center of the
-      // viewable open canvas above the compact ~20-25% footer:
+      // viewable open canvas above the 30% footer:
       const winH = typeof window !== "undefined" ? window.innerHeight : 844;
       const targetFooterNy = isMobilePortrait
-        ? Math.min(0.20, Math.max(0.06, 100 / winH))
+        ? Math.min(0.28, Math.max(0.16, 160 / winH))
         : Math.min(0.24, Math.max(0.10, 135 / winH));
 
       const targetNx = THREE.MathUtils.lerp(nd.x * p.kx, bowX23, Math.max(isColumnBeats, footerFactor));

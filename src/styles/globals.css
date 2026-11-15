@@ -203,8 +203,23 @@ p, span, div, li, a, label, button, input, textarea {
     cursor: pointer;
   }
 
-  /* Hide scrollbar — retain scroll capability */
-  ::-webkit-scrollbar { width: 0; }
+  /* Hide native browser scrollbar across all engines while retaining full scroll capability */
+  html,
+  body,
+  #root {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar,
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
 
   /* Focus rings — only for keyboard navigation */
   :focus-visible {

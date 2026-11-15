@@ -3,6 +3,25 @@
    fixed behind (z-index 0/1, set in RingHero.jsx). Everything here is
    z-index 2+ so it scrolls on top, matching the peachweb.io layering. */
 
+/* Ensure native browser scrollbars are hidden across all viewports */
+html,
+body,
+.hero2-page,
+.hero2-scroll-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.hero2-page::-webkit-scrollbar,
+.hero2-scroll-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
 .hero2-page {
   position: relative;
   width: 100%;
@@ -645,10 +664,11 @@
     border-radius: 16px !important;
   }
 
-  /* Footer reveal styling on mobile — compact luxury layout taking 20-25% of viewport */
+  /* Footer reveal styling on mobile — luxury layout occupying ~30% of viewport */
   .hero2-footer-reveal {
-    padding: 10px 16px calc(8px + env(safe-area-inset-bottom)) !important;
-    max-height: 25vh !important;
+    padding: 16px 18px calc(14px + env(safe-area-inset-bottom)) !important;
+    max-height: 32vh !important;
+    min-height: 28vh !important;
     box-sizing: border-box !important;
   }
 
@@ -664,41 +684,43 @@
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
-    gap: 12px !important;
-    padding-bottom: 4px !important;
+    gap: 16px !important;
+    padding-bottom: 8px !important;
   }
 
   .hero2-footer-brand {
-    flex: 1 1 52% !important;
+    flex: 1 1 50% !important;
     max-width: 52% !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 3px !important;
+    gap: 5px !important;
   }
 
   .hero2-footer-brand .hero2-logo {
-    font-size: 13px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     color: #FCFBFA !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.01em !important;
   }
 
   .hero2-footer-brand p {
-    font-size: 9px !important;
-    line-height: 1.3 !important;
-    color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+    color: rgba(255, 255, 255, 0.72) !important;
     display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
+    -webkit-line-clamp: 3 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
-    margin: 0 !important;
+    margin: 2px 0 6px 0 !important;
   }
 
   .hero2-footer-brand .hero2-cta-btn {
-    padding: 4px 10px !important;
-    font-size: 9.5px !important;
+    padding: 6px 14px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
     letter-spacing: 0.08em !important;
-    margin-top: 3px !important;
+    margin-top: 2px !important;
     width: fit-content !important;
     border-radius: 9999px !important;
   }
@@ -708,7 +730,7 @@
   }
 
   .hero2-footer-status {
-    font-size: 10px !important;
+    font-size: 11px !important;
   }
 
   .hero2-footer-links-grid {
@@ -716,27 +738,28 @@
     display: flex !important;
     flex-direction: row !important;
     justify-content: flex-end !important;
-    gap: 12px !important;
+    gap: 16px !important;
     width: auto !important;
   }
 
   .hero2-footer-col {
     min-width: 0 !important;
-    gap: 2px !important;
+    gap: 4px !important;
   }
 
   .hero2-footer-col-title {
-    font-size: 8px !important;
-    letter-spacing: 0.12em !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
     color: #C5A059 !important;
-    margin-bottom: 2px !important;
+    margin-bottom: 4px !important;
   }
 
   .hero2-footer-col a {
-    font-size: 9px !important;
-    line-height: 1.25 !important;
-    color: rgba(255, 255, 255, 0.75) !important;
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    color: rgba(255, 255, 255, 0.82) !important;
     white-space: nowrap !important;
   }
 
@@ -746,14 +769,14 @@
     justify-content: space-between !important;
     align-items: center !important;
     gap: 8px !important;
-    padding-top: 4px !important;
-    margin-top: 2px !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding-top: 8px !important;
+    margin-top: 4px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 
   .hero2-footer-copyright {
-    font-size: 8px !important;
-    color: rgba(255, 255, 255, 0.4) !important;
+    font-size: 9.5px !important;
+    color: rgba(255, 255, 255, 0.5) !important;
     margin: 0 !important;
   }
 }
