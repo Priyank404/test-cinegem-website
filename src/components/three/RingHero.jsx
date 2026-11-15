@@ -3172,9 +3172,9 @@ export default function RingHero({
         }}
       />
 
-      {/* Mobile "Tap & Interact" toggle button — allows mobile users to opt into
-          3D ring rotation without trapping scrolling thumbs. Tapping activates interaction,
-          tapping again or scrolling automatically disengages it. */}
+      {/* Mobile "Tap & Interact" toggle button — minimal frosted glass matching the original hint pill.
+          Allows mobile users to opt into 3D ring rotation without trapping scrolling thumbs.
+          Tapping activates interaction; tapping again or scrolling automatically disengages it. */}
       {isMobileMode && inInteractiveWindow && (
         <button
           type="button"
@@ -3188,32 +3188,28 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "clamp(54px, 9vh, 76px)",
+            bottom: "clamp(50px, 8.5vh, 70px)",
             transform: "translateX(-50%)",
             zIndex: 10,
             pointerEvents: "auto",
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "10px 20px",
+            padding: "10px 18px",
             borderRadius: "999px",
             background: mobileInteracting
-              ? "rgba(197, 160, 89, 0.28)"
-              : "rgba(14, 14, 18, 0.78)",
-            backdropFilter: "blur(14px) saturate(180%)",
-            WebkitBackdropFilter: "blur(14px) saturate(180%)",
+              ? "rgba(22, 22, 28, 0.75)"
+              : "rgba(10, 10, 12, 0.55)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             border: mobileInteracting
-              ? "1px solid #C5A059"
-              : "1px solid rgba(197, 160, 89, 0.45)",
-            color: mobileInteracting ? "#FFFFFF" : "#F5E6C8",
-            fontSize: "12px",
-            fontWeight: 500,
-            letterSpacing: "0.12em",
+              ? "1px solid rgba(255, 255, 255, 0.2)"
+              : "1px solid rgba(255, 255, 255, 0.08)",
+            color: "rgba(255, 255, 255, 0.9)",
+            fontSize: "13px",
+            letterSpacing: "0.04em",
             textTransform: "uppercase",
-            fontFamily: "'Poppins', sans-serif",
-            boxShadow: mobileInteracting
-              ? "0 0 20px rgba(197, 160, 89, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3)"
-              : "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+            fontFamily: "inherit",
             cursor: "pointer",
             whiteSpace: "nowrap",
             userSelect: "none",
@@ -3221,35 +3217,47 @@ export default function RingHero({
             touchAction: "manipulation",
             WebkitTapHighlightColor: "transparent",
             transition:
-              "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease",
+              "background 0.3s ease, border-color 0.3s ease, color 0.3s ease",
           }}
         >
           {mobileInteracting ? (
-            <>
-              <span
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  borderRadius: "50%",
-                  background: "#C5A059",
-                  boxShadow: "0 0 8px #C5A059",
-                }}
-              />
-              <span>Interacting • Tap to scroll</span>
-            </>
-          ) : (
             <>
               <svg
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#C5A059"
-                strokeWidth="2"
+                stroke="currentColor"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+              <span>Interacting • Tap to scroll</span>
+            </>
+          ) : (
+            <>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  animation: "ringHeroDragHintSway 1.6s ease-in-out infinite",
+                }}
+              >
+                <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
+                <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
+                <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
+                <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
               </svg>
               <span>Tap &amp; Interact</span>
             </>
@@ -3307,14 +3315,14 @@ export default function RingHero({
             <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
           </svg>
           Drag to rotate
-          <style>{`
-            @keyframes ringHeroDragHintSway {
-              0%, 100% { transform: translateX(0); }
-              50% { transform: translateX(3px); }
-            }
-          `}</style>
         </div>
       )}
+      <style>{`
+        @keyframes ringHeroDragHintSway {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(3px); }
+        }
+      `}</style>
     </>
   );
 }
