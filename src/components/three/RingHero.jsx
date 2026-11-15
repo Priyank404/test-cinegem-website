@@ -439,6 +439,10 @@ export default function RingHero({
   // forth within the same visit doesn't nag the user a second time.
   const [showDragHint, setShowDragHint] = useState(false);
   const dismissedOnceRef = useRef(false);
+  const [mobileInteracting, setMobileInteracting] = useState(false);
+  const mobileInteractingRef = useRef(false);
+  const [inInteractiveWindow, setInInteractiveWindow] = useState(false);
+  const [isMobileMode, setIsMobileMode] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [gpuUnsupported, setGpuUnsupported] = useState(false);
   const [isSceneReady, setIsSceneReady] = useState(false);
@@ -521,6 +525,38 @@ export default function RingHero({
   const lastMotionFrameRef = useRef(0);
   const lastMotionTimeRef = useRef(0);
   const settleFramesRef = useRef(0);
+
+  // Mobile mode detection and automatic dismissal of interaction on scroll / wheel
+  useEffect(() => {
+    const updateProfile = () => {
+      const isP =
+        typeof window !== "undefined" &&
+        (window.innerWidth < 768 || window.innerHeight > window.innerWidth);
+      setIsMobileMode(isP);
+    };
+    updateProfile();
+    window.addEventListener("resize", updateProfile);
+    window.addEventListener("orientationchange", updateProfile);
+
+    const handleScrollOrWheel = () => {
+      if (mobileInteractingRef.current && !dragStateRef.current.dragging) {
+        mobileInteractingRef.current = false;
+        setMobileInteracting(false);
+        if (interactiveBoxRef.current) {
+          interactiveBoxRef.current.style.pointerEvents = "none";
+        }
+      }
+    };
+    window.addEventListener("scroll", handleScrollOrWheel, { passive: true });
+    window.addEventListener("wheel", handleScrollOrWheel, { passive: true });
+
+    return () => {
+      window.removeEventListener("resize", updateProfile);
+      window.removeEventListener("orientationchange", updateProfile);
+      window.removeEventListener("scroll", handleScrollOrWheel);
+      window.removeEventListener("wheel", handleScrollOrWheel);
+    };
+  }, []);
 
   // Keep the ref current and re-apply immediately
   useEffect(() => {
@@ -982,9 +1018,9 @@ export default function RingHero({
       // centered horizontally (nx = 0), matching the user's red box column layout.
       const isColumnBeats = smooth(18, 32, localFrame) * (1 - smooth(115, 128, localFrame));
       // In Beat 5 (frames ~205 to 245, Interactive 3D Viewer), on portrait screens
-      // shift the ring down (-0.28 on phone, -0.16 on tablet) to maintain a generous gap from the top card
+      // center the ring vertically in the open viewport between the top card and the bottom button
       const tPortrait = smooth(0.55, 0.72, camera.aspect);
-      const portraitViewerShift = isMobilePortrait ? -0.28 : THREE.MathUtils.lerp(-0.13, -0.16, tPortrait);
+      const portraitViewerShift = isMobilePortrait ? -0.14 : THREE.MathUtils.lerp(-0.08, -0.12, tPortrait);
       const viewerShiftY = (camera.aspect < 0.95 ? portraitViewerShift : -0.06) * isViewerSection;
 
       // Dynamic Beat 2 to 3 motion arc and breathing scale (mobile & tablet)
@@ -1365,6 +1401,7 @@ export default function RingHero({
     // drag with the pan/zoom stripped out.
     function onInteractiveDown(clientX, clientY) {
       if (!interactiveActiveRef.current) return;
+      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       dragStateRef.current = { dragging: true, prevX: clientX, prevY: clientY };
       if (canvas) canvas.style.cursor = "grabbing";
       if (RINGHERO_DEBUG_INTERACTION) {
@@ -2040,7 +2077,9 @@ export default function RingHero({
               }
 
               if (interactiveBoxRef.current) {
-                interactiveBoxRef.current.style.pointerEvents = inInteractiveRange
+                const boxActive =
+                  inInteractiveRange && (!isPortrait || mobileInteractingRef.current);
+                interactiveBoxRef.current.style.pointerEvents = boxActive
                   ? "auto"
                   : "none";
                 interactiveBoxRef.current.style.display = inInteractiveRange
@@ -2049,12 +2088,16 @@ export default function RingHero({
               }
 
               if (rangeChanged) {
+                setInInteractiveWindow(inInteractiveRange);
+                setIsMobileMode(isPortrait);
                 if (RINGHERO_DEBUG_INTERACTION) {
                   console.log(
                     `[RingHero] interactive window ${inInteractiveRange ? "OPENED" : "CLOSED"} — localFrame=${localFrame.toFixed(1)} range=[${interactiveRotateStartFrame}, ${interactiveRotateEndFrame}] isPortrait=${isPortrait}`,
                   );
                 }
                 if (!inInteractiveRange) {
+                  mobileInteractingRef.current = false;
+                  setMobileInteracting(false);
                   dragStateRef.current.dragging = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
@@ -3041,6 +3084,16 @@ export default function RingHero({
     sceneEpoch,
   ]);
 
+  const handleToggleMobileInteraction = (e) => {
+    e.stopPropagation();
+    const next = !mobileInteractingRef.current;
+    mobileInteractingRef.current = next;
+    setMobileInteracting(next);
+    if (interactiveBoxRef.current) {
+      interactiveBoxRef.current.style.pointerEvents = next ? "auto" : "none";
+    }
+  };
+
   return (
     <>
       <div
@@ -3096,19 +3149,19 @@ export default function RingHero({
           touchAction: RESPONSIVE_V2 ? "pan-y" : undefined,
         }}
       />
-      {/* Invisible interaction box around the ring on portrait/mobile screens in Beat 5.
-          Allows complete 360° rotation and vertical tilt without triggering page scroll.
-          Outside this box, touches scroll the website naturally. */}
+      {/* 360-degree invisible interaction box for mobile & touch devices.
+          Centered comfortably around the ring in Beat 5. Outside this box, and in the bottom
+          viewport margin (the scroll zone), touches scroll the website naturally. */}
       <div
         ref={interactiveBoxRef}
         aria-label="Interactive 3D ring rotation area"
         style={{
           position: "fixed",
           left: "50%",
-          top: "57%",
+          top: "52%",
           transform: "translate(-50%, -50%)",
-          width: "min(88vw, 420px)",
-          height: "min(52vh, 460px)",
+          width: "min(86vw, 380px)",
+          height: "min(40vh, 340px)",
           zIndex: 4,
           touchAction: "none",
           userSelect: "none",
@@ -3118,62 +3171,150 @@ export default function RingHero({
           cursor: "grab",
         }}
       />
-      {/* "Drag to explore" hint — purely visual, pointerEvents:"none" so it
-          never intercepts the drag itself. Fades in when the interactive
-          window opens, fades out on first drag (see dismissedOnceRef). */}
-      <div
-        style={{
-          position: "fixed",
-          left: "50%",
-          bottom: "8%",
-          transform: "translateX(-50%)",
-          zIndex: 3,
-          pointerEvents: "none",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "10px 18px",
-          borderRadius: "999px",
-          background: "rgba(10,10,12,0.55)",
-          backdropFilter: "blur(6px)",
-          color: "rgba(255,255,255,0.9)",
-          fontSize: "13px",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          fontFamily: "inherit",
-          opacity: showDragHint ? 1 : 0,
-          transition: "opacity 0.6s ease",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+
+      {/* Mobile "Tap & Interact" toggle button — allows mobile users to opt into
+          3D ring rotation without trapping scrolling thumbs. Tapping activates interaction,
+          tapping again or scrolling automatically disengages it. */}
+      {isMobileMode && inInteractiveWindow && (
+        <button
+          type="button"
+          onClick={handleToggleMobileInteraction}
+          aria-pressed={mobileInteracting}
+          aria-label={
+            mobileInteracting
+              ? "Stop 3D interaction and enable scrolling"
+              : "Tap to interact with 3D ring"
+          }
           style={{
-            animation: showDragHint
-              ? "ringHeroDragHintSway 1.6s ease-in-out infinite"
-              : "none",
+            position: "fixed",
+            left: "50%",
+            bottom: "clamp(54px, 9vh, 76px)",
+            transform: "translateX(-50%)",
+            zIndex: 10,
+            pointerEvents: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 20px",
+            borderRadius: "999px",
+            background: mobileInteracting
+              ? "rgba(197, 160, 89, 0.28)"
+              : "rgba(14, 14, 18, 0.78)",
+            backdropFilter: "blur(14px) saturate(180%)",
+            WebkitBackdropFilter: "blur(14px) saturate(180%)",
+            border: mobileInteracting
+              ? "1px solid #C5A059"
+              : "1px solid rgba(197, 160, 89, 0.45)",
+            color: mobileInteracting ? "#FFFFFF" : "#F5E6C8",
+            fontSize: "12px",
+            fontWeight: 500,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            fontFamily: "'Poppins', sans-serif",
+            boxShadow: mobileInteracting
+              ? "0 0 20px rgba(197, 160, 89, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3)"
+              : "0 8px 24px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            touchAction: "manipulation",
+            WebkitTapHighlightColor: "transparent",
+            transition:
+              "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease",
           }}
         >
-          <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
-          <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
-          <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
-          <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
-        </svg>
-        Drag to rotate
-        <style>{`
-          @keyframes ringHeroDragHintSway {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(3px); }
-          }
-        `}</style>
-      </div>
+          {mobileInteracting ? (
+            <>
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: "#C5A059",
+                  boxShadow: "0 0 8px #C5A059",
+                }}
+              />
+              <span>Interacting • Tap to scroll</span>
+            </>
+          ) : (
+            <>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#C5A059"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              <span>Tap &amp; Interact</span>
+            </>
+          )}
+        </button>
+      )}
+
+      {/* Desktop "Drag to explore" hint — purely visual, pointerEvents:"none" so it
+          never intercepts the drag itself. Fades in when the interactive
+          window opens, fades out on first drag (see dismissedOnceRef). */}
+      {!isMobileMode && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "8%",
+            transform: "translateX(-50%)",
+            zIndex: 3,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 18px",
+            borderRadius: "999px",
+            background: "rgba(10,10,12,0.55)",
+            backdropFilter: "blur(6px)",
+            color: "rgba(255,255,255,0.9)",
+            fontSize: "13px",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            fontFamily: "inherit",
+            opacity: showDragHint ? 1 : 0,
+            transition: "opacity 0.6s ease",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              animation: showDragHint
+                ? "ringHeroDragHintSway 1.6s ease-in-out infinite"
+                : "none",
+            }}
+          >
+            <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
+            <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
+            <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
+            <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
+          </svg>
+          Drag to rotate
+          <style>{`
+            @keyframes ringHeroDragHintSway {
+              0%, 100% { transform: translateX(0); }
+              50% { transform: translateX(3px); }
+            }
+          `}</style>
+        </div>
+      )}
     </>
   );
 }
