@@ -253,6 +253,11 @@ body::-webkit-scrollbar,
   }
 }
 
+/* Ensure buttons across all cards move in 1:1 lockstep with scroll without lingering animation lag */
+.btn-primary {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+}
+
 /* Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
    and the onScrollDebugUpdate block in HeroPage2.jsx. transform is
    written directly per scroll tick (starts at translateY(100%) via the

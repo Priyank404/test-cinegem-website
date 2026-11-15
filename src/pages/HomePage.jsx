@@ -2095,9 +2095,6 @@ export default function HomePage() {
           to="/3d-viewer"
           className="glassy-card p-6 md:p-8 border border-white/20 bg-black/60 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col gap-3 w-full max-w-md mx-auto text-decoration-none text-left block hover:border-[#C5A059]/60 transition-colors"
         >
-          <span className="text-[#C5A059] font-label text-[10px] tracking-[0.25em] uppercase font-semibold block">
-            04 — 3D INTERACTIVE ENGINE
-          </span>
           <h2 className="font-[Poppins] font-semibold text-2xl md:text-3xl text-[#FCFBFA] tracking-tight leading-tight m-0">
             Interactive 3D Viewer
           </h2>
