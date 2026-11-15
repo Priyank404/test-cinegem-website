@@ -58,6 +58,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import VerticalDotNav, {
   DEFAULT_HOME_SECTIONS,
 } from "@/components/ui/VerticalDotNav";
+import MobileScrollBar from "@/components/ui/MobileScrollBar";
 import { isDevMode } from "@/config/env";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -2338,6 +2339,9 @@ export default function HomePage() {
         onDotClick={handleDotClick}
         visible={!isLoading}
       />
+
+      {/* Discreet Mobile Vertical Scrollbar Scrubber */}
+      <MobileScrollBar lenisRef={lenisRef} visible={!isLoading} />
 
       {/* Tall scrollable content — its height drives the ScrollTrigger
           timeline inside RingHero. Must match id used in

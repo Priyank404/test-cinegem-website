@@ -189,7 +189,7 @@
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(86px, 11vh, 96px) !important;
+    top: clamp(74px, 9.5vh, 84px) !important;
     transform: translate(-50%, 16px) !important;
     width: min(calc(100% - 32px), 380px) !important;
     max-width: 380px !important;
@@ -645,26 +645,62 @@
     border-radius: 16px !important;
   }
 
-  /* Footer reveal styling on mobile */
+  /* Footer reveal styling on mobile — compact luxury layout taking 20-25% of viewport */
   .hero2-footer-reveal {
-    padding: 18px 16px calc(14px + env(safe-area-inset-bottom)) !important;
+    padding: 10px 16px calc(8px + env(safe-area-inset-bottom)) !important;
+    max-height: 25vh !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero2-footer-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 100% !important;
   }
 
   .hero2-footer-top {
     display: flex !important;
-    flex-direction: column !important;
-    gap: 16px !important;
-    padding-bottom: 14px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding-bottom: 4px !important;
   }
 
   .hero2-footer-brand {
-    max-width: 100% !important;
-    gap: 8px !important;
+    flex: 1 1 52% !important;
+    max-width: 52% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .hero2-footer-brand .hero2-logo {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #FCFBFA !important;
+    line-height: 1.2 !important;
   }
 
   .hero2-footer-brand p {
-    font-size: 12px !important;
-    line-height: 1.5 !important;
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
+
+  .hero2-footer-brand .hero2-cta-btn {
+    padding: 4px 10px !important;
+    font-size: 9.5px !important;
+    letter-spacing: 0.08em !important;
+    margin-top: 3px !important;
+    width: fit-content !important;
+    border-radius: 9999px !important;
   }
 
   .hero2-footer-brand-actions {
@@ -672,32 +708,53 @@
   }
 
   .hero2-footer-status {
-    font-size: 11px !important;
+    font-size: 10px !important;
   }
 
   .hero2-footer-links-grid {
+    flex: 1 1 48% !important;
     display: flex !important;
     flex-direction: row !important;
-    justify-content: space-between !important;
-    gap: 20px !important;
-    width: 100% !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    width: auto !important;
   }
 
   .hero2-footer-col {
-    min-width: 90px !important;
-    gap: 6px !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+  }
+
+  .hero2-footer-col-title {
+    font-size: 8px !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #C5A059 !important;
+    margin-bottom: 2px !important;
   }
 
   .hero2-footer-col a {
-    font-size: 13px !important;
-    line-height: 1.4 !important;
+    font-size: 9px !important;
+    line-height: 1.25 !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    white-space: nowrap !important;
   }
 
   .hero2-footer-bottom {
-    flex-direction: column !important;
-    align-items: flex-start !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     gap: 8px !important;
-    padding-top: 12px !important;
+    padding-top: 4px !important;
+    margin-top: 2px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .hero2-footer-copyright {
+    font-size: 8px !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    margin: 0 !important;
   }
 }
 

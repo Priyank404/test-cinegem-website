@@ -950,14 +950,15 @@ export default function RingHero({
         s = Math.min(minS, maxS);
       }
       // Sizing in Beat 5 (Interactive 3D Viewer & Footer Reveal):
-      // - 3D Viewer (frames 205–245): prominent scale on portrait/tablet screens to showcase ring details
-      // - Footer Reveal (frames 245–260): scale comfortably so ring is large and centered in canvas above footer
+      // - 3D Viewer (frames 205–245): comfortable scale with clear gap below the top explore card
+      // - Footer Reveal (frames 245–260): scale comfortably so ring is centered in canvas above footer
       const isViewerSection = smooth(205, 218, localFrame) * (1 - smooth(245, 255, localFrame));
       const footerFactor = smooth(245, 260, localFrame);
+      const mobileViewerScale = 0.90;
       const viewerScaleFactor = camera.aspect < 0.95
-        ? THREE.MathUtils.lerp(1.0, isMobilePortrait ? 1.18 : 0.96, isViewerSection)
+        ? THREE.MathUtils.lerp(1.0, isMobilePortrait ? mobileViewerScale : 0.96, isViewerSection)
         : 1.0;
-      const portraitFooterScale = isMobilePortrait ? 0.98 : 0.84;
+      const portraitFooterScale = isMobilePortrait ? 0.90 : 0.84;
       const footerScaleFactor = camera.aspect < 0.95
         ? THREE.MathUtils.lerp(1.0, portraitFooterScale, footerFactor)
         : 1.0;
@@ -981,9 +982,9 @@ export default function RingHero({
       // centered horizontally (nx = 0), matching the user's red box column layout.
       const isColumnBeats = smooth(18, 32, localFrame) * (1 - smooth(115, 128, localFrame));
       // In Beat 5 (frames ~205 to 245, Interactive 3D Viewer), on portrait screens
-      // shift the ring down (-0.13 on phone, -0.16 on tablet) to clear the top card completely
+      // shift the ring down (-0.28 on phone, -0.16 on tablet) to maintain a generous gap from the top card
       const tPortrait = smooth(0.55, 0.72, camera.aspect);
-      const portraitViewerShift = THREE.MathUtils.lerp(-0.13, -0.16, tPortrait);
+      const portraitViewerShift = isMobilePortrait ? -0.28 : THREE.MathUtils.lerp(-0.13, -0.16, tPortrait);
       const viewerShiftY = (camera.aspect < 0.95 ? portraitViewerShift : -0.06) * isViewerSection;
 
       // Dynamic Beat 2 to 3 motion arc and breathing scale (mobile & tablet)
@@ -995,12 +996,10 @@ export default function RingHero({
       s *= isColumnBeats > 0.0001 ? scalePulse23 : 1.0;
 
       // In Footer Reveal (frames 245–260), dynamically target the exact NDC center of the
-      // viewable open canvas above the footer:
-      // Mobile stacked footer (~340px tall) + header logo (~85px) -> center is 255/H
-      // Tablet row footer (~215px tall)                            -> center is 135/H
+      // viewable open canvas above the compact ~20-25% footer:
       const winH = typeof window !== "undefined" ? window.innerHeight : 844;
       const targetFooterNy = isMobilePortrait
-        ? Math.min(0.44, Math.max(0.28, 255 / winH))
+        ? Math.min(0.20, Math.max(0.06, 100 / winH))
         : Math.min(0.24, Math.max(0.10, 135 / winH));
 
       const targetNx = THREE.MathUtils.lerp(nd.x * p.kx, bowX23, Math.max(isColumnBeats, footerFactor));
