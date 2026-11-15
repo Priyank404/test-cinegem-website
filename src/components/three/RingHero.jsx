@@ -2756,6 +2756,40 @@ export default function RingHero({
               );
             }
 
+            // Determine if the user is currently actively interacting with the ring
+            const isUserInteracting =
+              viewport.profile === "portrait"
+                ? (mobileInteractingRef.current && interactiveActiveRef.current)
+                : (interactiveActiveRef.current && dragStateRef.current.dragging);
+
+            // When user stops interaction (e.g. taps stop, scrolls, or enters footer),
+            // smoothly glide the manual rotation and tilt back to default (0, 0) without any sudden jump!
+            if (!isUserInteracting) {
+              const safeDt = Math.min(dt, 0.1);
+              const dampFactor = 1 - Math.exp(-5.0 * safeDt);
+
+              // Smoothly damp tilt X back to default upright orientation (0)
+              if (Math.abs(manualRotRef.current.x) > 0.0001) {
+                manualRotRef.current.x += (0 - manualRotRef.current.x) * dampFactor;
+                if (Math.abs(manualRotRef.current.x) < 0.0001) {
+                  manualRotRef.current.x = 0;
+                }
+              }
+
+              // Smoothly damp manual Y rotation offset back to 0 using the shortest angular path
+              if (Math.abs(manualRotRef.current.y) > 0.0001) {
+                manualRotRef.current.y =
+                  THREE.MathUtils.euclideanModulo(
+                    manualRotRef.current.y + Math.PI,
+                    Math.PI * 2,
+                  ) - Math.PI;
+                manualRotRef.current.y += (0 - manualRotRef.current.y) * dampFactor;
+                if (Math.abs(manualRotRef.current.y) < 0.0001) {
+                  manualRotRef.current.y = 0;
+                }
+              }
+            }
+
             const rawOffsetY = autoRotateAngleRef.current + manualRotRef.current.y;
             interactiveOffsetY = rawOffsetY;
             interactiveOffsetX = manualRotRef.current.x;
