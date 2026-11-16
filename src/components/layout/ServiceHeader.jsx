@@ -383,7 +383,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
               <img
                 src={theme === 'dark' ? '/logo-white.png' : '/logo-dark.png'}
                 alt="Cinegem Studio"
-                className="h-10 sm:h-12 md:h-[56px] w-auto object-contain"
+                className="h-10 sm:h-12 md:h-[53px] w-auto object-contain"
               />
             </Link>
           </div>
