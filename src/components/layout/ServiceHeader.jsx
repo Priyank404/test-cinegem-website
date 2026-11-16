@@ -11,7 +11,7 @@ export const ALL_SERVICES = [
 ]
 
 const SERVICE_GROUP = {
-  heading: 'Service',
+  heading: 'Services',
   items: ALL_SERVICES,
 }
 
@@ -25,7 +25,7 @@ const ABOUT_GROUP = {
 const CONTACT_GROUP = {
   heading: 'Contact',
   items: [
-    { label: 'Inquiries', route: '/inquire' },
+    { label: 'Inquiry', route: '/inquire' },
     { label: 'info@cinegemstudio.com', route: 'mailto:info@cinegemstudio.com', external: true },
     { label: '+91 98765 43210', route: 'tel:+919876543210', external: true },
   ],
