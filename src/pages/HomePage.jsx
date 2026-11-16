@@ -223,6 +223,8 @@ export default function HomePage() {
   const lenisRef = useRef(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSectionRef = useRef(0);
+  const [beat2Playing, setBeat2Playing] = useState(false);
+  const [beat3Playing, setBeat3Playing] = useState(false);
 
   // Video playback & scroll activity refs
   const beat2VideoRef = useRef(null);
@@ -745,6 +747,34 @@ export default function HomePage() {
   const beat3ResolvedVideoSrc = useMemo(() => {
     return pickVideoSrc(beat3Video);
   }, [beat3Video]);
+
+  const toggleBeat2Playback = useCallback((e) => {
+    e?.stopPropagation?.();
+    const v = beat2VideoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      if (!v.src && beat2ResolvedVideoSrc) {
+        v.src = beat2ResolvedVideoSrc;
+      }
+      easeVideoIn(v);
+    } else {
+      pauseVideoSmooth(v);
+    }
+  }, [beat2ResolvedVideoSrc, easeVideoIn, pauseVideoSmooth]);
+
+  const toggleBeat3Playback = useCallback((e) => {
+    e?.stopPropagation?.();
+    const v = beat3VideoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      if (!v.src && beat3ResolvedVideoSrc) {
+        v.src = beat3ResolvedVideoSrc;
+      }
+      easeVideoIn(v);
+    } else {
+      pauseVideoSmooth(v);
+    }
+  }, [beat3ResolvedVideoSrc, easeVideoIn, pauseVideoSmooth]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1862,7 +1892,10 @@ export default function HomePage() {
 
                 {/* Slide 3: Video */}
                 <div ref={beat2Slide3Ref} className="glassy-slide">
-                  <div className="glassy-video-container">
+                  <div
+                    className="glassy-video-container relative group cursor-pointer"
+                    onClick={toggleBeat2Playback}
+                  >
                     <video
                       ref={beat2VideoRef}
                       data-src={beat2ResolvedVideoSrc}
@@ -1871,7 +1904,32 @@ export default function HomePage() {
                       loop
                       muted
                       playsInline
+                      onPlay={() => setBeat2Playing(true)}
+                      onPlaying={() => setBeat2Playing(true)}
+                      onPause={() => setBeat2Playing(false)}
+                      onEnded={() => setBeat2Playing(false)}
                     />
+                    {/* Play Icon Overlay (visible when video is paused, hidden when playing) */}
+                    <div
+                      className={`absolute inset-0 flex items-center justify-center z-20 transition-all duration-300 pointer-events-none ${
+                        beat2Playing
+                          ? "opacity-0 scale-90"
+                          : "opacity-100 scale-100"
+                      }`}
+                    >
+                      <div
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 group-hover:bg-black/70 group-hover:border-[#C5A059]/80 group-hover:text-[#C5A059] transition-all duration-300"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-6 h-6 sm:w-7 sm:h-7 translate-x-0.5"
+                        >
+                          <polygon points="6 3 20 12 6 21 6 3" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1957,17 +2015,47 @@ export default function HomePage() {
                 </div>
 
                 {/* 5. Bottom Wide Banner (Video) */}
-                <div className="creative-grid-item creative-item-bottom">
+                <div
+                  className="creative-grid-item creative-item-bottom relative group cursor-pointer"
+                  onClick={beat3ResolvedVideoSrc ? toggleBeat3Playback : undefined}
+                >
                   {beat3ResolvedVideoSrc ? (
-                    <video
-                      ref={beat3VideoRef}
-                      data-src={beat3ResolvedVideoSrc}
-                      poster={beat3Video.poster || beat3Video.thumb}
-                      preload="metadata"
-                      loop
-                      muted
-                      playsInline
-                    />
+                    <>
+                      <video
+                        ref={beat3VideoRef}
+                        data-src={beat3ResolvedVideoSrc}
+                        poster={beat3Video.poster || beat3Video.thumb}
+                        preload="metadata"
+                        loop
+                        muted
+                        playsInline
+                        onPlay={() => setBeat3Playing(true)}
+                        onPlaying={() => setBeat3Playing(true)}
+                        onPause={() => setBeat3Playing(false)}
+                        onEnded={() => setBeat3Playing(false)}
+                      />
+                      {/* Play Icon Overlay (visible when video is paused, hidden when playing) */}
+                      <div
+                        className={`absolute inset-0 flex items-center justify-center z-20 transition-all duration-300 pointer-events-none ${
+                          beat3Playing
+                            ? "opacity-0 scale-90"
+                            : "opacity-100 scale-100"
+                        }`}
+                      >
+                        <div
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 group-hover:bg-black/70 group-hover:border-[#C5A059]/80 group-hover:text-[#C5A059] transition-all duration-300"
+                          aria-hidden="true"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-6 h-6 sm:w-7 sm:h-7 translate-x-0.5"
+                          >
+                            <polygon points="6 3 20 12 6 21 6 3" />
+                          </svg>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <MediaImage
                       item={beat3Images[4] || beat3Images[0]}
