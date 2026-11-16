@@ -11,6 +11,10 @@ import { useSeo } from '@/seo/useSeo'
 export default function InquirePage() {
   useSeo('inquire')
   const containerRef = useRef(null)
+  const nameInputRef = useRef(null)
+  const emailInputRef = useRef(null)
+  const briefInputRef = useRef(null)
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,6 +23,8 @@ export default function InquirePage() {
   })
   
   const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+  const [formWarning, setFormWarning] = useState('')
   const [status, setStatus] = useState('idle') // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -37,26 +43,144 @@ export default function InquirePage() {
     return () => tl.kill()
   }, [])
 
+  const validateField = (name, value) => {
+    const trimmed = (value ?? '').trim()
+    switch (name) {
+      case 'name':
+        if (!trimmed) {
+          return 'Full name is required'
+        }
+        if (trimmed.length < 2) {
+          return 'Name must be at least 2 characters'
+        }
+        if (value.length > 30) {
+          return 'Name cannot exceed 30 characters'
+        }
+        return ''
+
+      case 'email':
+        if (!trimmed) {
+          return 'Email address is required'
+        }
+        if (trimmed.length > 100) {
+          return 'Email address cannot exceed 100 characters'
+        }
+        if (!trimmed.includes('@')) {
+          return "Email address must contain an '@' symbol"
+        }
+        {
+          const parts = trimmed.split('@')
+          if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            return 'Please enter a complete email address'
+          }
+          if (!parts[1].includes('.')) {
+            return "Email domain must include a '.' extension (e.g. brand.com)"
+          }
+          const domainParts = parts[1].split('.')
+          const tld = domainParts[domainParts.length - 1]
+          if (!tld || tld.length < 2) {
+            return 'Domain extension must be at least 2 characters (e.g. .com)'
+          }
+        }
+        {
+          const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
+          if (!emailRegex.test(trimmed) || trimmed.includes('..')) {
+            return 'Please enter a valid email address (e.g. name@brand.com)'
+          }
+        }
+        return ''
+
+      case 'company':
+        if (value && value.length > 60) {
+          return 'Company name cannot exceed 60 characters'
+        }
+        return ''
+
+      case 'brief':
+        if (!trimmed) {
+          return 'Project brief is required'
+        }
+        if (trimmed.length < 25) {
+          const needed = 25 - trimmed.length
+          return `Project brief must be at least 25 characters (${needed} more needed)`
+        }
+        if (value.length > 500) {
+          const excess = value.length - 500
+          return `Project brief cannot exceed 500 characters (${excess} over limit)`
+        }
+        return ''
+
+      default:
+        return ''
+    }
+  }
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target
+    setTouched((prev) => ({ ...prev, [name]: true }))
+    const error = validateField(name, value)
+    setErrors((prev) => {
+      const next = { ...prev, [name]: error }
+      if (!Object.values(next).some(Boolean)) {
+        setFormWarning('')
+      }
+      return next
+    })
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }))
+
+    // If already touched or displaying error, validate dynamically as user types
+    if (touched[name] || errors[name]) {
+      const error = validateField(name, value)
+      setErrors((prevErr) => {
+        const nextErr = { ...prevErr, [name]: error }
+        if (!Object.values(nextErr).some(Boolean)) {
+          setFormWarning('')
+        }
+        return nextErr
+      })
     }
   }
 
   const validateForm = () => {
-    const newErrors = {}
-    if (!formData.name.trim()) newErrors.name = 'Name is required'
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email'
+    const nameError = validateField('name', formData.name)
+    const emailError = validateField('email', formData.email)
+    const companyError = validateField('company', formData.company)
+    const briefError = validateField('brief', formData.brief)
+
+    const newErrors = {
+      name: nameError,
+      email: emailError,
+      company: companyError,
+      brief: briefError,
     }
-    if (!formData.brief.trim()) newErrors.brief = 'Brief is required'
-    
+
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setTouched({
+      name: true,
+      email: true,
+      company: true,
+      brief: true,
+    })
+
+    const hasErrors = Object.values(newErrors).some(Boolean)
+    if (hasErrors) {
+      setFormWarning('Please fix the highlighted errors before submitting your inquiry.')
+      if (nameError) {
+        nameInputRef.current?.focus()
+      } else if (emailError) {
+        emailInputRef.current?.focus()
+      } else if (briefError) {
+        briefInputRef.current?.focus()
+      }
+      return false
+    }
+
+    setFormWarning('')
+    return true
   }
 
   const handleSubmit = async (e) => {
@@ -187,58 +311,117 @@ export default function InquirePage() {
                   transition={{ duration: 0.4, ease: 'easeInOut' }}
                   className="relative overflow-hidden p-5 sm:p-7 md:p-8 border border-white/20 bg-black/40 backdrop-blur-2xl shadow-2xl rounded-lg"
                 >
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4">
+                  <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3 sm:gap-4">
                     
                     {/* Full Name field */}
                     <div className="flex flex-col gap-1">
-                      <label className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold">
-                        Full Name *
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label
+                          htmlFor="inquire-name"
+                          className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold"
+                        >
+                          Full Name *
+                        </label>
+                        <span
+                          className={`text-[10px] font-mono tracking-wider transition-colors ${
+                            formData.name.length > 30
+                              ? 'text-red-400 font-semibold'
+                              : formData.name.length > 25
+                              ? 'text-[#C5A059]'
+                              : 'text-white/40'
+                          }`}
+                        >
+                          {formData.name.length}/30
+                        </span>
+                      </div>
                       <input
+                        ref={nameInputRef}
+                        id="inquire-name"
                         type="text"
                         name="name"
+                        maxLength={30}
                         value={formData.name}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="e.g. Jean Laurent"
-                        className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 focus:border-[#C5A059] transition-all duration-300 outline-none rounded-md ${
-                          errors.name ? 'border-red-500/80' : 'border-white/20'
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? 'name-error' : undefined}
+                        className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 transition-all duration-300 outline-none rounded-md ${
+                          errors.name
+                            ? 'border-red-500/80 focus:border-red-400 bg-red-950/20 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
+                            : 'border-white/20 focus:border-[#C5A059]'
                         }`}
                       />
                       {errors.name && (
-                        <span className="text-red-400 text-[10px] font-medium tracking-wider">{errors.name}</span>
+                        <div
+                          id="name-error"
+                          className="flex items-center gap-1.5 text-red-400 text-[11px] font-medium tracking-wide mt-0.5 animate-fadeIn"
+                        >
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span>{errors.name}</span>
+                        </div>
                       )}
                     </div>
 
                     {/* Email & Company fields (2-column grid matching iPad / Desktop) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="flex flex-col gap-1">
-                        <label className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold">
+                        <label
+                          htmlFor="inquire-email"
+                          className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold"
+                        >
                           Email Address *
                         </label>
                         <input
+                          ref={emailInputRef}
+                          id="inquire-email"
                           type="email"
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
+                          onBlur={handleBlur}
                           placeholder="jean@brand.com"
-                          className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 focus:border-[#C5A059] transition-all duration-300 outline-none rounded-md ${
-                            errors.email ? 'border-red-500/80' : 'border-white/20'
+                          aria-invalid={Boolean(errors.email)}
+                          aria-describedby={errors.email ? 'email-error' : undefined}
+                          className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 transition-all duration-300 outline-none rounded-md ${
+                            errors.email
+                              ? 'border-red-500/80 focus:border-red-400 bg-red-950/20 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
+                              : 'border-white/20 focus:border-[#C5A059]'
                           }`}
                         />
                         {errors.email && (
-                          <span className="text-red-400 text-[10px] font-medium tracking-wider">{errors.email}</span>
+                          <div
+                            id="email-error"
+                            className="flex items-center gap-1.5 text-red-400 text-[11px] font-medium tracking-wide mt-0.5 animate-fadeIn"
+                          >
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <span>{errors.email}</span>
+                          </div>
                         )}
                       </div>
                       
                       <div className="flex flex-col gap-1">
-                        <label className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold">
-                          Company Name
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label
+                            htmlFor="inquire-company"
+                            className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold"
+                          >
+                            Company Name
+                          </label>
+                          <span className="text-[10px] font-mono tracking-wider text-white/40">Optional</span>
+                        </div>
                         <input
+                          id="inquire-company"
                           type="text"
                           name="company"
+                          maxLength={60}
                           value={formData.company}
                           onChange={handleChange}
+                          onBlur={handleBlur}
                           placeholder="e.g. Maison Laurent"
                           className="font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border border-white/20 text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 focus:border-[#C5A059] transition-all duration-300 outline-none rounded-md"
                         />
@@ -247,25 +430,95 @@ export default function InquirePage() {
 
                     {/* Project brief */}
                     <div className="flex flex-col gap-1">
-                      <label className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold">
-                        Project Brief *
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label
+                          htmlFor="inquire-brief"
+                          className="font-label text-[10px] tracking-[0.18em] uppercase text-[#FCFBFA] font-semibold"
+                        >
+                          Project Brief *
+                        </label>
+                        <span
+                          className={`text-[10px] font-mono tracking-wider transition-colors ${
+                            formData.brief.length === 0
+                              ? 'text-white/40'
+                              : formData.brief.length < 25
+                              ? 'text-amber-400 font-medium'
+                              : formData.brief.length > 500
+                              ? 'text-red-400 font-semibold'
+                              : 'text-emerald-400/90'
+                          }`}
+                        >
+                          {formData.brief.length}/500 {formData.brief.length < 25 ? `(min 25)` : ''}
+                        </span>
+                      </div>
                       <textarea
+                        ref={briefInputRef}
+                        id="inquire-brief"
                         name="brief"
+                        maxLength={500}
                         value={formData.brief}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         rows={3}
-                        placeholder="Outline the details of the products, creative vision, assets required, and scope..."
-                        className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 focus:border-[#C5A059] transition-all duration-300 outline-none rounded-md resize-none ${
-                          errors.brief ? 'border-red-500/80' : 'border-white/20'
+                        placeholder="Outline the details of the products, creative vision, assets required, and scope (min 25 characters)..."
+                        aria-invalid={Boolean(errors.brief)}
+                        aria-describedby={errors.brief ? 'brief-error' : undefined}
+                        className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 transition-all duration-300 outline-none rounded-md resize-none ${
+                          errors.brief
+                            ? 'border-red-500/80 focus:border-red-400 bg-red-950/20 shadow-[0_0_12px_rgba(239,68,68,0.2)]'
+                            : 'border-white/20 focus:border-[#C5A059]'
                         }`}
                       />
                       {errors.brief && (
-                        <span className="text-red-400 text-[10px] font-medium tracking-wider">{errors.brief}</span>
+                        <div
+                          id="brief-error"
+                          className="flex items-center gap-1.5 text-red-400 text-[11px] font-medium tracking-wide mt-0.5 animate-fadeIn"
+                        >
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span>{errors.brief}</span>
+                        </div>
                       )}
                     </div>
 
-                    {/* Error Notification */}
+                    {/* Pre-submit Form Warning Banner */}
+                    <AnimatePresence>
+                      {formWarning && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6, height: 0 }}
+                          animate={{ opacity: 1, y: 0, height: 'auto' }}
+                          exit={{ opacity: 0, y: -6, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="p-3.5 bg-red-950/70 border border-red-500/60 rounded-md flex items-start gap-2.5 text-red-200 text-xs shadow-lg"
+                          role="alert"
+                        >
+                          <svg
+                            className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                          </svg>
+                          <div className="flex flex-col gap-0.5 flex-1">
+                            <span className="font-semibold text-red-200 tracking-wide text-[11px] uppercase">
+                              Unable to Submit
+                            </span>
+                            <span className="text-red-300/90 text-[11px] leading-relaxed">
+                              {formWarning}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Backend / Network Error Notification */}
                     {status === 'error' && (
                       <motion.div
                         initial={{ opacity: 0, y: 5 }}
