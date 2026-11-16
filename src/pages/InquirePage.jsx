@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { gsap } from 'gsap'
 import { ServiceHeader } from '@/components/layout/ServiceHeader'
-import { BackToVault } from '@/components/shared/BackToVault'
 import { INQUIRE_CONFIG } from '@/constants/inquire'
 import VantaFogBackground from '@/components/effects/VantaFogBackground'
 import { useSeo } from '@/seo/useSeo'
@@ -258,11 +257,6 @@ export default function InquirePage() {
 
       {/* ── Main Content Container ─────────────────────────────────── */}
       <div className="w-full max-w-[1440px] mx-auto px-5 sm:px-8 md:px-12 lg:px-16 z-10 flex flex-col flex-1 my-auto justify-center">
-        
-        {/* Back navigation link */}
-        <div className="animate-fade-up mb-3 sm:mb-4 lg:mb-6">
-          <BackToVault light className="!mb-0" />
-        </div>
 
         {/* Content grid: Single column unified layout on mobile/tablet, 2 columns on desktop */}
         <div
