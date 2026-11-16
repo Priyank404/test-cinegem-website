@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FOOTER_LINKS } from '@/constants'
 
 export const ALL_SERVICES = [
-  { label: 'On-Body Visualization',  route: '/onbody'           },
   { label: 'Classic E-Commerce',     route: '/classic'          },
   { label: 'Creative Visuals',       route: '/creative-visuals' },
+  { label: 'On-Body Visuals',        route: '/onbody'           },
   { label: '3D Viewer',              route: '/3d-viewer'        },
 ]
 
@@ -363,9 +363,11 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
         }}
         className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-500 border-b ${
           showHeader || menuOpen || isHovered
-            ? theme === 'dark'
-              ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#0c0d16]/80 border-white/10 shadow-lg'
-              : 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
+            ? menuOpen
+              ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#0c0d16]/95 border-white/10 shadow-lg'
+              : theme === 'dark'
+                ? 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#0c0d16]/80 border-white/10 shadow-lg'
+                : 'translate-y-0 opacity-100 pointer-events-auto backdrop-blur-xl bg-[#fbf9f1]/80 border-white/30 shadow-sm'
             : '-translate-y-full opacity-0 pointer-events-none bg-transparent border-transparent'
         }`}
       >
@@ -381,7 +383,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
               aria-label="Cinegem Studio — Return to Home"
             >
               <img
-                src={theme === 'dark' ? '/logo-white.png' : '/logo-dark.png'}
+                src={menuOpen || theme === 'dark' ? '/logo-white.png' : '/logo-dark.png'}
                 alt="Cinegem Studio"
                 className="h-10 sm:h-12 md:h-[53px] w-auto object-contain"
               />
@@ -402,23 +404,23 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
             >
               <span
                 className={`absolute left-[4px] h-[1.5px] w-6 transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'
-                } ${
-                  menuOpen ? 'top-[16px] rotate-45' : 'top-[10px]'
+                  menuOpen
+                    ? 'bg-[#FCFBFA] top-[16px] rotate-45'
+                    : `${theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'} top-[10px]`
                 }`}
               />
               <span
                 className={`absolute left-[4px] h-[1.5px] w-6 transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'
-                } ${
-                  menuOpen ? 'opacity-0 top-[16px]' : 'top-[16px]'
+                  menuOpen
+                    ? 'opacity-0 top-[16px] bg-[#FCFBFA]'
+                    : `${theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'} top-[16px]`
                 }`}
               />
               <span
                 className={`absolute left-[4px] h-[1.5px] w-6 transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'
-                } ${
-                  menuOpen ? 'top-[16px] -rotate-45' : 'top-[22px]'
+                  menuOpen
+                    ? 'bg-[#FCFBFA] top-[16px] -rotate-45'
+                    : `${theme === 'dark' ? 'bg-[#FCFBFA]' : 'bg-[#121212]'} top-[22px]`
                 }`}
               />
             </button>
@@ -433,67 +435,76 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            className={`fixed inset-0 z-40 lg:hidden flex flex-col justify-center px-8 backdrop-blur-xl ${
-              theme === 'dark' ? 'bg-[#0c0d16]/98 text-[#FCFBFA]' : 'bg-[#fbf9f1]/98 text-[#121212]'
-            }`}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-40 lg:hidden flex flex-col justify-center px-8 bg-[#0c0d16]/95 backdrop-blur-2xl text-[#FCFBFA]"
           >
-            <div className="flex flex-col gap-6 max-w-sm mx-auto w-full">
-              <span className="text-[#C5A059] font-[Poppins] text-[9px] tracking-[0.3em] uppercase block mb-1 font-light">
-                EXPLORE STUDIO SERVICES
+            <div className="flex flex-col gap-5 max-w-xs mx-auto w-full pt-8">
+              <span className="text-[#C5A059] font-[Poppins] text-[10px] tracking-[0.3em] uppercase block font-light">
+                STUDIO SERVICES
               </span>
 
-              {ALL_SERVICES.map((link, idx) => {
-                const isActive = link.route === currentPage
-                return (
-                  <motion.div
-                    key={link.route}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + idx * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <Link
-                      to={link.route}
-                      onClick={() => setMenuOpen(false)}
-                      className={`font-[Poppins] font-semibold text-2xl tracking-wide flex items-center gap-3 transition-colors duration-300 ${
-                        isActive ? 'text-[#C5A059]' : theme === 'dark' ? 'text-[#FCFBFA] hover:text-[#C5A059]' : 'text-[#121212] hover:text-[#C5A059]'
-                      }`}
+              <div className="flex flex-col gap-2">
+                {ALL_SERVICES.map((link, idx) => {
+                  const isActive = link.route === currentPage
+                  return (
+                    <motion.div
+                      key={link.route}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.08 + idx * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C5A059]" />
-                      )}
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                )
-              })}
+                      <Link
+                        to={link.route}
+                        onClick={() => setMenuOpen(false)}
+                        className={`font-[Poppins] text-lg tracking-wide flex items-center gap-3 transition-colors duration-200 py-1.5 ${
+                          isActive
+                            ? 'text-[#C5A059] font-medium'
+                            : 'text-white/85 hover:text-[#C5A059] font-light'
+                        }`}
+                      >
+                        {isActive && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#C5A059]" />
+                        )}
+                        {link.label}
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="h-px bg-white/10 my-1"
+              />
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + ALL_SERVICES.length * 0.06, duration: 0.5 }}
-                className={`h-px my-2 ${theme === 'dark' ? 'bg-white/15' : 'bg-[#121212]/10'}`}
-              />
-
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + ALL_SERVICES.length * 0.06, duration: 0.6 }}
+                transition={{ delay: 0.35, duration: 0.45 }}
                 className="flex flex-col gap-4"
               >
-                <Link
-                  to="/"
-                  onClick={() => setMenuOpen(false)}
-                  className={`font-[Poppins] text-[10px] tracking-[0.2em] uppercase font-light ${
-                    theme === 'dark' ? 'text-white/70 hover:text-white' : 'text-[#444748] hover:text-[#121212]'
-                  }`}
-                >
-                  ← BACK TO HOME
-                </Link>
+                <div className="flex items-center justify-between text-[11px] tracking-[0.2em] uppercase font-light text-white/50 px-0.5">
+                  <Link
+                    to="/faq"
+                    onClick={() => setMenuOpen(false)}
+                    className="hover:text-[#C5A059] transition-colors"
+                  >
+                    FAQ
+                  </Link>
+                  <a
+                    href="mailto:info@cinegemstudio.com"
+                    className="hover:text-[#C5A059] transition-colors normal-case tracking-normal text-xs text-white/40"
+                  >
+                    info@cinegemstudio.com
+                  </a>
+                </div>
+
                 <Link
                   to="/inquire"
                   onClick={() => setMenuOpen(false)}
-                  className="btn-primary text-center text-xs py-3.5 mt-2 rounded-[2px]"
+                  className="btn-primary text-center text-xs py-3.5 rounded-[2px] tracking-[0.15em]"
                 >
                   Inquire →
                 </Link>
