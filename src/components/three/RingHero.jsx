@@ -428,7 +428,6 @@ export default function RingHero({
   // Manual rotation offset accumulated from drag input, added on top of
   // the scroll-tweened / auto-rotate rotation. { y: spin, x: tilt }.
   const manualRotRef = useRef({ x: 0, y: 0 });
-  const userHasDraggedRef = useRef(false);
   // Pointer-drag bookkeeping for the interactive rotate handlers below —
   // mirrors the standalone 3D viewer's dragRef shape (dragging/prevX/
   // prevY), minus anything pan-related since this ring can only be
@@ -1425,9 +1424,6 @@ export default function RingHero({
           manualRotRef.current.x + dy * interactiveDragSensitivity,
         ),
       );
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-        userHasDraggedRef.current = true;
-      }
     }
     function onInteractiveUp() {
       dragStateRef.current.dragging = false;
@@ -2097,7 +2093,6 @@ export default function RingHero({
                   mobileInteractingRef.current = false;
                   setMobileInteracting(false);
                   dragStateRef.current.dragging = false;
-                  userHasDraggedRef.current = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
                   }
@@ -2743,14 +2738,10 @@ export default function RingHero({
             wasInSpinSectionRef.current = true;
 
             // Inside the 360 spin & interactive section:
-            // Auto-rotate runs prior to user manual drag in Beat 5, and continuously in the footer section.
-            // When user drags to inspect on desktop/mobile, auto-rotate pauses while in the interactive window so it stays in place.
-            const shouldAutoRotate =
-              !dragStateRef.current.dragging &&
-              !isRingDebug &&
-              (!interactiveActiveRef.current || !userHasDraggedRef.current);
-
-            if (shouldAutoRotate) {
+            // The 360 spin is always active. While dragging, auto-rotate pauses momentarily
+            // so pointer drag has 1:1 precision; as soon as drag finishes, the 360 continuous spin
+            // keeps spinning smoothly from that orientation and tilt!
+            if (!dragStateRef.current.dragging && !isRingDebug) {
               autoRotateAngleRef.current = THREE.MathUtils.euclideanModulo(
                 autoRotateAngleRef.current + autoRotateSpeed * dt,
                 Math.PI * 2,
