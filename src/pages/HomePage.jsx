@@ -2444,20 +2444,20 @@ export default function HomePage() {
       {/* Dedicated minimal glass header for Hero2: transparent luxury glass bar that preserves logo visibility over bright cards */}
       <header
         ref={navRef}
-        className={`fixed top-0 left-0 right-0 z-50 flex justify-center items-center h-16 sm:h-20 md:h-[84px] px-6 bg-[#0c0d16]/65 backdrop-blur-xl border-b border-white/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.25)] pointer-events-none transition-all duration-700 ${
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-6 sm:pt-7 md:pt-8 pb-4 sm:pb-4 md:pb-5 px-6 bg-[#0c0d16]/65 backdrop-blur-xl border-b border-white/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.25)] pointer-events-none transition-all duration-700 ${
           isLoading ? "opacity-0" : "opacity-100"
         }`}
       >
         <Link
           to="/"
           onClick={handleLogoClick}
-          className="pointer-events-auto inline-flex items-center justify-center pt-0.5 sm:pt-1 transition-opacity duration-300 hover:opacity-80 focus:outline-none cursor-pointer"
+          className="pointer-events-auto inline-flex items-center justify-center transition-opacity duration-300 hover:opacity-80 focus:outline-none cursor-pointer"
           aria-label="Cinegem Studio — return to top"
         >
           <img
             src="/logo-white.png"
             alt="Cinegem Studio Logo"
-            className="h-10 sm:h-12 md:h-[56px] w-auto object-contain filter drop-shadow block"
+            className="h-14 sm:h-16 md:h-20 lg:h-[82px] w-auto object-contain filter drop-shadow block"
           />
         </Link>
       </header>
