@@ -26,11 +26,24 @@ const CONTACT_GROUP = {
   heading: 'Contact',
   items: [
     { label: 'Inquiries', route: '/inquire' },
-    ...FOOTER_LINKS.filter((l) => l.external).map((l) => ({
-      label: l.label,
-      route: l.href,
+    { label: 'Email', route: 'mailto:info@cinegemstudio.com', external: true },
+    { label: 'Phone', route: 'tel:+919876543210', external: true },
+  ],
+}
+
+const SOCIALS_GROUP = {
+  heading: 'Socials',
+  items: [
+    {
+      label: 'Instagram',
+      route: 'https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg==',
       external: true,
-    })),
+    },
+    {
+      label: 'Behance',
+      route: 'https://www.behance.net/cinegem-studio/projects',
+      external: true,
+    },
   ],
 }
 
@@ -38,7 +51,7 @@ const NAV_MENUS = [
   {
     id: 'menu',
     label: 'Menu',
-    groups: [SERVICE_GROUP, ABOUT_GROUP, CONTACT_GROUP],
+    groups: [SERVICE_GROUP, ABOUT_GROUP, CONTACT_GROUP, SOCIALS_GROUP],
   },
 ]
 
@@ -181,6 +194,7 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                     <div className="flex flex-col gap-1.5 -mx-2.5">
                       {group.items.map((item) => {
                         const isItemActive = item.route === currentPage
+                        const isMailOrTel = item.route.startsWith('mailto:') || item.route.startsWith('tel:')
                         const itemClassName = `w-full font-[Poppins] text-[13px] font-light flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors duration-150 ${
                           theme === 'dark'
                             ? isItemActive ? 'text-[#C5A059] bg-white/10' : 'text-white/80 hover:text-[#C5A059] hover:bg-white/10'
@@ -191,8 +205,8 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                             {item.external ? (
                               <a
                                 href={item.route}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                target={isMailOrTel ? undefined : '_blank'}
+                                rel={isMailOrTel ? undefined : 'noopener noreferrer'}
                                 onClick={() => setActiveId(null)}
                                 className={itemClassName}
                               >
