@@ -26,8 +26,8 @@ const CONTACT_GROUP = {
   heading: 'Contact',
   items: [
     { label: 'Inquiries', route: '/inquire' },
-    { label: 'Email', route: 'mailto:info@cinegemstudio.com', external: true },
-    { label: 'Phone', route: 'tel:+919876543210', external: true },
+    { label: 'info@cinegemstudio.com', route: 'mailto:info@cinegemstudio.com', external: true },
+    { label: '+91 98765 43210', route: 'tel:+919876543210', external: true },
   ],
 }
 
@@ -182,10 +182,10 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="flex gap-10 md:gap-14 justify-start items-start"
+                className="flex gap-6 md:gap-8 justify-start items-start"
               >
                 {activeMenu.groups.map((group) => (
-                  <div key={group.heading} className="flex flex-col gap-3 min-w-[120px]">
+                  <div key={group.heading} className="flex flex-col gap-2.5 min-w-0">
                     {group.heading && (
                       <span className="text-[#C5A059] font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1">
                         {group.heading}
@@ -369,7 +369,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
             : '-translate-y-full opacity-0 pointer-events-none bg-transparent border-transparent'
         }`}
       >
-        <div className="grid grid-cols-3 items-center px-4 sm:px-6 md:px-20 max-w-[1440px] mx-auto h-16 sm:h-20">
+        <div className="grid grid-cols-3 items-center px-6 sm:px-8 md:px-12 w-full mx-auto h-16 sm:h-20">
           {/* Left spacer — keeps the logo mathematically centered */}
           <div aria-hidden="true" />
 
