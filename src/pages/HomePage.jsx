@@ -2145,20 +2145,12 @@ export default function HomePage() {
         className="hero2-explore-link"
         style={{ display: "none", pointerEvents: "none" }}
       >
-        <Link
-          to="/3d-viewer"
-          className="glassy-card p-6 md:p-8 border border-white/20 bg-black/60 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col gap-3 w-full max-w-md mx-auto text-decoration-none text-left block hover:border-[#C5A059]/60 transition-colors"
-        >
-          <h2 className="font-[Poppins] font-semibold text-2xl md:text-3xl text-[#FCFBFA] tracking-tight leading-tight m-0">
-            Interactive 3D Viewer
-          </h2>
-          <p className="font-[Poppins] font-light text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 whitespace-normal">
-            Real-time interactive 3D configurator with dynamic precious metal switching, diamond refraction, and 360° inspection controls. Launching soon.
-          </p>
-          <div className="btn-primary inline-flex items-center gap-2 py-2.5 px-5 text-[11px] font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit mt-1">
-            EXPLORE →
-          </div>
-        </Link>
+        <TitleGlassyCard
+          title="Interactive 3D Viewer"
+          description="Real-time interactive 3D configurator with dynamic precious metal switching, diamond refraction, and 360° inspection controls. Launching soon."
+          href="/3d-viewer"
+          linkText="EXPLORE →"
+        />
       </div>
 
       {/* Footer reveal panel */}

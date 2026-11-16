@@ -225,7 +225,12 @@ function PeekCarousel({ images, className = "" }) {
   const canRight = activeIndex < images.length - 1;
 
   return (
-    <div className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-t-[12px] rounded-b-none ${className}`}>
+    <div
+      className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-t-[12px] rounded-b-none isolate ${className}`}
+      style={{
+        WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+      }}
+    >
       {canLeft && (
         <ScrollArrow direction="left" onClick={() => goTo(activeIndex - 1)} />
       )}
@@ -238,9 +243,9 @@ function PeekCarousel({ images, className = "" }) {
           <div
             key={i}
             ref={(el) => (slideRefs.current[i] = el)}
-            className="w-full shrink-0 aspect-square snap-center [scroll-snap-stop:always] overflow-hidden rounded-t-[12px] rounded-b-none"
+            className="w-full shrink-0 aspect-square snap-center [scroll-snap-stop:always] overflow-hidden"
           >
-            <ImageTile img={img} className="w-full h-full rounded-t-[12px] rounded-b-none" />
+            <ImageTile img={img} className="w-full h-full" />
           </div>
         ))}
       </div>
@@ -271,16 +276,46 @@ function PeekCarousel({ images, className = "" }) {
 function MainPreviewCarousel({
   images,
   videoSrc,
+  mediaCenter,
   heightClassName = "",
   className = "",
 }) {
-  const media = videoSrc
-    ? [...images.map((img) => ({ type: "image", img })), { type: "video" }]
+  const activeVideo = mediaCenter || videoSrc;
+  const media = activeVideo
+    ? [
+        ...images.map((img) => ({ type: "image", img })),
+        { type: "video", media: mediaCenter, videoSrc },
+      ]
     : images.map((img) => ({ type: "image", img }));
 
   const [activeIndex, setActiveIndex] = useState(0);
   const active = media[activeIndex];
   const dragStart = useRef(null);
+  const [aspectRatio, setAspectRatio] = useState("aspect-square");
+
+  // Dynamic aspect ratio: auto-detect if the media is portrait/vertical or square
+  useEffect(() => {
+    const activeItem = active?.type === "image" ? active.img : (active?.media || active?.videoSrc);
+    const src = typeof activeItem === "string" ? activeItem : (activeItem?.src || activeItem?.full);
+    if (!src) return;
+
+    if (activeItem?.aspectRatio) {
+      setAspectRatio(activeItem.aspectRatio < 0.9 ? "aspect-[3/4]" : "aspect-square");
+      return;
+    }
+
+    if (active?.type === "image") {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        if (img.naturalHeight > img.naturalWidth * 1.1) {
+          setAspectRatio("aspect-[3/4]");
+        } else {
+          setAspectRatio("aspect-square");
+        }
+      };
+    }
+  }, [active]);
 
   const canLeft = activeIndex > 0;
   const canRight = activeIndex < media.length - 1;
@@ -317,15 +352,18 @@ function MainPreviewCarousel({
 
   return (
     <div
-      className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-[12px] [touch-action:pan-y] ${heightClassName} ${className}`}
+      className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-[12px] isolate [touch-action:pan-y] ${heightClassName} ${className}`}
+      style={{
+        WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+      }}
       onPointerDown={handlePointerDown}
     >
       {canLeft && <ScrollArrow direction="left" onClick={() => step(-1)} />}
-      <div className="w-full h-full aspect-square overflow-hidden rounded-[12px]">
+      <div className={`w-full overflow-hidden rounded-[12px] transition-[aspect-ratio] duration-300 ${aspectRatio}`}>
         {active.type === "video" ? (
-          <VideoPlayer videoSrc={videoSrc} className="w-full h-full aspect-square rounded-[12px]" />
+          <VideoPlayer media={active.media} videoSrc={active.videoSrc || videoSrc} className="w-full h-full rounded-[12px]" />
         ) : (
-          <ImageTile img={active.img} className="w-full h-full aspect-square rounded-[12px]" />
+          <ImageTile img={active.img} className="w-full h-full rounded-[12px]" />
         )}
       </div>
       {canRight && <ScrollArrow direction="right" onClick={() => step(1)} />}
@@ -615,13 +653,13 @@ function Section3({ mediaItems = [], images = [], videoSrc }) {
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-12">
       <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
-        {/* MOBILE / TABLET (<lg) */}
-        <div className="lg:hidden w-full aspect-square">
+        {/* MOBILE / TABLET (<lg) — dynamically supports square or vertical portrait images */}
+        <div className="lg:hidden w-full">
           <MainPreviewCarousel
             images={[hero, img2, img3, img4]}
             videoSrc={typeof centerMedia === "string" ? centerMedia : centerMedia?.src}
             mediaCenter={centerMedia}
-            className="w-full aspect-square"
+            className="w-full"
           />
         </div>
 

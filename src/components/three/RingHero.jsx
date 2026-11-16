@@ -428,15 +428,14 @@ export default function RingHero({
   // Manual rotation offset accumulated from drag input, added on top of
   // the scroll-tweened / auto-rotate rotation. { y: spin, x: tilt }.
   const manualRotRef = useRef({ x: 0, y: 0 });
+  const userHasDraggedRef = useRef(false);
   // Pointer-drag bookkeeping for the interactive rotate handlers below —
   // mirrors the standalone 3D viewer's dragRef shape (dragging/prevX/
   // prevY), minus anything pan-related since this ring can only be
   // spun/zoomed, never moved.
   const dragStateRef = useRef({ dragging: false, prevX: 0, prevY: 0 });
-  // "Drag to explore" hint overlay — fades in the moment the interactive
-  // window opens, fades out the instant the user actually drags. Once
-  // dismissed it stays dismissed (dismissedOnceRef) so scrolling back and
-  // forth within the same visit doesn't nag the user a second time.
+  // "Drag to rotate" hint badge shown at the bottom of the viewport during
+  // the interactive window (Beat 5). Remains visible throughout the section.
   const [showDragHint, setShowDragHint] = useState(false);
   const dismissedOnceRef = useRef(false);
   const [mobileInteracting, setMobileInteracting] = useState(false);
@@ -1410,10 +1409,6 @@ export default function RingHero({
           `[RingHero] drag START at (${clientX}, ${clientY}) — reached the canvas fine.`,
         );
       }
-      if (!dismissedOnceRef.current) {
-        dismissedOnceRef.current = true;
-        setShowDragHint(false);
-      }
     }
     function onInteractiveMove(clientX, clientY) {
       if (!interactiveActiveRef.current || !dragStateRef.current.dragging)
@@ -1430,6 +1425,9 @@ export default function RingHero({
           manualRotRef.current.x + dy * interactiveDragSensitivity,
         ),
       );
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        userHasDraggedRef.current = true;
+      }
     }
     function onInteractiveUp() {
       dragStateRef.current.dragging = false;
@@ -2099,13 +2097,12 @@ export default function RingHero({
                   mobileInteractingRef.current = false;
                   setMobileInteracting(false);
                   dragStateRef.current.dragging = false;
+                  userHasDraggedRef.current = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
                   }
                 }
-                setShowDragHint(
-                  inInteractiveRange && !dismissedOnceRef.current,
-                );
+                setShowDragHint(inInteractiveRange);
               }
             }
 
@@ -2746,25 +2743,30 @@ export default function RingHero({
             wasInSpinSectionRef.current = true;
 
             // Inside the 360 spin & interactive section:
-            // Accumulate auto-rotate angle while not actively dragging.
-            // Using euclideanModulo keeps angle strictly within [0, 2π) at all times,
-            // preventing unbounded accumulation of phantom revolutions!
-            if (!dragStateRef.current.dragging && !isRingDebug) {
+            // Auto-rotate runs prior to user manual drag in Beat 5, and continuously in the footer section.
+            // When user drags to inspect on desktop/mobile, auto-rotate pauses while in the interactive window so it stays in place.
+            const shouldAutoRotate =
+              !dragStateRef.current.dragging &&
+              !isRingDebug &&
+              (!interactiveActiveRef.current || !userHasDraggedRef.current);
+
+            if (shouldAutoRotate) {
               autoRotateAngleRef.current = THREE.MathUtils.euclideanModulo(
                 autoRotateAngleRef.current + autoRotateSpeed * dt,
                 Math.PI * 2,
               );
             }
 
-            // Determine if the user is currently actively interacting with the ring
-            const isUserInteracting =
+            // Smooth return to default:
+            // - On desktop: while inside the 3D section (Beat 5), the ring STAYS in whatever orientation the user rotated it to.
+            //   Only when the user EXITS the section (scrolling into footer or scrolling back up), it smoothly damps back to default (0, 0).
+            // - On mobile: smoothly damps back to default when user stops interaction or exits the section.
+            const shouldDampToDefault =
               viewport.profile === "portrait"
-                ? (mobileInteractingRef.current && interactiveActiveRef.current)
-                : (interactiveActiveRef.current && dragStateRef.current.dragging);
+                ? (!mobileInteractingRef.current || !interactiveActiveRef.current)
+                : (!interactiveActiveRef.current);
 
-            // When user stops interaction (e.g. taps stop, scrolls, or enters footer),
-            // smoothly glide the manual rotation and tilt back to default (0, 0) without any sudden jump!
-            if (!isUserInteracting) {
+            if (shouldDampToDefault) {
               const safeDt = Math.min(dt, 0.1);
               const dampFactor = 1 - Math.exp(-5.0 * safeDt);
 
