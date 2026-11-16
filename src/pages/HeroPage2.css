@@ -165,7 +165,7 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(80px, 9.5vh, 105px) !important;
+    top: clamp(105px, 11.5vh, 125px) !important;
     transform: translate(-50%, 20px) !important;
     width: min(calc(100% - 64px), 560px) !important;
     max-width: 560px !important;
@@ -196,7 +196,7 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(74px, 9.5vh, 84px) !important;
+    top: clamp(100px, 12vh, 110px) !important;
     transform: translate(-50%, 16px) !important;
     width: min(calc(100% - 32px), 380px) !important;
     max-width: 380px !important;
@@ -343,7 +343,7 @@ body::-webkit-scrollbar,
   /* Clean Column Architecture: Title Card is centered at the top below logo */
   .beat-2-layout .beat-title-right,
   .beat-3-layout .beat-title-right {
-    top: clamp(80px, 9.5vh, 105px) !important;
+    top: clamp(105px, 11.5vh, 125px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
@@ -530,7 +530,7 @@ body::-webkit-scrollbar,
 
   /* Compact, luxury top title card centered on mobile, matching the exact logo gap of Beat 5 */
   .beat-title-right {
-    top: clamp(74px, 9.5vh, 84px) !important;
+    top: clamp(100px, 12vh, 110px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
