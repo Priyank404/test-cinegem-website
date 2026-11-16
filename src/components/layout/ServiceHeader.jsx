@@ -374,7 +374,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
           <div aria-hidden="true" />
 
           {/* Logo → back to vault, centered */}
-          <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center pt-1">
             <Link
               to="/"
               className="inline-flex items-center justify-center transition-opacity duration-300 hover:opacity-80 focus:outline-none"
@@ -383,7 +383,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
               <img
                 src={theme === 'dark' ? '/logo-white.png' : '/logo-dark.png'}
                 alt="Cinegem Studio"
-                className="h-9 sm:h-11 md:h-12 w-auto object-contain"
+                className="h-10 sm:h-12 md:h-[53px] w-auto object-contain"
               />
             </Link>
           </div>

@@ -2441,10 +2441,10 @@ export default function HomePage() {
         </>
       )}
 
-      {/* Dedicated minimal header for Hero2: transparent background with centered Logo image, stuck flush to top edge */}
+      {/* Dedicated minimal header for Hero2: transparent background with centered Logo image */}
       <header
         ref={navRef}
-        className={`fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-0 px-6 bg-transparent pointer-events-none transition-all duration-700 ${
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-center items-start pt-2 sm:pt-3 md:pt-4 lg:pt-5 px-6 bg-transparent pointer-events-none transition-all duration-700 ${
           isLoading ? "opacity-0" : "opacity-100"
         }`}
       >
@@ -2457,7 +2457,7 @@ export default function HomePage() {
           <img
             src="/Logo.png"
             alt="Cinegem Studio Logo"
-            className="h-28 sm:h-28 md:h-44 lg:h-52 w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
+            className="h-[124px] sm:h-[124px] md:h-[194px] lg:h-[230px] w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
           />
         </Link>
       </header>
