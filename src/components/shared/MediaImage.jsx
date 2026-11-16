@@ -44,7 +44,7 @@ export function MediaImage({
         height={height}
         loading={loading}
         decoding={decoding}
-        fetchPriority={priority ? "high" : undefined}
+        fetchpriority={priority ? "high" : undefined}
         className={className}
         onLoad={() => setLoaded(true)}
         {...rest}

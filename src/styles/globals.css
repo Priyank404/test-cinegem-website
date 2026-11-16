@@ -194,7 +194,8 @@ p, span, div, li, a, label, button, input, textarea {
   }
 
   body {
-    @apply bg-surface text-on-surface font-body;
+    background-color: #000000;
+    color: #ffffff;
     overflow-x: clip;
     cursor: default;
   }
