@@ -104,9 +104,9 @@ export default function InquirePage() {
           const needed = 25 - trimmed.length
           return `Project brief must be at least 25 characters (${needed} more needed)`
         }
-        if (value.length > 500) {
-          const excess = value.length - 500
-          return `Project brief cannot exceed 500 characters (${excess} over limit)`
+        if (value.length > 1000) {
+          const excess = value.length - 1000
+          return `Project brief cannot exceed 1000 characters (${excess} over limit)`
         }
         return ''
 
@@ -439,28 +439,26 @@ export default function InquirePage() {
                         </label>
                         <span
                           className={`text-[10px] font-mono tracking-wider transition-colors ${
-                            formData.brief.length === 0
-                              ? 'text-white/40'
-                              : formData.brief.length < 25
-                              ? 'text-amber-400 font-medium'
-                              : formData.brief.length > 500
+                            formData.brief.length > 1000
                               ? 'text-red-400 font-semibold'
-                              : 'text-emerald-400/90'
+                              : formData.brief.length > 900
+                              ? 'text-[#C5A059]'
+                              : 'text-white/40'
                           }`}
                         >
-                          {formData.brief.length}/500 {formData.brief.length < 25 ? `(min 25)` : ''}
+                          {formData.brief.length}/1000
                         </span>
                       </div>
                       <textarea
                         ref={briefInputRef}
                         id="inquire-brief"
                         name="brief"
-                        maxLength={500}
+                        maxLength={1000}
                         value={formData.brief}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         rows={3}
-                        placeholder="Outline the details of the products, creative vision, assets required, and scope (min 25 characters)..."
+                        placeholder="Outline the details of the products, creative vision, assets required, and scope..."
                         aria-invalid={Boolean(errors.brief)}
                         aria-describedby={errors.brief ? 'brief-error' : undefined}
                         className={`font-[Poppins] font-light text-sm px-4 py-2.5 bg-white/5 border text-[#FCFBFA] placeholder:text-white/60 focus:bg-white/10 transition-all duration-300 outline-none rounded-md resize-none ${
