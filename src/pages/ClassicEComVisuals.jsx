@@ -126,20 +126,21 @@ function VideoPlayer({ videoSrc, media, className = "" }) {
   );
 }
 
-function ScrollArrow({ direction, onClick }) {
+function ScrollArrow({ direction, onClick, className = "" }) {
   return (
     <button
       onClick={onClick}
       aria-label={direction === "left" ? "Scroll left" : "Scroll right"}
       className={`
-        absolute top-1/2 -translate-y-1/2 z-10
-        w-8 h-8 md:w-9 md:h-9 shrink-0
+        absolute top-1/2 -translate-y-1/2 z-20 pointer-events-auto
+        w-8 h-8 sm:w-9 sm:h-9 shrink-0
         flex items-center justify-center rounded-full
-        bg-[#121212]/70 backdrop-blur-sm border border-[#C5A059]/50
-        text-[#FAF9F6] shadow-lg
+        bg-[#121212]/80 backdrop-blur-md border border-[#C5A059]/60
+        text-[#FAF9F6] shadow-xl
         hover:bg-[#C5A059] hover:text-[#121212] hover:border-[#C5A059]
-        transition-colors duration-300
-        ${direction === "left" ? "left-1" : "right-1"}
+        transition-all duration-300 active:scale-90
+        ${direction === "left" ? "left-2.5 sm:left-3" : "right-2.5 sm:right-3"}
+        ${className}
       `}
     >
       <svg
@@ -215,7 +216,7 @@ function PeekCarousel({ images, className = "" }) {
     const el = slideRefs.current[target];
     if (!track || !el) return;
     track.scrollTo({
-      left: el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2,
+      left: el.offsetLeft,
       behavior: "smooth",
     });
   };
@@ -224,26 +225,22 @@ function PeekCarousel({ images, className = "" }) {
   const canRight = activeIndex < images.length - 1;
 
   return (
-    <div className={`relative w-full min-w-0 max-w-full ${className}`}>
+    <div className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-t-[12px] rounded-b-none ${className}`}>
       {canLeft && (
         <ScrollArrow direction="left" onClick={() => goTo(activeIndex - 1)} />
       )}
       <div
         ref={trackRef}
-        className="peek-scroll flex gap-1 overflow-x-auto snap-x snap-mandatory max-w-full px-[9%] sm:px-[16%] md:px-[22%]"
+        className="peek-scroll flex overflow-x-auto snap-x snap-mandatory w-full max-w-full scrollbar-none"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {images.map((img, i) => (
           <div
             key={i}
             ref={(el) => (slideRefs.current[i] = el)}
-            className={`
-              w-full shrink-0 aspect-square snap-center [scroll-snap-stop:always]
-              transition-all duration-[400ms] ease-out
-              ${i === activeIndex ? "opacity-100 scale-100" : "opacity-40 scale-[0.92] blur-[1px]"}
-            `}
+            className="w-full shrink-0 aspect-square snap-center [scroll-snap-stop:always] overflow-hidden rounded-t-[12px] rounded-b-none"
           >
-            <ImageTile img={img} className="w-full h-full" />
+            <ImageTile img={img} className="w-full h-full rounded-t-[12px] rounded-b-none" />
           </div>
         ))}
       </div>
@@ -320,15 +317,17 @@ function MainPreviewCarousel({
 
   return (
     <div
-      className={`relative w-full min-w-0 max-w-full px-12 sm:px-14 md:px-16 [touch-action:pan-y] ${heightClassName} ${className}`}
+      className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-[12px] [touch-action:pan-y] ${heightClassName} ${className}`}
       onPointerDown={handlePointerDown}
     >
       {canLeft && <ScrollArrow direction="left" onClick={() => step(-1)} />}
-      {active.type === "video" ? (
-        <VideoPlayer videoSrc={videoSrc} className="w-full h-full" />
-      ) : (
-        <ImageTile img={active.img} className="w-full h-full" />
-      )}
+      <div className="w-full h-full aspect-square overflow-hidden rounded-[12px]">
+        {active.type === "video" ? (
+          <VideoPlayer videoSrc={videoSrc} className="w-full h-full aspect-square rounded-[12px]" />
+        ) : (
+          <ImageTile img={active.img} className="w-full h-full aspect-square rounded-[12px]" />
+        )}
+      </div>
       {canRight && <ScrollArrow direction="right" onClick={() => step(1)} />}
     </div>
   );
@@ -498,7 +497,7 @@ function Section1({ featuredMedia, gridMedia = [], images, videoSrc }) {
       className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10"
       style={{ minHeight: "calc(100vh - 80px)" }}
     >
-      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+      <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE + TABLET (<lg) — stacked: 1:1 video on top (top corners rounded), 2x2 grid below (bottom corners rounded) */}
         <div className="flex flex-col gap-1 lg:hidden">
           <VideoPlayer media={activeFeatured} videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src} className="w-full aspect-square rounded-t-[12px] rounded-b-none" />
@@ -564,7 +563,7 @@ function Section2({ rowMedia = [], stripMedia, images, videoSrc }) {
   const activeStrip = stripMedia || videoSrc;
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10">
-      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+      <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE / TABLET (<lg) */}
         <div className="flex flex-col gap-1 lg:hidden">
           <PeekCarousel images={activeRow} />
@@ -615,14 +614,14 @@ function Section3({ mediaItems = [], images = [], videoSrc }) {
 
   return (
     <section className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-12">
-      <div className="w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
+      <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE / TABLET (<lg) */}
-        <div className="lg:hidden">
+        <div className="lg:hidden w-full aspect-square">
           <MainPreviewCarousel
             images={[hero, img2, img3, img4]}
             videoSrc={typeof centerMedia === "string" ? centerMedia : centerMedia?.src}
             mediaCenter={centerMedia}
-            heightClassName="h-[72vh] sm:h-[78vh] md:h-[100vh]"
+            className="w-full aspect-square"
           />
         </div>
 
