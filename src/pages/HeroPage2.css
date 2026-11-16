@@ -277,11 +277,11 @@ body::-webkit-scrollbar,
 }
 
 .hero2-footer-col-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: #C5A059;
   margin-bottom: 4px;
   font-family: "Poppins", sans-serif;
 }
@@ -771,10 +771,6 @@ body::-webkit-scrollbar,
     font-size: 11px !important;
     line-height: 1.45 !important;
     color: rgba(255, 255, 255, 0.72) !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 3 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
     margin: 2px 0 6px 0 !important;
   }
 

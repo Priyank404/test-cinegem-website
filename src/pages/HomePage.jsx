@@ -2265,8 +2265,8 @@ export default function HomePage() {
                 <span className="hero2-footer-col-title">Services</span>
                 <Link to="/classic">Classic E-Commerce</Link>
                 <Link to="/creative-visuals">Creative Visuals</Link>
-                <Link to="/onbody">On-Body Visualization</Link>
-                <Link to="/3d-viewer">Interactive 3D Engine</Link>
+                <Link to="/onbody">On-Body Visuals</Link>
+                <Link to="/3d-viewer">3D Viewer</Link>
               </div>
 
               <div className="hero2-footer-col">
