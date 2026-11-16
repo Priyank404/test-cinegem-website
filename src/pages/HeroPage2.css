@@ -201,6 +201,18 @@ body::-webkit-scrollbar,
     font-size: 11px !important;
     margin-top: 2px !important;
   }
+
+  /* Beat 4 Fullscreen On-Body Visuals on Mobile / Portrait */
+  .beat4-box-overlay {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Mobile phone: compact explore card at the top, perfectly matching title card spacing in Beats 2 & 3 */
@@ -664,9 +676,23 @@ body::-webkit-scrollbar,
     border-bottom-right-radius: 8px !important;
   }
 
-  /* Beat 4 Emerging overlay */
+  /* Beat 4 Fullscreen On-Body Visuals on Mobile Phones */
   .beat4-box-overlay {
-    border-radius: 16px !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .beat4-content-container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-bottom: max(32px, calc(20px + env(safe-area-inset-bottom, 0px))) !important;
+    box-sizing: border-box !important;
   }
 
   /* Footer reveal styling on mobile — luxury layout occupying ~30% of viewport */

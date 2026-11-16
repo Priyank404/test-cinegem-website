@@ -1390,96 +1390,150 @@ export default function HomePage() {
     }
 
     // ---- BEAT 4 ----
-    const b4es = config.beat4EntryStart;
-    const b4ee = config.beat4EntryEnd;
-    const b4xs = config.beat4ExitStart;
-    const b4xe = config.beat4ExitEnd;
-
-    // Center point of entry/exit
-    const b4midEntry = b4es + (b4ee - b4es) / 2;
-    const b4midExit = b4xs + (b4xe - b4xs) / 2;
-
-    let beat4Width = "60vw";
-    let beat4Height = "35vh";
-    let beat4YOffset = 100; // in vh (fully down)
-    let beat4Opacity = 0;
-    let beat4BorderRadius = "24px";
-
     const isSmallScreen =
       typeof window !== "undefined" &&
       window.innerWidth <= 1024 &&
       window.innerHeight > window.innerWidth;
-    const baseBeat4WNum = isSmallScreen ? 88 : 60;
-    const baseBeat4HNum = isSmallScreen ? 44 : 35;
-    const baseBeat4WStr = `${baseBeat4WNum}vw`;
-    const baseBeat4HStr = `${baseBeat4HNum}vh`;
 
-    if (frame < b4es) {
-      beat4Width = baseBeat4WStr;
-      beat4Height = baseBeat4HStr;
-      beat4YOffset = 100;
-      beat4Opacity = 0;
-      beat4BorderRadius = "24px";
-    } else if (frame >= b4es && frame < b4midEntry) {
-      // Bottom to Center (keeps small card size)
-      const t = (frame - b4es) / Math.max(0.001, b4midEntry - b4es);
-      const easeT = t * t * (3 - 2 * t);
-      beat4Width = baseBeat4WStr;
-      beat4Height = baseBeat4HStr;
-      beat4YOffset = 100 * (1 - easeT);
-      beat4BorderRadius = "24px";
-      beat4Opacity = 1;
-    } else if (frame >= b4midEntry && frame < b4ee) {
-      // Center to Fullscreen (expands from small card size to fullscreen)
-      const t = (frame - b4midEntry) / Math.max(0.001, b4ee - b4midEntry);
-      const easeT = t * t * (3 - 2 * t);
-      beat4Width = `${baseBeat4WNum + (100 - baseBeat4WNum) * easeT}vw`;
-      beat4Height = `${baseBeat4HNum + (100 - baseBeat4HNum) * easeT}vh`;
-      beat4YOffset = 0;
-      beat4BorderRadius = `${24 * (1 - easeT)}px`;
-      beat4Opacity = 1;
-    } else if (frame >= b4ee && frame < b4xs) {
-      // Steady Fullscreen
-      beat4Width = "100vw";
-      beat4Height = "100vh";
-      beat4YOffset = 0;
-      beat4BorderRadius = "0px";
-      beat4Opacity = 1;
-    } else if (frame >= b4xs && frame < b4midExit) {
-      // Fullscreen to Center (shrinks from fullscreen back to small card size)
-      const t = (frame - b4xs) / Math.max(0.001, b4midExit - b4xs);
-      const easeT = t * t * (3 - 2 * t);
-      beat4Width = `${100 - (100 - baseBeat4WNum) * easeT}vw`;
-      beat4Height = `${100 - (100 - baseBeat4HNum) * easeT}vh`;
-      beat4YOffset = 0;
-      beat4BorderRadius = `${24 * easeT}px`;
-      beat4Opacity = 1;
-    } else if (frame >= b4midExit && frame <= b4xe) {
-      // Center to Top (keeps small card size while moving off screen)
-      const t = (frame - b4midExit) / Math.max(0.001, b4xe - b4midExit);
-      const easeT = t * t * (3 - 2 * t);
-      beat4Width = baseBeat4WStr;
-      beat4Height = baseBeat4HStr;
-      beat4YOffset = -100 * easeT;
-      beat4BorderRadius = "24px";
-      beat4Opacity = 1;
+    if (isSmallScreen) {
+      // Mobile / Portrait view: Beat 4 is a clean, whole-screen section with zero top/side gaps.
+      // Slides up smoothly from translateY(100%) to translateY(0%) during entry, stays steady fullscreen,
+      // and slides up out of view to translateY(-100%) during exit into Beat 5.
+      const mb4es = 117;
+      const mb4ee = 135;
+      const mb4xs = 160;
+      const mb4xe = 172;
+
+      let mb4YOffset = 100; // in %
+      let mb4Opacity = 0;
+
+      if (frame < mb4es) {
+        mb4YOffset = 100;
+        mb4Opacity = 0;
+      } else if (frame >= mb4es && frame < mb4ee) {
+        const t = (frame - mb4es) / Math.max(0.001, mb4ee - mb4es);
+        const easeT = t * t * (3 - 2 * t);
+        mb4YOffset = 100 * (1 - easeT);
+        mb4Opacity = 1;
+      } else if (frame >= mb4ee && frame < mb4xs) {
+        mb4YOffset = 0;
+        mb4Opacity = 1;
+      } else if (frame >= mb4xs && frame <= mb4xe) {
+        const t = (frame - mb4xs) / Math.max(0.001, mb4xe - mb4xs);
+        const easeT = t * t * (3 - 2 * t);
+        mb4YOffset = -100 * easeT;
+        mb4Opacity = 1;
+      } else {
+        mb4YOffset = -100;
+        mb4Opacity = 0;
+      }
+
+      if (beat4OverlayRef.current) {
+        beat4OverlayRef.current.style.width = "100vw";
+        beat4OverlayRef.current.style.height =
+          typeof window !== "undefined" && window.innerHeight
+            ? `${window.innerHeight}px`
+            : "100dvh";
+        beat4OverlayRef.current.style.left = "0px";
+        beat4OverlayRef.current.style.top = "0px";
+        beat4OverlayRef.current.style.transform = `translateY(${mb4YOffset}%)`;
+        beat4OverlayRef.current.style.borderRadius = "0px";
+        beat4OverlayRef.current.style.opacity = mb4Opacity;
+        beat4OverlayRef.current.style.display = mb4Opacity > 0 ? "block" : "none";
+        beat4OverlayRef.current.style.pointerEvents =
+          mb4Opacity > 0.05 ? "auto" : "none";
+      }
     } else {
-      beat4Width = baseBeat4WStr;
-      beat4Height = baseBeat4HStr;
-      beat4YOffset = -100;
-      beat4Opacity = 0;
-      beat4BorderRadius = "24px";
-    }
+      // Desktop: preserve original expanding/shrinking card transition
+      const b4es = config.beat4EntryStart;
+      const b4ee = config.beat4EntryEnd;
+      const b4xs = config.beat4ExitStart;
+      const b4xe = config.beat4ExitEnd;
 
-    if (beat4OverlayRef.current) {
-      beat4OverlayRef.current.style.width = beat4Width;
-      beat4OverlayRef.current.style.height = beat4Height;
-      beat4OverlayRef.current.style.transform = `translate(-50%, -50%) translateY(${beat4YOffset}vh)`;
-      beat4OverlayRef.current.style.borderRadius = beat4BorderRadius;
-      beat4OverlayRef.current.style.opacity = beat4Opacity;
-      beat4OverlayRef.current.style.display = beat4Opacity > 0 ? "block" : "none";
-      beat4OverlayRef.current.style.pointerEvents =
-        beat4Opacity > 0.05 ? "auto" : "none";
+      // Center point of entry/exit
+      const b4midEntry = b4es + (b4ee - b4es) / 2;
+      const b4midExit = b4xs + (b4xe - b4xs) / 2;
+
+      let beat4Width = "60vw";
+      let beat4Height = "35vh";
+      let beat4YOffset = 100; // in vh (fully down)
+      let beat4Opacity = 0;
+      let beat4BorderRadius = "24px";
+
+      const baseBeat4WNum = 60;
+      const baseBeat4HNum = 35;
+      const baseBeat4WStr = `${baseBeat4WNum}vw`;
+      const baseBeat4HStr = `${baseBeat4HNum}vh`;
+
+      if (frame < b4es) {
+        beat4Width = baseBeat4WStr;
+        beat4Height = baseBeat4HStr;
+        beat4YOffset = 100;
+        beat4Opacity = 0;
+        beat4BorderRadius = "24px";
+      } else if (frame >= b4es && frame < b4midEntry) {
+        // Bottom to Center (keeps small card size)
+        const t = (frame - b4es) / Math.max(0.001, b4midEntry - b4es);
+        const easeT = t * t * (3 - 2 * t);
+        beat4Width = baseBeat4WStr;
+        beat4Height = baseBeat4HStr;
+        beat4YOffset = 100 * (1 - easeT);
+        beat4BorderRadius = "24px";
+        beat4Opacity = 1;
+      } else if (frame >= b4midEntry && frame < b4ee) {
+        // Center to Fullscreen (expands from small card size to fullscreen)
+        const t = (frame - b4midEntry) / Math.max(0.001, b4ee - b4midEntry);
+        const easeT = t * t * (3 - 2 * t);
+        beat4Width = `${baseBeat4WNum + (100 - baseBeat4WNum) * easeT}vw`;
+        beat4Height = `${baseBeat4HNum + (100 - baseBeat4HNum) * easeT}vh`;
+        beat4YOffset = 0;
+        beat4BorderRadius = `${24 * (1 - easeT)}px`;
+        beat4Opacity = 1;
+      } else if (frame >= b4ee && frame < b4xs) {
+        // Steady Fullscreen
+        beat4Width = "100vw";
+        beat4Height = "100vh";
+        beat4YOffset = 0;
+        beat4BorderRadius = "0px";
+        beat4Opacity = 1;
+      } else if (frame >= b4xs && frame < b4midExit) {
+        // Fullscreen to Center (shrinks from fullscreen back to small card size)
+        const t = (frame - b4xs) / Math.max(0.001, b4midExit - b4xs);
+        const easeT = t * t * (3 - 2 * t);
+        beat4Width = `${100 - (100 - baseBeat4WNum) * easeT}vw`;
+        beat4Height = `${100 - (100 - baseBeat4HNum) * easeT}vh`;
+        beat4YOffset = 0;
+        beat4BorderRadius = `${24 * easeT}px`;
+        beat4Opacity = 1;
+      } else if (frame >= b4midExit && frame <= b4xe) {
+        // Center to Top (keeps small card size while moving off screen)
+        const t = (frame - b4midExit) / Math.max(0.001, b4xe - b4midExit);
+        const easeT = t * t * (3 - 2 * t);
+        beat4Width = baseBeat4WStr;
+        beat4Height = baseBeat4HStr;
+        beat4YOffset = -100 * easeT;
+        beat4BorderRadius = "24px";
+        beat4Opacity = 1;
+      } else {
+        beat4Width = baseBeat4WStr;
+        beat4Height = baseBeat4HStr;
+        beat4YOffset = -100;
+        beat4Opacity = 0;
+        beat4BorderRadius = "24px";
+      }
+
+      if (beat4OverlayRef.current) {
+        beat4OverlayRef.current.style.width = beat4Width;
+        beat4OverlayRef.current.style.height = beat4Height;
+        beat4OverlayRef.current.style.left = "50%";
+        beat4OverlayRef.current.style.top = "50%";
+        beat4OverlayRef.current.style.transform = `translate(-50%, -50%) translateY(${beat4YOffset}vh)`;
+        beat4OverlayRef.current.style.borderRadius = beat4BorderRadius;
+        beat4OverlayRef.current.style.opacity = beat4Opacity;
+        beat4OverlayRef.current.style.display = beat4Opacity > 0 ? "block" : "none";
+        beat4OverlayRef.current.style.pointerEvents =
+          beat4Opacity > 0.05 ? "auto" : "none";
+      }
     }
   }
 
@@ -1949,7 +2003,7 @@ export default function HomePage() {
         <Link
           to="/onbody"
           ref={beat4OverlayRef}
-          className="beat4-box-overlay group cursor-pointer block text-decoration-none relative overflow-hidden"
+          className="beat4-box-overlay group cursor-pointer block text-decoration-none overflow-hidden"
         >
           <MediaImage
             item={beat4Image}
@@ -1957,14 +2011,14 @@ export default function HomePage() {
             alt={beat4Image?.alt || "On-Body Visualization Showcase"}
             className="beat4-media transition-opacity duration-700"
           />
-          <div className="absolute inset-0 bg-transparent flex flex-col justify-end p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
-            <h2 className="font-[Poppins] font-semibold text-2xl sm:text-4xl md:text-5xl text-[#FCFBFA] mb-2 leading-tight [text-shadow:0_2px_10px_rgba(0,0,0,0.8)]">
+          <div className="beat4-content-container absolute inset-0 bg-transparent flex flex-col justify-end p-5 pb-8 sm:p-8 md:p-12 text-[#FCFBFA] z-10 pointer-events-auto">
+            <h2 className="font-[Poppins] font-semibold text-2xl sm:text-4xl md:text-5xl text-[#FCFBFA] mb-1.5 sm:mb-2 leading-tight [text-shadow:0_2px_10px_rgba(0,0,0,0.8)]">
               On-Body Visuals
             </h2>
-            <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-5 leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
+            <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-3.5 sm:mb-5 leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
               Realistic digital human integration and high-contrast skin tone interaction showcasing jewellery scale, fit, and elegance.
             </p>
-            <div className="btn-primary inline-flex items-center gap-2 py-3 px-6 text-xs font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit">
+            <div className="btn-primary inline-flex items-center gap-2 py-2.5 px-5 sm:py-3 sm:px-6 text-xs font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit">
               EXPLORE →
             </div>
           </div>
