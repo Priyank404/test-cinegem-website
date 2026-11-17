@@ -165,10 +165,10 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(105px, 11.5vh, 125px) !important;
+    top: clamp(88px, 9.5vh, 105px) !important;
     transform: translate(-50%, 20px) !important;
-    width: min(calc(100% - 64px), 560px) !important;
-    max-width: 560px !important;
+    width: min(calc(100% - 48px), 580px) !important;
+    max-width: 580px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -196,10 +196,10 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(100px, 12vh, 110px) !important;
+    top: clamp(78px, 9vh, 88px) !important;
     transform: translate(-50%, 16px) !important;
-    width: min(calc(100% - 32px), 380px) !important;
-    max-width: 380px !important;
+    width: min(calc(100% - 24px), 390px) !important;
+    max-width: 390px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -340,70 +340,91 @@ body::-webkit-scrollbar,
   /* Clean Column Architecture: Title Card is centered at the top below logo */
   .beat-2-layout .beat-title-right,
   .beat-3-layout .beat-title-right {
-    top: clamp(105px, 11.5vh, 125px) !important;
+    top: clamp(88px, 9.5vh, 105px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: min(calc(100% - 64px), 560px) !important;
-    max-width: 560px !important;
+    width: min(calc(100% - 48px), 580px) !important;
+    max-width: 580px !important;
     margin: 0 auto !important;
   }
 
   .beat-2-layout .glassy-title-card,
   .beat-3-layout .glassy-title-card,
   .hero2-explore-link .glassy-title-card {
-    padding: 22px 28px !important;
-    border-radius: 18px !important;
+    padding: 24px 30px !important;
+    border-radius: 20px !important;
     width: 100% !important;
+    gap: 8px !important;
   }
 
   .beat-2-layout .glassy-title-card h3,
   .beat-3-layout .glassy-title-card h3,
   .hero2-explore-link .glassy-title-card h3 {
-    font-size: 11px !important;
+    font-size: 11.5px !important;
     letter-spacing: 0.18em !important;
   }
 
   .beat-2-layout .glassy-title-card h2,
   .beat-3-layout .glassy-title-card h2,
   .hero2-explore-link .glassy-title-card h2 {
-    font-size: 24px !important;
-    line-height: 1.3 !important;
-    margin: 6px 0 8px !important;
+    font-size: 26px !important;
+    line-height: 1.28 !important;
+    margin: 4px 0 6px !important;
+    font-weight: 600 !important;
   }
 
   .beat-2-layout .glassy-title-card p,
   .beat-3-layout .glassy-title-card p,
   .hero2-explore-link .glassy-title-card p {
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     line-height: 1.55 !important;
-    color: rgba(255, 255, 255, 0.82) !important;
-    margin-bottom: 14px !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+    margin-bottom: 12px !important;
   }
 
   .beat-2-layout .glassy-title-card a,
   .beat-3-layout .glassy-title-card a,
   .hero2-explore-link .glassy-title-card a {
-    padding: 8px 18px !important;
-    font-size: 11px !important;
+    padding: 10px 22px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+    color: #FCFBFA !important;
+    width: fit-content !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    text-decoration: none !important;
   }
 
-  /* Column Element 2 (Bottom): Grid Card positioned in the red-boxed lower screen */
+  .beat-2-layout .glassy-title-card a:hover,
+  .beat-3-layout .glassy-title-card a:hover,
+  .hero2-explore-link .glassy-title-card a:hover {
+    background: rgba(255, 255, 255, 0.22) !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  /* Column Element 2 (Bottom): Grid Card positioned in the lower screen with reduced gap */
   .beat-2-layout .beat-content-left,
   .beat-3-layout .beat-content-left {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
-    top: clamp(340px, 35vh, 370px) !important;
-    bottom: clamp(20px, 2.5vh, 32px) !important;
+    top: clamp(304px, 31vh, 324px) !important;
+    bottom: clamp(16px, 2vh, 24px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: min(calc(100% - 64px), 560px) !important;
-    max-width: 560px !important;
+    width: min(calc(100% - 48px), 580px) !important;
+    max-width: 580px !important;
     height: auto !important;
-    border-radius: 18px !important;
-    padding: 8px !important;
+    border-radius: 20px !important;
+    padding: 10px !important;
     box-sizing: border-box !important;
   }
 
@@ -525,70 +546,89 @@ body::-webkit-scrollbar,
     padding: 0 16px !important;
   }
 
-  /* Compact, luxury top title card centered on mobile, matching the exact logo gap of Beat 5 */
+  /* Spacious, elegant top title card centered on mobile with reduced gap to grid card */
   .beat-title-right {
-    top: clamp(100px, 12vh, 110px) !important;
+    top: clamp(78px, 9vh, 88px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: min(calc(100% - 32px), 380px) !important;
-    max-width: 380px !important;
+    width: min(calc(100% - 24px), 390px) !important;
+    max-width: 390px !important;
     margin: 0 auto !important;
   }
 
   .glassy-title-card {
-    padding: 10px 14px !important;
-    border-radius: 14px !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45) !important;
-    gap: 4px !important;
+    padding: 16px 18px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45) !important;
+    gap: 5px !important;
   }
 
   .glassy-title-card h3,
   .glassy-title-card span {
-    font-size: 8.5px !important;
-    letter-spacing: 0.16em !important;
+    font-size: 9.5px !important;
+    letter-spacing: 0.18em !important;
     margin-bottom: 0px !important;
   }
 
   .glassy-title-card h2 {
-    font-size: 15px !important;
-    line-height: 1.2 !important;
-    margin: 1px 0 2px !important;
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+    margin: 2px 0 3px !important;
+    font-weight: 600 !important;
   }
 
   .glassy-title-card p {
-    font-size: 10.5px !important;
-    line-height: 1.35 !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    margin-bottom: 4px !important;
+    font-size: 11.5px !important;
+    line-height: 1.42 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    margin-bottom: 6px !important;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
   .glassy-title-card a {
-    padding: 5px 12px !important;
-    font-size: 9.5px !important;
+    padding: 8px 18px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
     pointer-events: auto !important;
-    margin-top: 2px !important;
+    margin-top: 4px !important;
+    width: fit-content !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    color: #FCFBFA !important;
+    text-decoration: none !important;
   }
 
-  /* Column Element 2: Grid Card placed beneath the Title Card in the column */
+  .glassy-title-card a:hover,
+  .glassy-title-card a:active {
+    background: rgba(255, 255, 255, 0.22) !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  /* Column Element 2: Grid Card placed beneath the Title Card in the column with reduced gap */
   .beat-2-layout .beat-content-left,
   .beat-3-layout .beat-content-left {
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
-    top: clamp(246px, 32.5vh, 264px) !important;
+    top: clamp(250px, 30vh, 260px) !important;
     bottom: clamp(10px, 1.5vh, 16px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: min(calc(100% - 32px), 380px) !important;
-    max-width: 380px !important;
+    width: min(calc(100% - 24px), 390px) !important;
+    max-width: 390px !important;
     height: auto !important;
-    border-radius: 14px !important;
+    border-radius: 16px !important;
     padding: 8px !important;
     box-sizing: border-box !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
