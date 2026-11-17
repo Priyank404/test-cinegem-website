@@ -29,6 +29,11 @@ export function Footer() {
               <span className="hero2-footer-col-title">Connect</span>
               <Link to="/inquire">Inquiries</Link>
               <Link to="/faq">FAQ</Link>
+              <a href="mailto:info@cinegemstudio.com">Email</a>
+            </div>
+
+            <div className="hero2-footer-col">
+              <span className="hero2-footer-col-title">Socials</span>
               <a
                 href="https://www.instagram.com/cinegemstudio?igsh=MXd5dzQ0OGF2enBjdg=="
                 target="_blank"
@@ -43,7 +48,6 @@ export function Footer() {
               >
                 Behance
               </a>
-              <a href="mailto:info@cinegemstudio.com">Email</a>
             </div>
           </div>
         </div>
