@@ -30,7 +30,7 @@ export default function TitleGlassyCard({
       {href && (
         <Link
           to={href}
-          className="btn-primary pointer-events-auto cursor-pointer inline-flex items-center gap-2 py-1.5 px-3.5 sm:py-2.5 sm:px-5 text-[10px] sm:text-[11px] font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] hover:text-[#121212] transition-colors w-fit mt-0.5 sm:mt-1 text-decoration-none"
+          className="pointer-events-auto cursor-pointer inline-flex items-center gap-2 py-2 px-5 sm:py-2.5 sm:px-6 text-[10.5px] sm:text-[11.5px] font-semibold tracking-widest uppercase rounded-lg text-[#FCFBFA] hover:text-white bg-white/12 hover:bg-white/24 border border-white/28 hover:border-white/50 shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur-md hover:-translate-y-0.5 transition-all duration-200 w-fit mt-1.5 sm:mt-2 text-decoration-none"
         >
           {linkText}
         </Link>

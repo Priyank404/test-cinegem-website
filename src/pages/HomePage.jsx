@@ -2106,7 +2106,7 @@ export default function HomePage() {
             <p className="font-[Poppins] font-light text-xs sm:text-sm md:text-base text-[#FCFBFA]/90 max-w-xl mb-3.5 sm:mb-5 leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
               Realistic digital human integration and high-contrast skin tone interaction showcasing jewellery scale, fit, and elegance.
             </p>
-            <div className="btn-primary inline-flex items-center gap-2 py-2.5 px-5 sm:py-3 sm:px-6 text-xs font-semibold tracking-widest uppercase rounded-md text-[#FCFBFA] w-fit">
+            <div className="inline-flex items-center gap-2 py-2.5 px-6 text-xs font-semibold tracking-widest uppercase rounded-lg text-[#FCFBFA] hover:text-white bg-white/12 hover:bg-white/24 border border-white/28 hover:border-white/50 shadow-[0_4px_14px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur-md transition-all duration-200 w-fit">
               EXPLORE →
             </div>
           </div>

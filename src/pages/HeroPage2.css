@@ -1170,6 +1170,44 @@ html.perf-noblur .glassy-card {
   letter-spacing: -0.01em;
 }
 
+/* Explore Button in Title Cards (Desktop default) */
+.glassy-title-card a,
+.hero2-explore-link a,
+.beat4-box-overlay .btn-primary {
+  padding: 10px 22px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  pointer-events: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #FCFBFA !important;
+  text-decoration: none !important;
+  transition: all 0.25s ease !important;
+  margin-top: 8px !important;
+  width: fit-content !important;
+}
+
+.glassy-title-card a:hover,
+.glassy-title-card a:active,
+.hero2-explore-link a:hover,
+.hero2-explore-link a:active,
+.beat4-box-overlay .btn-primary:hover,
+.beat4-box-overlay .btn-primary:active {
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+}
+
 /* Content card wrapper specific style */
 .glassy-content-card {
   position: relative;
