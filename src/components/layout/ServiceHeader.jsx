@@ -187,7 +187,9 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                 {activeMenu.groups.map((group) => (
                   <div key={group.heading} className="flex flex-col gap-2.5 min-w-0">
                     {group.heading && (
-                      <span className="text-[#C5A059] font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1">
+                      <span className={`font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1 ${
+                        theme === 'dark' ? 'text-white/40' : 'text-[#121212]/40'
+                      }`}>
                         {group.heading}
                       </span>
                     )}
@@ -439,7 +441,7 @@ export function ServiceHeader({ currentPage = '', navRef, alwaysVisible = false,
             className="fixed inset-0 z-40 lg:hidden flex flex-col justify-center px-8 bg-[#0c0d16]/95 backdrop-blur-2xl text-[#FCFBFA]"
           >
             <div className="flex flex-col gap-5 max-w-xs mx-auto w-full pt-8">
-              <span className="text-[#C5A059] font-[Poppins] text-[10px] tracking-[0.3em] uppercase block font-light">
+              <span className="text-white/40 font-[Poppins] text-[10px] tracking-[0.3em] uppercase block font-light">
                 STUDIO SERVICES
               </span>
 

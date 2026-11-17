@@ -26,8 +26,7 @@ export function Footer() {
             </div>
 
             <div className="hero2-footer-col">
-              <span className="hero2-footer-col-title">Connect</span>
-              <Link to="/inquire">Inquiries</Link>
+              <span className="hero2-footer-col-title">Info</span>
               <Link to="/faq">FAQ</Link>
               <a href="mailto:info@cinegemstudio.com">Email</a>
             </div>

@@ -1109,7 +1109,7 @@ a:hover img,
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #C5A059;
+  color: rgba(255, 255, 255, 0.4);
   margin-bottom: 4px;
   font-family: 'Poppins', sans-serif;
 }
@@ -1172,6 +1172,7 @@ a:hover img,
   }
   .hero2-static-footer .hero2-footer-col-title {
     font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
     margin-bottom: 4px;
   }
   .hero2-static-footer .hero2-footer-col a {
@@ -1231,7 +1232,7 @@ a:hover img,
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #C5A059;
+    color: rgba(255, 255, 255, 0.4);
     margin-bottom: 4px;
   }
   .hero2-static-footer .hero2-footer-col a {
