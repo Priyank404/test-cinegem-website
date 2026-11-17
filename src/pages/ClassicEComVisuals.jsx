@@ -527,13 +527,13 @@ function OriginalSection3({ images = [], videoSrc }) {
   );
 }
 
-function Section1({ featuredMedia, gridMedia = [], images, videoSrc }) {
+function Section1({ featuredMedia, gridMedia = [], images, videoSrc, isFirst = true }) {
   const activeFeatured = featuredMedia || videoSrc;
   const activeGrid = gridMedia.length > 0 ? gridMedia : (images || []);
   return (
     <section
       className="w-full flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 py-6 md:py-10"
-      style={{ minHeight: "calc(100vh - 80px)" }}
+      style={isFirst ? { minHeight: "calc(100vh - 80px)" } : undefined}
     >
       <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
         {/* MOBILE + TABLET (<lg) — stacked: 1:1 video on top (top corners rounded), 2x2 grid below (bottom corners rounded) */}
@@ -793,7 +793,15 @@ export default function ClassicEComVisuals({
   // Position 10: Video strip (below)
   const pos10Media = resolveMediaForPosition(items, 10, { src: dynamicVideo2, isVideo: true, alt: "Classic E-Commerce Turntable Video 2" });
 
-  // Section 3:
+  // Section 3 (NEW 3rd Grid - 1:1 Video/Featured on Left + 2x2 on Right, Positions 16..20):
+  // Position 16: Featured 1:1 box (left), resolves 16 from R2 or falls back to pos1Media / dynamicVideo1
+  const pos16Media = resolveMediaForPosition(items, 16, pos1Media);
+  // Positions 17..20: 2x2 grid (right), resolves 17..20 from R2 or falls back to pos2To5Media
+  const pos17To20Media = [17, 18, 19, 20].map((pos, i) =>
+    resolveMediaForPosition(items, pos, pos2To5Media[i])
+  );
+
+  // Section 4 (Previous 3rd Grid - Positions 11..15):
   // Positions 11..15: 5-column row
   const pos11Media = resolveMediaForPosition(items, 11, dynamicSec3Images[0]);
   const pos12Media = resolveMediaForPosition(items, 12, dynamicSec3Images[1]);
@@ -809,6 +817,8 @@ export default function ClassicEComVisuals({
       ...pos2To5Media,
       ...pos6To9Media,
       pos10Media,
+      pos16Media,
+      ...pos17To20Media,
       pos11Media,
       pos12Media,
       pos13Media,
@@ -820,6 +830,8 @@ export default function ClassicEComVisuals({
     pos2To5Media,
     pos6To9Media,
     pos10Media,
+    pos16Media,
+    pos17To20Media,
     pos11Media,
     pos12Media,
     pos13Media,
@@ -858,9 +870,35 @@ export default function ClassicEComVisuals({
 
       <div ref={containerRef} className="relative z-10">
         <ImageClickContext.Provider value={handleOpenMedia}>
-          <Section1 featuredMedia={pos1Media} gridMedia={pos2To5Media} images={dynamicSec1Images} videoSrc={dynamicVideo1} />
-          <Section2 rowMedia={pos6To9Media} stripMedia={pos10Media} images={dynamicSec2Images} videoSrc={dynamicVideo2} />
-          <Section3 mediaItems={[pos11Media, pos12Media, pos13Media, pos14Media, pos15Media]} images={dynamicSec3Images} videoSrc={dynamicVideo3} />
+          {/* Grid 1: 1st Grid (1:1 Featured Media on Left + 2x2 Image Grid on Right) */}
+          <Section1
+            featuredMedia={pos1Media}
+            gridMedia={pos2To5Media}
+            images={dynamicSec1Images}
+            videoSrc={dynamicVideo1}
+            isFirst={true}
+          />
+          {/* Grid 2: 2nd Grid (4-image row top + video strip below) */}
+          <Section2
+            rowMedia={pos6To9Media}
+            stripMedia={pos10Media}
+            images={dynamicSec2Images}
+            videoSrc={dynamicVideo2}
+          />
+          {/* Grid 3 (NEW): Same 1st Grid layout added between 2nd and previous 3rd */}
+          <Section1
+            featuredMedia={pos16Media}
+            gridMedia={pos17To20Media}
+            images={dynamicSec1Images}
+            videoSrc={dynamicVideo1}
+            isFirst={false}
+          />
+          {/* Grid 4: Previous 3rd Grid (5-column Row) */}
+          <Section3
+            mediaItems={[pos11Media, pos12Media, pos13Media, pos14Media, pos15Media]}
+            images={dynamicSec3Images}
+            videoSrc={dynamicVideo3}
+          />
         </ImageClickContext.Provider>
       </div>
 
