@@ -892,7 +892,7 @@ export default function HomePage() {
   // Developers card layout config state (drives Title/Content positions)
   const [layoutConfig, setLayoutConfig] = useState({
     contentLeft: 9.5,
-    contentTop: 3.5,
+    contentTop: 15.5,
     contentWidth: 940,
     contentHeight: 520,
     titleLeft: 59.5,
@@ -908,13 +908,13 @@ export default function HomePage() {
   // tuning Beat 3 never touches Beat 2.
   const DEFAULT_BEAT3_LAYOUT_CONFIG = {
     contentLeft: 9.5,
-    contentTop: 3.5,
+    contentTop: 15.5,
     titleLeft: 9.5,
     titleTop: 15.5,
   };
   const [beat3LayoutConfig, setBeat3LayoutConfig] = useState(() => {
     try {
-      const saved = window.localStorage.getItem("hero2Beat3LayoutConfigV2");
+      const saved = window.localStorage.getItem("hero2Beat3LayoutConfigV3");
       if (saved) {
         return { ...DEFAULT_BEAT3_LAYOUT_CONFIG, ...JSON.parse(saved) };
       }
@@ -1742,23 +1742,23 @@ export default function HomePage() {
   }
 
   const getContentCardStyle = () => {
-    const { contentLeft, contentTop, contentWidth } = layoutConfig;
+    const { contentLeft, contentWidth, titleTop } = layoutConfig;
     return {
       position: "absolute",
       left: `calc(${contentLeft}% - 8px)`,
-      top: `calc(${contentTop}% - 8px)`,
+      top: `${titleTop}%`,
       width: `calc(${pxToClampVw(contentWidth, 320)} + 16px)`,
       bottom: "12px", // 8px lower to compensate for 12px padding
     };
   };
 
   const getBeat3ContentCardStyle = () => {
-    const { contentLeft, contentTop, contentWidth } = layoutConfig;
+    const { contentLeft, contentWidth } = layoutConfig;
     return {
       position: "absolute",
       right: `calc(${contentLeft}% - 8px)`,
       left: "auto",
-      top: `calc(${contentTop}% - 8px)`,
+      top: `${beat3LayoutConfig.titleTop}%`,
       width: `calc(${pxToClampVw(contentWidth, 320)} + 16px)`,
       bottom: "12px", // Matches Beat 2's exact full height and sizing
     };

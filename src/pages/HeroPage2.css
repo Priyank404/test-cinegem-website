@@ -1100,7 +1100,7 @@ body::-webkit-scrollbar,
   position: absolute;
   left: calc(9.5% - 8px);
   width: calc(max(320px, 48.958vw) + 16px);
-  top: calc(3.5% - 8px);
+  top: 15.5%;
   bottom: 12px;
 }
 
