@@ -527,7 +527,7 @@ function OriginalSection3({ images = [], videoSrc }) {
   );
 }
 
-function Section1({ featuredMedia, gridMedia = [], images, videoSrc, isFirst = true }) {
+function Section1({ featuredMedia, gridMedia = [], images, videoSrc, isFirst = true, reverse = false }) {
   const activeFeatured = featuredMedia || videoSrc;
   const activeGrid = gridMedia.length > 0 ? gridMedia : (images || []);
   return (
@@ -536,55 +536,129 @@ function Section1({ featuredMedia, gridMedia = [], images, videoSrc, isFirst = t
       style={isFirst ? { minHeight: "calc(100vh - 80px)" } : undefined}
     >
       <div className="w-full max-w-[560px] lg:max-w-[1920px] 2xl:max-w-[2040px] mx-auto glassy-container">
-        {/* MOBILE + TABLET (<lg) — stacked: 1:1 video on top (top corners rounded), 2x2 grid below (bottom corners rounded) */}
-        <div className="flex flex-col gap-1 lg:hidden">
-          <VideoPlayer media={activeFeatured} videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src} className="w-full aspect-square rounded-t-[12px] rounded-b-none" />
-          <div className="grid grid-cols-2 gap-1 w-full">
-            {activeGrid.slice(0, 4).map((img, i) => {
-              const cornerClass =
-                i === 2
-                  ? "rounded-bl-[12px]"
-                  : i === 3
-                  ? "rounded-br-[12px]"
-                  : "rounded-none";
-              return (
-                <ImageTile key={i} img={img} className={`aspect-square ${cornerClass}`} />
-              );
-            })}
+        {/* MOBILE + TABLET (<lg) — stacked */}
+        {reverse ? (
+          <div className="flex flex-col gap-1 lg:hidden">
+            {/* 2x2 grid on top: top corners rounded */}
+            <div className="grid grid-cols-2 gap-1 w-full">
+              {activeGrid.slice(0, 4).map((img, i) => {
+                const cornerClass =
+                  i === 0
+                    ? "rounded-tl-[12px]"
+                    : i === 1
+                    ? "rounded-tr-[12px]"
+                    : "rounded-none";
+                return (
+                  <ImageTile key={i} img={img} className={`aspect-square ${cornerClass}`} />
+                );
+              })}
+            </div>
+            {/* 1:1 Video below: bottom corners rounded */}
+            <VideoPlayer
+              media={activeFeatured}
+              videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src}
+              className="w-full aspect-square rounded-b-[12px] rounded-t-none"
+            />
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-1 lg:hidden">
+            {/* 1:1 Video on top: top corners rounded */}
+            <VideoPlayer
+              media={activeFeatured}
+              videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src}
+              className="w-full aspect-square rounded-t-[12px] rounded-b-none"
+            />
+            {/* 2x2 grid below: bottom corners rounded */}
+            <div className="grid grid-cols-2 gap-1 w-full">
+              {activeGrid.slice(0, 4).map((img, i) => {
+                const cornerClass =
+                  i === 2
+                    ? "rounded-bl-[12px]"
+                    : i === 3
+                    ? "rounded-br-[12px]"
+                    : "rounded-none";
+                return (
+                  <ImageTile key={i} img={img} className={`aspect-square ${cornerClass}`} />
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-        {/* DESKTOP (lg+) — 1:1 Video (left) + 1:1 2x2 Image Grid (right)
+        {/* DESKTOP (lg+) — 1:1 Video + 1:1 2x2 Image Grid
             Outer 4 corners have 12px radius; all inner joints have 0 radius (sharp 90°) */}
         <div className="hidden lg:grid grid-cols-2 gap-1 w-full items-stretch justify-center max-h-[82vh]">
-          {/* Video on left: outer left corners rounded, inner right corners sharp */}
-          <div className="w-full h-full aspect-square overflow-hidden rounded-l-[12px] rounded-r-none">
-            <VideoPlayer media={activeFeatured} videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src} className="w-full h-full aspect-square rounded-l-[12px] rounded-r-none" />
-          </div>
+          {reverse ? (
+            <>
+              {/* 2x2 grid on left: outer top-left (img 0) and outer bottom-left (img 2) rounded */}
+              <div className="w-full h-full aspect-square grid grid-cols-2 grid-rows-2 gap-1">
+                {activeGrid.slice(0, 4).map((img, i) => {
+                  // 0: top-left (outer container corner) -> rounded-tl
+                  // 1: top-right (inner joint with video) -> sharp
+                  // 2: bottom-left (outer container corner) -> rounded-bl
+                  // 3: bottom-right (inner joint with video) -> sharp
+                  const cornerClass =
+                    i === 0
+                      ? "rounded-tl-[12px] rounded-tr-none rounded-bl-none rounded-br-none"
+                      : i === 2
+                      ? "rounded-bl-[12px] rounded-tl-none rounded-tr-none rounded-br-none"
+                      : "rounded-none";
 
-          {/* 2x2 grid on right: only outer top-right (img 1) and outer bottom-right (img 3) rounded */}
-          <div className="w-full h-full aspect-square grid grid-cols-2 grid-rows-2 gap-1">
-            {activeGrid.slice(0, 4).map((img, i) => {
-              // 0: top-left (inner joint with video & img 1) -> sharp
-              // 1: top-right (outer container corner) -> rounded-tr
-              // 2: bottom-left (inner joint with video & img 3) -> sharp
-              // 3: bottom-right (outer container corner) -> rounded-br
-              const cornerClass =
-                i === 1
-                  ? "rounded-tr-[12px] rounded-tl-none rounded-bl-none rounded-br-none"
-                  : i === 3
-                  ? "rounded-br-[12px] rounded-tl-none rounded-tr-none rounded-bl-none"
-                  : "rounded-none";
+                  return (
+                    <ImageTile
+                      key={i}
+                      img={img}
+                      className={`w-full h-full aspect-square ${cornerClass}`}
+                    />
+                  );
+                })}
+              </div>
 
-              return (
-                <ImageTile
-                  key={i}
-                  img={img}
-                  className={`w-full h-full aspect-square ${cornerClass}`}
+              {/* Video on right: outer right corners rounded, inner left corners sharp */}
+              <div className="w-full h-full aspect-square overflow-hidden rounded-r-[12px] rounded-l-none">
+                <VideoPlayer
+                  media={activeFeatured}
+                  videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src}
+                  className="w-full h-full aspect-square rounded-r-[12px] rounded-l-none"
                 />
-              );
-            })}
-          </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Video on left: outer left corners rounded, inner right corners sharp */}
+              <div className="w-full h-full aspect-square overflow-hidden rounded-l-[12px] rounded-r-none">
+                <VideoPlayer
+                  media={activeFeatured}
+                  videoSrc={typeof activeFeatured === "string" ? activeFeatured : activeFeatured?.src}
+                  className="w-full h-full aspect-square rounded-l-[12px] rounded-r-none"
+                />
+              </div>
+
+              {/* 2x2 grid on right: only outer top-right (img 1) and outer bottom-right (img 3) rounded */}
+              <div className="w-full h-full aspect-square grid grid-cols-2 grid-rows-2 gap-1">
+                {activeGrid.slice(0, 4).map((img, i) => {
+                  // 0: top-left (inner joint with video & img 1) -> sharp
+                  // 1: top-right (outer container corner) -> rounded-tr
+                  // 2: bottom-left (inner joint with video & img 3) -> sharp
+                  // 3: bottom-right (outer container corner) -> rounded-br
+                  const cornerClass =
+                    i === 1
+                      ? "rounded-tr-[12px] rounded-tl-none rounded-bl-none rounded-br-none"
+                      : i === 3
+                      ? "rounded-br-[12px] rounded-tl-none rounded-tr-none rounded-bl-none"
+                      : "rounded-none";
+
+                  return (
+                    <ImageTile
+                      key={i}
+                      img={img}
+                      className={`w-full h-full aspect-square ${cornerClass}`}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -817,8 +891,8 @@ export default function ClassicEComVisuals({
       ...pos2To5Media,
       ...pos6To9Media,
       pos10Media,
-      pos16Media,
       ...pos17To20Media,
+      pos16Media,
       pos11Media,
       pos12Media,
       pos13Media,
@@ -885,13 +959,14 @@ export default function ClassicEComVisuals({
             images={dynamicSec2Images}
             videoSrc={dynamicVideo2}
           />
-          {/* Grid 3 (NEW): Same 1st Grid layout added between 2nd and previous 3rd */}
+          {/* Grid 3 (NEW): Reverse 1st Grid layout (4 photos on Left + 1:1 Video on Right) */}
           <Section1
             featuredMedia={pos16Media}
             gridMedia={pos17To20Media}
             images={dynamicSec1Images}
             videoSrc={dynamicVideo1}
             isFirst={false}
+            reverse={true}
           />
           {/* Grid 4: Previous 3rd Grid (5-column Row) */}
           <Section3
