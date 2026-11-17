@@ -1044,11 +1044,10 @@ a:hover img,
 }
 
 .hero2-static-footer .hero2-footer-top {
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) repeat(3, minmax(130px, 1fr));
+  gap: clamp(32px, 4.5vw, 64px);
   align-items: flex-start;
-  gap: 32px;
   padding-bottom: 24px;
 }
 
@@ -1095,9 +1094,7 @@ a:hover img,
 }
 
 .hero2-static-footer .hero2-footer-links-grid {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: clamp(24px, 4vw, 56px);
+  display: contents;
 }
 
 .hero2-static-footer .hero2-footer-col {
@@ -1152,28 +1149,33 @@ a:hover img,
 
 @media (min-width: 641px) and (max-width: 1024px) {
   .hero2-static-footer .hero2-footer-top {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(200px, 1.25fr) repeat(3, minmax(110px, 1fr));
+    gap: clamp(16px, 2.5vw, 32px);
     align-items: flex-start;
-    gap: 32px;
     padding-bottom: 18px;
   }
   .hero2-static-footer .hero2-footer-brand {
-    flex: 1 1 260px;
-    max-width: 320px;
+    max-width: 100%;
+    gap: 10px;
+  }
+  .hero2-static-footer .hero2-footer-brand p {
+    font-size: 13px;
+    line-height: 1.55;
   }
   .hero2-static-footer .hero2-footer-links-grid {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    gap: clamp(32px, 5vw, 56px);
+    display: contents;
   }
   .hero2-static-footer .hero2-footer-col {
-    min-width: 125px;
+    min-width: 0;
     gap: 8px;
+  }
+  .hero2-static-footer .hero2-footer-col-title {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .hero2-static-footer .hero2-footer-col a {
+    font-size: 13px;
   }
 }
 

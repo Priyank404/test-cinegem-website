@@ -238,11 +238,10 @@ body::-webkit-scrollbar,
 }
 
 .hero2-footer-top {
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) repeat(3, minmax(130px, 1fr));
+  gap: clamp(32px, 4.5vw, 64px);
   align-items: flex-start;
-  gap: 32px;
   padding-bottom: 24px;
 }
 
@@ -264,9 +263,7 @@ body::-webkit-scrollbar,
 }
 
 .hero2-footer-links-grid {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: clamp(24px, 4vw, 56px);
+  display: contents;
 }
 
 .hero2-footer-col {
@@ -841,19 +838,16 @@ body::-webkit-scrollbar,
   }
 
   .hero2-footer-top {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    justify-content: space-between !important;
+    display: grid !important;
+    grid-template-columns: minmax(200px, 1.25fr) repeat(3, minmax(110px, 1fr)) !important;
+    gap: clamp(16px, 2.5vw, 32px) !important;
     align-items: flex-start !important;
-    gap: 32px !important;
     padding-bottom: 18px !important;
   }
 
   .hero2-footer-brand {
-    flex: 1 1 260px !important;
-    max-width: 320px !important;
-    gap: 12px !important;
+    max-width: 100% !important;
+    gap: 10px !important;
   }
 
   .hero2-footer-brand p {
@@ -862,16 +856,11 @@ body::-webkit-scrollbar,
   }
 
   .hero2-footer-links-grid {
-    flex: 0 0 auto !important;
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    justify-content: flex-end !important;
-    gap: clamp(32px, 5vw, 56px) !important;
+    display: contents !important;
   }
 
   .hero2-footer-col {
-    min-width: 125px !important;
+    min-width: 0 !important;
     gap: 8px !important;
   }
 
