@@ -1918,7 +1918,7 @@ export default function HomePage() {
                       }`}
                     >
                       <div
-                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 group-hover:bg-black/70 group-hover:border-[#C5A059]/80 group-hover:text-[#C5A059] transition-all duration-300"
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 transition-all duration-300"
                         aria-hidden="true"
                       >
                         <svg
@@ -2043,7 +2043,7 @@ export default function HomePage() {
                         }`}
                       >
                         <div
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 group-hover:bg-black/70 group-hover:border-[#C5A059]/80 group-hover:text-[#C5A059] transition-all duration-300"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/25 text-[#FCFBFA] shadow-2xl group-hover:scale-105 transition-all duration-300"
                           aria-hidden="true"
                         >
                           <svg
