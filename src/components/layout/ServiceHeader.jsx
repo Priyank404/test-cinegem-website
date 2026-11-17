@@ -15,17 +15,11 @@ const SERVICE_GROUP = {
   items: ALL_SERVICES,
 }
 
-const ABOUT_GROUP = {
-  heading: 'About',
-  items: [
-    { label: 'FAQ', route: '/faq' },
-  ],
-}
-
-const CONTACT_GROUP = {
-  heading: 'Contact',
+const INFO_GROUP = {
+  heading: 'Info',
   items: [
     { label: 'Inquiry', route: '/inquire' },
+    { label: 'FAQ', route: '/faq' },
     { label: 'info@cinegemstudio.com', route: 'mailto:info@cinegemstudio.com', external: true },
     { label: '+91 98765 43210', route: 'tel:+919876543210', external: true },
   ],
@@ -51,7 +45,7 @@ const NAV_MENUS = [
   {
     id: 'menu',
     label: 'Menu',
-    groups: [SERVICE_GROUP, ABOUT_GROUP, CONTACT_GROUP, SOCIALS_GROUP],
+    groups: [SERVICE_GROUP, INFO_GROUP, SOCIALS_GROUP],
   },
 ]
 
@@ -182,18 +176,18 @@ function NavMegaMenu({ menus, currentPage, align = 'left', theme = 'light' }) {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="flex gap-6 md:gap-8 justify-start items-start"
+                className="flex gap-8 md:gap-10 justify-start items-start"
               >
                 {activeMenu.groups.map((group) => (
                   <div key={group.heading} className="flex flex-col gap-2.5 min-w-0">
                     {group.heading && (
-                      <span className={`font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1 ${
+                      <span className={`font-[Poppins] text-[10px] tracking-[0.25em] uppercase font-light block mb-1 px-3 ${
                         theme === 'dark' ? 'text-white/40' : 'text-[#121212]/40'
                       }`}>
                         {group.heading}
                       </span>
                     )}
-                    <div className="flex flex-col gap-1.5 -mx-2.5">
+                    <div className="flex flex-col gap-1">
                       {group.items.map((item) => {
                         const isItemActive = item.route === currentPage
                         const isMailOrTel = item.route.startsWith('mailto:') || item.route.startsWith('tel:')
