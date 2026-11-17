@@ -165,7 +165,7 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(88px, 9.5vh, 105px) !important;
+    top: clamp(115px, 12vh, 125px) !important;
     transform: translate(-50%, 20px) !important;
     width: min(calc(100% - 48px), 580px) !important;
     max-width: 580px !important;
@@ -196,7 +196,7 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(78px, 9vh, 88px) !important;
+    top: clamp(104px, 12.5vh, 114px) !important;
     transform: translate(-50%, 16px) !important;
     width: min(calc(100% - 24px), 390px) !important;
     max-width: 390px !important;
@@ -340,7 +340,7 @@ body::-webkit-scrollbar,
   /* Clean Column Architecture: Title Card is centered at the top below logo */
   .beat-2-layout .beat-title-right,
   .beat-3-layout .beat-title-right {
-    top: clamp(88px, 9.5vh, 105px) !important;
+    top: clamp(115px, 12vh, 125px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
@@ -415,7 +415,7 @@ body::-webkit-scrollbar,
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
-    top: clamp(304px, 31vh, 324px) !important;
+    top: clamp(335px, 34vh, 350px) !important;
     bottom: clamp(16px, 2vh, 24px) !important;
     left: 50% !important;
     right: auto !important;
@@ -548,7 +548,7 @@ body::-webkit-scrollbar,
 
   /* Spacious, elegant top title card centered on mobile with reduced gap to grid card */
   .beat-title-right {
-    top: clamp(78px, 9vh, 88px) !important;
+    top: clamp(104px, 12.5vh, 114px) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
@@ -620,7 +620,7 @@ body::-webkit-scrollbar,
     display: flex !important;
     flex-direction: column !important;
     position: absolute !important;
-    top: clamp(250px, 30vh, 260px) !important;
+    top: clamp(278px, 33.5vh, 290px) !important;
     bottom: clamp(10px, 1.5vh, 16px) !important;
     left: 50% !important;
     right: auto !important;
