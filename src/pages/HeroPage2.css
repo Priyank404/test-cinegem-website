@@ -1059,7 +1059,7 @@ body::-webkit-scrollbar,
   position: absolute;
   left: calc(9.5% - 8px);
   width: calc(max(320px, 48.958vw) + 16px);
-  top: calc(15.5% - 198px);
+  top: calc(3.5% - 8px);
   bottom: 12px;
 }
 
@@ -1172,6 +1172,32 @@ html.perf-noblur .glassy-card {
   flex-direction: column;
   pointer-events: auto;
   padding-bottom: 4px; /* Minimal 4px gap between slides */
+}
+
+/* 1:1 Video Slide (Beat 2): Preserves original 1:1 square ratio without horizontal cropping */
+.glassy-slide-video,
+.glassy-slide:has(.glassy-video-container),
+.beat-2-layout .glassy-slide:last-child {
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  width: 100% !important;
+}
+
+.glassy-slide-video .glassy-video-container,
+.glassy-slide:has(.glassy-video-container) .glassy-video-container,
+.beat-2-layout .glassy-slide:last-child .glassy-video-container {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
+.glassy-slide-video .glassy-video-container video,
+.glassy-slide:has(.glassy-video-container) .glassy-video-container video,
+.beat-2-layout .glassy-slide:last-child .glassy-video-container video {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
 }
 
 /* Slide inner content styles */

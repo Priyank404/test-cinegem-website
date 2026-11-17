@@ -892,7 +892,7 @@ export default function HomePage() {
   // Developers card layout config state (drives Title/Content positions)
   const [layoutConfig, setLayoutConfig] = useState({
     contentLeft: 9.5,
-    contentTop: 15.5,
+    contentTop: 3.5,
     contentWidth: 940,
     contentHeight: 520,
     titleLeft: 59.5,
@@ -908,7 +908,7 @@ export default function HomePage() {
   // tuning Beat 3 never touches Beat 2.
   const DEFAULT_BEAT3_LAYOUT_CONFIG = {
     contentLeft: 9.5,
-    contentTop: 15.5,
+    contentTop: 3.5,
     titleLeft: 9.5,
     titleTop: 15.5,
   };
@@ -1890,8 +1890,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Slide 3: Video */}
-                <div ref={beat2Slide3Ref} className="glassy-slide">
+                {/* Slide 3: Video (1:1 native aspect ratio) */}
+                <div ref={beat2Slide3Ref} className="glassy-slide glassy-slide-video">
                   <div
                     className="glassy-video-container relative group cursor-pointer"
                     onClick={toggleBeat2Playback}
