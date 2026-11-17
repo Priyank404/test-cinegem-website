@@ -624,7 +624,7 @@ export default function CreativeVisualsPage() {
         paragraph="A cascading edit of jewellery photography and motion — an interlocking mosaic of every piece."
       />
 
-      <div className="relative z-10 w-full overflow-x-clip pb-40 md:pb-56">
+      <div className="relative z-10 w-full overflow-x-clip pb-6 md:pb-12">
         <ScrollStoryLayout
           mediaItems={items}
           images={storyImages}
