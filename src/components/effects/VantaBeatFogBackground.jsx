@@ -127,23 +127,26 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       effectRef.current = null;
     };
 
-    try {
-      if (typeof window !== "undefined") {
-        window.THREE = THREE;
-      }
-      effectRef.current = vantaFog({
-        el,
-        THREE,
-        ...initialOpts,
-      });
+    // Stagger Vanta initialization off the synchronous React mount tick to prevent main-thread freeze
+    const initTimer = setTimeout(() => {
+      try {
+        if (typeof window !== "undefined") {
+          window.THREE = THREE;
+        }
+        effectRef.current = vantaFog({
+          el,
+          THREE,
+          ...initialOpts,
+        });
 
-      vantaCanvas = el.querySelector("canvas");
-      if (vantaCanvas) {
-        vantaCanvas.addEventListener("webglcontextlost", handleVantaContextLost, false);
+        vantaCanvas = el.querySelector("canvas");
+        if (vantaCanvas) {
+          vantaCanvas.addEventListener("webglcontextlost", handleVantaContextLost, false);
+        }
+      } catch (err) {
+        console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);
       }
-    } catch (err) {
-      console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);
-    }
+    }, 0);
 
     function tick() {
       rafRef.current = requestAnimationFrame(tick);
@@ -170,6 +173,7 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     tick();
 
     return () => {
+      clearTimeout(initTimer);
       cancelAnimationFrame(rafRef.current);
       if (vantaCanvas) {
         vantaCanvas.removeEventListener("webglcontextlost", handleVantaContextLost);

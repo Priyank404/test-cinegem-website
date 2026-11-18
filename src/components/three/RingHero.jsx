@@ -49,6 +49,11 @@ import {
   calculateDiamondEnvMapIntensityRaw,
   degToRad,
 } from "./hdrControls";
+
+const yieldTask = () =>
+  typeof window !== "undefined" && window.scheduler?.yield
+    ? window.scheduler.yield()
+    : new Promise((resolve) => setTimeout(resolve, 0));
 import { loadEnvironmentTexture, loadRawEquirect } from "./hdrLoader";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -1680,7 +1685,7 @@ export default function RingHero({
         return { texture: null, meta: null };
       }),
     ])
-      .then(([gltf, loadedMetalEnv, loadedBaseResult, loadedSpotResult]) => {
+      .then(async ([gltf, loadedMetalEnv, loadedBaseResult, loadedSpotResult]) => {
         clearTimeout(safetyTimeout);
         if (disposed) return;
 
@@ -1713,6 +1718,8 @@ export default function RingHero({
         onSpotMetaUpdate?.(loadedSpotResult?.meta || null);
         onRefreshPreviews?.();
 
+        await yieldTask();
+
         metalMaterial = buildMetalMaterial(
           metalPreset,
           metalEnvMap,
@@ -1730,6 +1737,8 @@ export default function RingHero({
 
         const { gemMeshes, metalMeshes, debugList } = classifyRingMeshes(ring);
         gemMeshesRef.current = gemMeshes;
+
+        await yieldTask();
 
         const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
         gemMaterials = gemMeshes.map((child) => {
@@ -1774,6 +1783,8 @@ export default function RingHero({
         }
         onMeshesClassified?.(debugList);
 
+        await yieldTask();
+
         const box = new THREE.Box3().setFromObject(ring);
         const _sphere = new THREE.Sphere();
         box.getBoundingSphere(_sphere);
@@ -1802,8 +1813,20 @@ export default function RingHero({
         // (e.g. if the user moved a slider before the async load resolved).
         applyHdrConfigToLiveMaterials();
 
+        await yieldTask();
+
         onLoadingProgress?.(96, "Configuring scene timeline...");
         setupScrollTimeline();
+
+        // Compile scene shaders asynchronously before marking scene ready
+        if (renderer && typeof renderer.compileAsync === "function") {
+          try {
+            await renderer.compileAsync(scene, camera);
+          } catch (compileErr) {
+            console.warn("RingHero: compileAsync fallback:", compileErr);
+          }
+        }
+        await yieldTask();
 
         // Model, materials, BVH, and initial scene frame are 100% ready
         onLoadingProgress?.(100, "Experience ready");
