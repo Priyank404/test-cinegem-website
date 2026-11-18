@@ -20,7 +20,7 @@ if (typeof window !== "undefined") {
 }
 import FOG from "vanta/src/vanta.fog";
 import { getDeviceTier } from "@/lib/deviceTier";
-import { recordGateTimestamp } from "@/lib/readyGateDebug";
+import { recordGateTimestamp, isReadyGateDebug } from "@/lib/readyGateDebug";
 import { diagnostics } from "@/lib/diagnostics";
 
 const vantaFog = typeof FOG === "function" ? FOG : FOG.default;
@@ -152,6 +152,9 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
 
         if (typeof window !== "undefined") {
           window.__vantaFogReady = true;
+          if (isReadyGateDebug()) {
+            window.__vantaEffect = effectRef.current;
+          }
           recordGateTimestamp("vantaFogInitialised");
           window.dispatchEvent(new CustomEvent("cinegem:vanta-ready"));
         }
