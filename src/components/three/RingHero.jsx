@@ -56,7 +56,6 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { TransparentOutputPass } from "./TransparentOutputPass";
 import { getDeviceTier, recordContextLossDowngrade } from "@/lib/deviceTier";
 import { diagnostics } from "@/lib/diagnostics";
-import { Hero3DFallbackPoster } from "./Hero3DFallback";
 import { SpotDilator } from "./spotDilator";
 import { EnvPreviewRenderer } from "./envPreviewRenderer";
 import {
@@ -886,12 +885,6 @@ export default function RingHero({
     // Reset it here too so mount always starts from a truly clean state.
     interactiveActiveRef.current = false;
 
-    if (deviceTier.tier === "minimal") {
-      onLoadingProgress?.(100, "2D Mode");
-      setIsSceneReady(true);
-      onLoaded?.();
-      return;
-    }
     let renderer, scene, camera, ring;
     let metalMaterial;
     let gemMaterials = []; // one instance per gem mesh — see note above
@@ -3139,26 +3132,6 @@ export default function RingHero({
           background: "linear-gradient(180deg, #0d0d10 0%, #1a1a1f 100%)",
         }}
       />
-      {(contextLost || gpuUnsupported || deviceTier.tier === "minimal" || !isSceneReady) && (
-        <Hero3DFallbackPoster
-          message={
-            contextLost
-              ? "GPU recovering..."
-              : gpuUnsupported || deviceTier.tier === "minimal" || sceneStatus === "failed"
-              ? "2D Mode"
-              : ""
-          }
-          technicalError={
-            gpuUnsupported
-              ? (diagnostics.creationFailureReason || "WebGL initialization failed")
-              : contextLost
-              ? "WebGL context lost"
-              : sceneStatus === "failed"
-              ? (diagnostics.logs.find((l) => l.type === "asset-load-failure")?.message || "Asset load failed")
-              : ""
-          }
-        />
-      )}
       <canvas
         ref={canvasRef}
         className={RESPONSIVE_V2 ? "ringhero-fixed" : undefined}
