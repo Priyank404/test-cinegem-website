@@ -28,6 +28,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { getDeviceTier } from "@/lib/deviceTier";
+import { recordGateTimestamp, isReadyGateDebug } from "@/lib/readyGateDebug";
 import { Hero3DErrorBoundary } from "@/components/three/Hero3DFallback";
 import { Link } from "react-router-dom";
 import { useSeo } from "@/seo/useSeo";
@@ -623,13 +624,12 @@ export default function HomePage() {
   // Synchronized Ring Ready Gate coordinating 3D scene, Vanta fog, fonts, and hero image
   const handle3DReady = useCallback(async () => {
     if (typeof window === "undefined") return;
-    window.__cinegemReadyGate = window.__cinegemReadyGate || {};
 
     // 1. Await document.fonts.ready
     try {
       await document.fonts?.ready;
     } catch (_) {}
-    window.__cinegemReadyGate.fontsReady = performance.now();
+    recordGateTimestamp("fontsReady");
 
     // 2. Await first hero image decode (/Logo.png)
     try {
@@ -637,11 +637,11 @@ export default function HomePage() {
       img.src = "/Logo.png";
       await img.decode?.();
     } catch (_) {}
-    window.__cinegemReadyGate.heroImageDecoded = performance.now();
+    recordGateTimestamp("heroImageDecoded");
 
     // 3. Await Vanta fog if not minimal tier
     const { tier } = getDeviceTier();
-    if (tier !== "minimal" && !window.__cinegemReadyGate.vantaFogInitialised) {
+    if (tier !== "minimal" && !window.__vantaFogReady) {
       await new Promise((resolve) => {
         const timeout = setTimeout(resolve, 2500);
         const handler = () => {
@@ -653,9 +653,11 @@ export default function HomePage() {
     }
 
     // 4. Record loader fade start timestamp
-    window.__cinegemReadyGate.loaderFadeStart = performance.now();
+    recordGateTimestamp("loaderFadeStart");
 
-    console.log("[RingReadyGate] All readiness criteria fulfilled:", { ...window.__cinegemReadyGate });
+    if (isReadyGateDebug()) {
+      console.log("[RingReadyGate] All readiness criteria fulfilled:", { ...window.__cinegemReadyGate });
+    }
 
     setLoadProgress(100);
     setLoadStatus("Experience ready");

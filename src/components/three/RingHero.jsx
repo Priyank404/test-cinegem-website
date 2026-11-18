@@ -63,6 +63,7 @@ import { getDeviceTier, recordContextLossDowngrade } from "@/lib/deviceTier";
 import { diagnostics } from "@/lib/diagnostics";
 import { SpotDilator } from "./spotDilator";
 import { EnvPreviewRenderer } from "./envPreviewRenderer";
+import { recordGateTimestamp } from "@/lib/readyGateDebug";
 import {
   BASE_FOV,
   REF_ASPECT,
@@ -1630,10 +1631,7 @@ export default function RingHero({
           gLoader.load(
             glbUrl,
             (gltf) => {
-              if (typeof window !== "undefined") {
-                window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-                window.__cinegemReadyGate.glbResolved = performance.now();
-              }
+              recordGateTimestamp("glbResolved");
               progressMap.glb.loaded = progressMap.glb.total;
               updateOverallProgress("Ring geometry downloaded");
               resolve(gltf);
@@ -1663,10 +1661,7 @@ export default function RingHero({
         if (xhr.loaded) progressMap.metalHdr.loaded = xhr.loaded;
         updateOverallProgress("Studio lighting loaded");
       }).then((tex) => {
-        if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.metalEnvResolved = performance.now();
-        }
+        recordGateTimestamp("metalEnvResolved");
         return tex;
       }).catch((err) => {
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
@@ -1680,10 +1675,7 @@ export default function RingHero({
           updateOverallProgress("Diamond base environment loaded");
         },
       })).then((res) => {
-        if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.baseExrResolved = performance.now();
-        }
+        recordGateTimestamp("baseExrResolved");
         return res;
       }).catch((err) => {
         console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
@@ -1697,10 +1689,7 @@ export default function RingHero({
           updateOverallProgress("Diamond spotlight environment loaded");
         },
       })).then((res) => {
-        if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.spotExrResolved = performance.now();
-        }
+        recordGateTimestamp("spotExrResolved");
         return res;
       }).catch((err) => {
         console.warn("RingHero: Diamond spot HDRI failed to load, continuing with fallback:", err);
@@ -1740,10 +1729,7 @@ export default function RingHero({
         onSpotMetaUpdate?.(loadedSpotResult?.meta || null);
         onRefreshPreviews?.();
 
-        if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.texturesApplied = performance.now();
-        }
+        recordGateTimestamp("texturesApplied");
 
         await yieldTask();
 
@@ -1826,10 +1812,7 @@ export default function RingHero({
 
         scene.add(ring);
 
-        if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.glbAdded = performance.now();
-        }
+        recordGateTimestamp("glbAdded");
 
         ringHeroTransform.position.copy(ring.position);
         ringHeroTransform.rotation.copy(ring.rotation);
@@ -1854,10 +1837,7 @@ export default function RingHero({
         if (renderer && typeof renderer.compileAsync === "function") {
           try {
             await renderer.compileAsync(scene, camera);
-            if (typeof window !== "undefined") {
-              window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-              window.__cinegemReadyGate.compileAsyncResolved = performance.now();
-            }
+            recordGateTimestamp("compileAsyncResolved");
           } catch (compileErr) {
             console.warn("RingHero: compileAsync fallback:", compileErr);
           }
@@ -1872,10 +1852,7 @@ export default function RingHero({
             } else {
               renderer.render(scene, camera);
             }
-            if (typeof window !== "undefined") {
-              window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-              window.__cinegemReadyGate.firstFrameRendered = performance.now();
-            }
+            recordGateTimestamp("firstFrameRendered");
           } catch (renderErr) {
             console.warn("RingHero: Initial frame render warning:", renderErr);
           }

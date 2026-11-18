@@ -20,6 +20,7 @@ if (typeof window !== "undefined") {
 }
 import FOG from "vanta/src/vanta.fog";
 import { getDeviceTier } from "@/lib/deviceTier";
+import { recordGateTimestamp } from "@/lib/readyGateDebug";
 import { diagnostics } from "@/lib/diagnostics";
 
 const vantaFog = typeof FOG === "function" ? FOG : FOG.default;
@@ -107,8 +108,8 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     const { tier } = getDeviceTier();
     if (tier === "minimal") {
       if (typeof window !== "undefined") {
-        window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-        window.__cinegemReadyGate.vantaFogInitialised = performance.now();
+        window.__vantaFogReady = true;
+        recordGateTimestamp("vantaFogInitialised");
         window.dispatchEvent(new CustomEvent("cinegem:vanta-ready"));
       }
       return;
@@ -150,8 +151,8 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
         }
 
         if (typeof window !== "undefined") {
-          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.vantaFogInitialised = performance.now();
+          window.__vantaFogReady = true;
+          recordGateTimestamp("vantaFogInitialised");
           window.dispatchEvent(new CustomEvent("cinegem:vanta-ready"));
         }
       } catch (err) {
