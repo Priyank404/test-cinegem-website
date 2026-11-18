@@ -147,6 +147,12 @@ function renderRouteHtml(route) {
 
   let html = baseTemplate;
 
+  // Only the home route (/) needs the static boot loader overlay
+  if (route.path !== '/') {
+    html = html.replace(/<style id="cg-boot-style">[\s\S]*?<\/style>/i, '');
+    html = html.replace(/<div id="cg-boot"[\s\S]*?<\/script>/i, '');
+  }
+
   // Replace <title>
   html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${route.title}</title>`);
 
@@ -224,6 +230,8 @@ for (const route of ROUTES_LIST) {
 
 // 2. Generate 404.html
 const notFoundHtml = baseTemplate
+  .replace(/<style id="cg-boot-style">[\s\S]*?<\/style>/i, '')
+  .replace(/<div id="cg-boot"[\s\S]*?<\/script>/i, '')
   .replace(/<title>[\s\S]*?<\/title>/i, '<title>Page Not Found — Cinegem Studio</title>')
   .replace(/<meta\s+name=["']description["'][^>]*>/gi, '')
   .replace(

@@ -24,16 +24,30 @@ export default function LoadingScreen({
   const [isMounted, setIsMounted] = useState(true);
   const hasFinishedRef = useRef(false);
 
+  // Detect static boot overlay in DOM from index.html (P0 static boot loader)
+  const bootRef = useRef(typeof document !== "undefined" ? document.getElementById("cg-boot") : null);
+
   // Decision D2: The loading screen disappears the moment everything is ready
   useEffect(() => {
     if (!isLoading && !hasFinishedRef.current) {
       hasFinishedRef.current = true;
-      setIsFadingOut(true);
-      const timer = setTimeout(() => {
-        setIsMounted(false);
-        onFinished?.();
-      }, 600);
-      return () => clearTimeout(timer);
+      const boot = bootRef.current || (typeof document !== "undefined" ? document.getElementById("cg-boot") : null);
+      if (boot) {
+        boot.classList.add("cg-boot--out");
+        const timer = setTimeout(() => {
+          boot.remove();
+          setIsMounted(false);
+          onFinished?.();
+        }, 600);
+        return () => clearTimeout(timer);
+      } else {
+        setIsFadingOut(true);
+        const timer = setTimeout(() => {
+          setIsMounted(false);
+          onFinished?.();
+        }, 600);
+        return () => clearTimeout(timer);
+      }
     }
   }, [isLoading, onFinished]);
 
@@ -42,15 +56,33 @@ export default function LoadingScreen({
     const safetyTimer = setTimeout(() => {
       if (!hasFinishedRef.current) {
         hasFinishedRef.current = true;
-        setIsFadingOut(true);
-        setTimeout(() => {
-          setIsMounted(false);
-          onFinished?.();
-        }, 600);
+        const boot = bootRef.current || (typeof document !== "undefined" ? document.getElementById("cg-boot") : null);
+        if (boot) {
+          boot.classList.add("cg-boot--out");
+          setTimeout(() => {
+            boot.remove();
+            setIsMounted(false);
+            onFinished?.();
+          }, 600);
+        } else {
+          setIsFadingOut(true);
+          setTimeout(() => {
+            setIsMounted(false);
+            onFinished?.();
+          }, 600);
+        }
       }
     }, 10000);
     return () => clearTimeout(safetyTimer);
   }, [onFinished]);
+
+  // Update aria-valuenow on static boot element if present
+  useEffect(() => {
+    const boot = bootRef.current || (typeof document !== "undefined" ? document.getElementById("cg-boot") : null);
+    if (boot) {
+      boot.setAttribute("aria-valuenow", String(Math.round(progress)));
+    }
+  }, [progress]);
 
   const handleAnimationComplete = () => {
     // Keep callback for RingAssembleLoader compatibility
@@ -67,7 +99,8 @@ export default function LoadingScreen({
     }
   }, [isMounted]);
 
-  if (!isMounted) return null;
+  // If static boot overlay exists in DOM, React renders null to avoid animation restart or DOM flash
+  if (bootRef.current || !isMounted) return null;
 
   return (
     <div
