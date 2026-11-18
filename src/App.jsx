@@ -1,16 +1,20 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 
-import HomePage                from '@/pages/HomePage'
-import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
-import InquirePage             from '@/pages/InquirePage'
-import { CustomCursor }        from '@/components/ui/CustomCursor'
-import ClassicEComVisuals      from './pages/ClassicEComVisuals'
-import CreativeVisualsPage     from '@/pages/CreativeVisualsPage'
-import ThreeDViewerPage        from '@/pages/ThreeDViewerPage'
-import FaqPage                 from '@/pages/FaqPage'
-import NotFound                from '@/pages/NotFound'
-import MobileDebugOverlay      from '@/components/dev/MobileDebugOverlay'
+import HomePage         from '@/pages/HomePage'
+import { CustomCursor } from '@/components/ui/CustomCursor'
+
+const OnBodyVisualizationPage = lazy(() => import('@/pages/OnBodyVisualizationPage'))
+const InquirePage             = lazy(() => import('@/pages/InquirePage'))
+const ClassicEComVisuals      = lazy(() => import('./pages/ClassicEComVisuals'))
+const CreativeVisualsPage     = lazy(() => import('@/pages/CreativeVisualsPage'))
+const ThreeDViewerPage        = lazy(() => import('@/pages/ThreeDViewerPage'))
+const FaqPage                 = lazy(() => import('@/pages/FaqPage'))
+const NotFound                = lazy(() => import('@/pages/NotFound'))
+
+const MobileDebugOverlay = import.meta.env.DEV
+  ? lazy(() => import('@/components/dev/MobileDebugOverlay'))
+  : () => null
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -87,19 +91,21 @@ export default function App() {
     <>
       <ScrollToTop />
       <CustomCursor />
-      <MobileDebugOverlay />
-      <Routes>
-        <Route path="/"                 element={<HomePage />} />
-        <Route path="/hero2"            element={<Navigate to="/" replace />} />
-        <Route path="/onbody"           element={<OnBodyVisualizationPage />} />
-        <Route path="/inquire"          element={<InquirePage />} />
-        <Route path="/classic"          element={<ClassicEComVisuals />} />
-        <Route path="/creative-visuals" element={<CreativeVisualsPage />} />
-        <Route path="/faq"              element={<FaqPage />} />
-        <Route path="/3d-viewer"        element={<ThreeDViewerPage />} />
-        <Route path="/3dviewer"         element={<Navigate to="/3d-viewer" replace />} />
-        <Route path="*"                 element={<NotFound />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <MobileDebugOverlay />
+        <Routes>
+          <Route path="/"                 element={<HomePage />} />
+          <Route path="/hero2"            element={<Navigate to="/" replace />} />
+          <Route path="/onbody"           element={<OnBodyVisualizationPage />} />
+          <Route path="/inquire"          element={<InquirePage />} />
+          <Route path="/classic"          element={<ClassicEComVisuals />} />
+          <Route path="/creative-visuals" element={<CreativeVisualsPage />} />
+          <Route path="/faq"              element={<FaqPage />} />
+          <Route path="/3d-viewer"        element={<ThreeDViewerPage />} />
+          <Route path="/3dviewer"         element={<Navigate to="/3d-viewer" replace />} />
+          <Route path="*"                 element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </>
   )
 }
