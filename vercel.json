@@ -4,7 +4,7 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!assets/|hdr/|draco/|models/|manifests/|favicon|hero-poster|logo).*)",
+      "source": "/((?!assets/|hdr/|draco/|models/|manifests/|favicon|logo).*)",
       "destination": "/index.html"
     }
   ]
