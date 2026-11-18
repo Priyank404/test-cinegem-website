@@ -21,19 +21,8 @@
     <!-- Preconnect for CDN media performance -->
     <link rel="preconnect" href="https://media.cinegemstudio.com" crossorigin />
 
-    <!-- Preconnect for font performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" />
-    </noscript>
+    <!-- Self-hosted critical above-the-fold Poppins font -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/poppins-latin-400-normal.woff2" crossorigin />
 
     <!-- LCP Discovery: Preload primary content image first with high priority -->
     <link rel="preload" as="image" href="/Logo.png" fetchpriority="high" />
