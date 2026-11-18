@@ -2460,6 +2460,9 @@ export default function HomePage() {
           <img
             src="/Logo.png"
             alt="Cinegem Studio Logo"
+            width="1000"
+            height="1000"
+            fetchpriority="high"
             className="h-[124px] sm:h-[124px] md:h-[194px] lg:h-[230px] w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
           />
         </Link>
