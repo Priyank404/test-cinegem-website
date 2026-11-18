@@ -1,0 +1,20 @@
+{
+  "test": "P2 Network Preload Ordering A/B Test",
+  "condition": "Mobile Throttled (4x CPU slowdown, 1.6 Mbps download, 750 Kbps upload, 150ms latency)",
+  "metric": "loaderFadeStart (ms)",
+  "variants": {
+    "VariantA": {
+      "description": "HTML head low-priority preloads (fetchpriority=low) with Logo.png as only high-priority preload",
+      "runs": [22188.5, 22139.8, 22107.5],
+      "median": 22139.8
+    },
+    "VariantB": {
+      "description": "Dynamic script injection from main.jsx after entry JS execution",
+      "runs": [22333.2, 22267.6, 22376.1],
+      "median": 22333.2
+    }
+  },
+  "deltaMs": -193.4,
+  "winner": "Variant A",
+  "reason": "HTML head low-priority preloads enable the browser's preload scanner to discover 3D assets early and pipeline requests without blocking the high-priority logo or entry JS. Deferring preloads to main.jsx delays initial fetch by ~193 ms."
+}
