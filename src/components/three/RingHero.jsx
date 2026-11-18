@@ -1532,7 +1532,9 @@ export default function RingHero({
         await yieldTask();
 
         const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
-        gemMaterials = gemMeshes.map((child) => {
+        gemMaterials = [];
+        for (let i = 0; i < gemMeshes.length; i++) {
+          const child = gemMeshes[i];
           let mat = buildGemMaterial(
             effectiveGemPreset,
             gemEnvTexturesRef.current.base,
@@ -1547,6 +1549,7 @@ export default function RingHero({
           mat.fog = false;
           child.material = mat;
           if (mat.isRoughRefractionMaterial) {
+            await yieldTask();
             try {
               attachBvhToGemMaterial(child, mat);
             } catch (bvhErr) {
@@ -1555,11 +1558,12 @@ export default function RingHero({
               mat = buildGemMaterial(effectiveGemPreset, null, null, "low", metalEnvMap);
               child.material = mat;
             }
+            await yieldTask();
           }
           child.castShadow = false;
           child.receiveShadow = false;
-          return mat;
-        });
+          gemMaterials.push(mat);
+        }
         gemMaterialsRef.current = gemMaterials;
         applyHdrConfigToLiveMaterials();
 
@@ -2728,6 +2732,12 @@ export default function RingHero({
         }
 
         if (typeof document !== "undefined" && document.hidden) return;
+
+        // Optimization P4: Pause continuous re-rendering while opaque loader covers the viewport
+        const isLoaderOpaque = typeof document !== "undefined" && (
+          document.getElementById("cg-boot") && !document.getElementById("cg-boot").classList.contains("cg-boot--out")
+        );
+        if (isLoaderOpaque) return;
 
         // ── Update mobile/gem camera matrices & uniforms for raytracer ───
         if (gemMeshesRef.current && gemMeshesRef.current.length > 0 && camera) {

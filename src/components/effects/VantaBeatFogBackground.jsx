@@ -133,9 +133,16 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       effectRef.current = null;
     };
 
+    // Cooperative yield helper for cooperative task scheduling
+    const yieldToMain = () =>
+      typeof window !== "undefined" && window.scheduler?.yield
+        ? window.scheduler.yield()
+        : new Promise((resolve) => setTimeout(resolve, 0));
+
     // Stagger Vanta initialization off the synchronous React mount tick to prevent main-thread freeze
-    const initTimer = setTimeout(() => {
+    const initTimer = setTimeout(async () => {
       try {
+        await yieldToMain();
         if (typeof window !== "undefined") {
           window.THREE = THREE;
         }
@@ -144,6 +151,8 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
           THREE,
           ...initialOpts,
         });
+
+        await yieldToMain();
 
         vantaCanvas = el.querySelector("canvas");
         if (vantaCanvas) {
@@ -167,6 +176,12 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
       rafRef.current = requestAnimationFrame(tick);
       if (typeof document !== "undefined" && document.hidden) return;
       if (!effectRef.current) return;
+
+      // Pause continuous rendering while opaque loader covers the screen
+      const isLoaderOpaque = typeof document !== "undefined" && (
+        document.getElementById("cg-boot") && !document.getElementById("cg-boot").classList.contains("cg-boot--out")
+      );
+      if (isLoaderOpaque) return;
 
       const { fromIndex, toIndex, weight } = blendRef.current;
       const optsArray = beatOptionsRef.current;

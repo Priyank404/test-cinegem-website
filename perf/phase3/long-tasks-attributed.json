@@ -1,0 +1,130 @@
+[
+  {
+    "durMs": 261.7,
+    "topCalls": [
+      {
+        "name": "FunctionCall",
+        "durMs": 90.1,
+        "url": "exrWorker-qEqAU038.js",
+        "functionName": "self.onmessage",
+        "lineNumber": 14
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.4,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.4,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.4,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.4,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      }
+    ]
+  },
+  {
+    "durMs": 252.8,
+    "topCalls": []
+  },
+  {
+    "durMs": 237.9,
+    "topCalls": []
+  },
+  {
+    "durMs": 227.8,
+    "topCalls": [
+      {
+        "name": "FunctionCall",
+        "durMs": 227.8,
+        "url": "vendor-react-BJyoBp2H.js",
+        "functionName": "oe",
+        "lineNumber": 1
+      }
+    ]
+  },
+  {
+    "durMs": 209.4,
+    "topCalls": [
+      {
+        "name": "FunctionCall",
+        "durMs": 209.2,
+        "url": "vendor-react-BJyoBp2H.js",
+        "functionName": "oe",
+        "lineNumber": 1
+      }
+    ]
+  },
+  {
+    "durMs": 201.9,
+    "topCalls": []
+  },
+  {
+    "durMs": 201.7,
+    "topCalls": []
+  },
+  {
+    "durMs": 152,
+    "topCalls": []
+  },
+  {
+    "durMs": 106.3,
+    "topCalls": []
+  },
+  {
+    "durMs": 92.4,
+    "topCalls": [
+      {
+        "name": "FunctionCall",
+        "durMs": 92.3,
+        "url": "exrWorker-qEqAU038.js",
+        "functionName": "self.onmessage",
+        "lineNumber": 14
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.4,
+        "url": "index-DqYbym9H.js",
+        "functionName": null,
+        "lineNumber": 4
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.2,
+        "url": "6cdba1b9-1c12-4370-8252-db33526e3dfb",
+        "functionName": "onmessage",
+        "lineNumber": 122
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.2,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      },
+      {
+        "name": "FunctionCall",
+        "durMs": 1.2,
+        "url": "VantaFogBackground-BCMYdkXn.js",
+        "functionName": "animationLoop",
+        "lineNumber": 1
+      }
+    ]
+  }
+]
