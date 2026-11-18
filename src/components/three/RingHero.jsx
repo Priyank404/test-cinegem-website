@@ -1718,6 +1718,13 @@ export default function RingHero({
         onSpotMetaUpdate?.(loadedSpotResult?.meta || null);
         onRefreshPreviews?.();
 
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.metalEnvApplied = performance.now();
+          window.__cinegemReadyGate.baseExrApplied = performance.now();
+          window.__cinegemReadyGate.spotExrApplied = performance.now();
+        }
+
         await yieldTask();
 
         metalMaterial = buildMetalMaterial(
@@ -1799,6 +1806,11 @@ export default function RingHero({
 
         scene.add(ring);
 
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.glbAdded = performance.now();
+        }
+
         ringHeroTransform.position.copy(ring.position);
         ringHeroTransform.rotation.copy(ring.rotation);
         ringHeroTransform.scale = ring.scale.x;
@@ -1822,8 +1834,30 @@ export default function RingHero({
         if (renderer && typeof renderer.compileAsync === "function") {
           try {
             await renderer.compileAsync(scene, camera);
+            if (typeof window !== "undefined") {
+              window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+              window.__cinegemReadyGate.compileAsyncResolved = performance.now();
+            }
           } catch (compileErr) {
             console.warn("RingHero: compileAsync fallback:", compileErr);
+          }
+        }
+        await yieldTask();
+
+        // Render first composed frame to ensure canvas buffer is painted before loader dismissal
+        if (renderer && scene && camera) {
+          try {
+            if (composer) {
+              composer.render();
+            } else {
+              renderer.render(scene, camera);
+            }
+            if (typeof window !== "undefined") {
+              window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+              window.__cinegemReadyGate.firstFrameRendered = performance.now();
+            }
+          } catch (renderErr) {
+            console.warn("RingHero: Initial frame render warning:", renderErr);
           }
         }
         await yieldTask();

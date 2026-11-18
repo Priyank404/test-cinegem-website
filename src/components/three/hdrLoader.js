@@ -193,21 +193,12 @@ export function loadRawEquirect(
             loader.setDataType(THREE.HalfFloatType);
             loader.outputFormat = mono ? THREE.RedFormat : THREE.RGBAFormat;
             const parsed = loader.parse(arrayBuffer);
-            let data = parsed.data;
-            if (mono && parsed.data) {
-              const pixelCount = parsed.width * parsed.height;
-              const monoData = new Uint16Array(pixelCount);
-              for (let i = 0; i < pixelCount; i++) {
-                monoData[i] = parsed.data[i * 4];
-              }
-              data = monoData;
-            }
             return {
               width: parsed.width,
               height: parsed.height,
               format: mono ? "RedFormat" : "RGBAFormat",
               dataType: "HalfFloatType",
-              data,
+              data: parsed.data,
             };
           }
         );

@@ -106,6 +106,11 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
     // Mobile and mid-tier devices run fog smoothly at scaleMobile: 4.0 (1/4 fillrate).
     const { tier } = getDeviceTier();
     if (tier === "minimal") {
+      if (typeof window !== "undefined") {
+        window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+        window.__cinegemReadyGate.vantaFogInitialised = performance.now();
+        window.dispatchEvent(new CustomEvent("cinegem:vanta-ready"));
+      }
       return;
     }
 
@@ -142,6 +147,12 @@ const VantaBeatFogBackground = forwardRef(function VantaBeatFogBackground(
         vantaCanvas = el.querySelector("canvas");
         if (vantaCanvas) {
           vantaCanvas.addEventListener("webglcontextlost", handleVantaContextLost, false);
+        }
+
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.vantaFogInitialised = performance.now();
+          window.dispatchEvent(new CustomEvent("cinegem:vanta-ready"));
         }
       } catch (err) {
         console.warn("[VantaBeatFogBackground] Vanta initialization failed, using CSS fallback:", err);

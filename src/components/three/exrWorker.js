@@ -8,28 +8,13 @@ self.onmessage = function (e) {
     if (dataType === "HalfFloatType") {
       loader.setDataType(THREE.HalfFloatType);
     }
+    // Match native hdrLoader.js line 88: decode directly to RedFormat during scanline parse
+    loader.outputFormat = mono ? THREE.RedFormat : THREE.RGBAFormat;
 
     const parsed = loader.parse(buffer);
     const width = parsed.width;
     const height = parsed.height;
-
-    let outputData;
-    let format;
-
-    if (mono) {
-      // Pack RGBA half-float data (4 channels) down to single-channel RedFormat
-      const pixelCount = width * height;
-      const monoData = new Uint16Array(pixelCount);
-      const srcData = parsed.data;
-      for (let i = 0; i < pixelCount; i++) {
-        monoData[i] = srcData[i * 4];
-      }
-      outputData = monoData;
-      format = "RedFormat";
-    } else {
-      outputData = parsed.data;
-      format = "RGBAFormat";
-    }
+    const format = mono ? "RedFormat" : "RGBAFormat";
 
     self.postMessage(
       {
@@ -39,9 +24,9 @@ self.onmessage = function (e) {
         height,
         format,
         dataType,
-        data: outputData,
+        data: parsed.data,
       },
-      [outputData.buffer]
+      [parsed.data.buffer]
     );
   } catch (err) {
     self.postMessage({

@@ -27,6 +27,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { getDeviceTier } from "@/lib/deviceTier";
 import { Hero3DErrorBoundary } from "@/components/three/Hero3DFallback";
 import { Link } from "react-router-dom";
 import { useSeo } from "@/seo/useSeo";
@@ -619,6 +620,48 @@ export default function HomePage() {
   const [loadStatus, setLoadStatus] = useState("Initiating exhibition...");
   const [shouldStart3D, setShouldStart3D] = useState(true);
 
+  // Synchronized Ring Ready Gate coordinating 3D scene, Vanta fog, fonts, and hero image
+  const handle3DReady = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+
+    // 1. Await document.fonts.ready
+    try {
+      await document.fonts?.ready;
+    } catch (_) {}
+    window.__cinegemReadyGate.fontsReady = performance.now();
+
+    // 2. Await first hero image decode (/Logo.png)
+    try {
+      const img = new Image();
+      img.src = "/Logo.png";
+      await img.decode?.();
+    } catch (_) {}
+    window.__cinegemReadyGate.heroImageDecoded = performance.now();
+
+    // 3. Await Vanta fog if not minimal tier
+    const { tier } = getDeviceTier();
+    if (tier !== "minimal" && !window.__cinegemReadyGate.vantaFogInitialised) {
+      await new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 2500);
+        const handler = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        window.addEventListener("cinegem:vanta-ready", handler, { once: true });
+      });
+    }
+
+    // 4. Record loader fade start timestamp
+    window.__cinegemReadyGate.loaderFadeStart = performance.now();
+
+    console.log("[RingReadyGate] All readiness criteria fulfilled:", { ...window.__cinegemReadyGate });
+
+    setLoadProgress(100);
+    setLoadStatus("Experience ready");
+    setIsLoading(false);
+  }, []);
+
   // Dev-only performance A/B switches (?perf=noring,nofog,noblur,novideo)
   const perfFlags = usePerfFlags();
 
@@ -798,44 +841,48 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [beat2ResolvedVideoSrc, beat3ResolvedVideoSrc, perfFlags.novideo]);
 
-  // Buffer home page videos during browser idle time once initial 3D experience has loaded
+  // Buffer home page videos after first user interaction (scroll, touch, wheel, keydown)
+  // unless user has Data Saver enabled (navigator.connection.saveData), preventing initial load bandwidth contention.
   useEffect(() => {
-    if (isLoading || typeof window === "undefined" || perfFlags.novideo) return;
+    if (typeof window === "undefined" || perfFlags.novideo) return;
+    if (navigator.connection?.saveData) return;
 
-    const bufferVideos = () => {
+    let triggered = false;
+
+    const startPrebuffer = () => {
+      if (triggered) return;
+      triggered = true;
+
+      window.removeEventListener("scroll", startPrebuffer);
+      window.removeEventListener("touchstart", startPrebuffer);
+      window.removeEventListener("wheel", startPrebuffer);
+      window.removeEventListener("keydown", startPrebuffer);
+
       const b2Src = pickVideoSrc(beat2Video);
       const b3Src = pickVideoSrc(beat3Video);
 
       if (beat2VideoRef.current && b2Src && !beat2VideoRef.current.src) {
         beat2VideoRef.current.src = b2Src;
-        beat2VideoRef.current.preload = "metadata";
+        beat2VideoRef.current.preload = "auto";
       }
       if (beat3VideoRef.current && b3Src && !beat3VideoRef.current.src) {
         beat3VideoRef.current.src = b3Src;
-        beat3VideoRef.current.preload = "metadata";
+        beat3VideoRef.current.preload = "auto";
       }
     };
 
-    let idleId;
-    let timerId;
-    if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(bufferVideos, { timeout: 2000 });
-    } else {
-      timerId = setTimeout(bufferVideos, 1500);
-    }
+    window.addEventListener("scroll", startPrebuffer, { passive: true, once: true });
+    window.addEventListener("touchstart", startPrebuffer, { passive: true, once: true });
+    window.addEventListener("wheel", startPrebuffer, { passive: true, once: true });
+    window.addEventListener("keydown", startPrebuffer, { passive: true, once: true });
 
     return () => {
-      if (idleId && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timerId) {
-        clearTimeout(timerId);
-      }
-      if (videoPlayDebounceRef.current) {
-        clearTimeout(videoPlayDebounceRef.current);
-      }
+      window.removeEventListener("scroll", startPrebuffer);
+      window.removeEventListener("touchstart", startPrebuffer);
+      window.removeEventListener("wheel", startPrebuffer);
+      window.removeEventListener("keydown", startPrebuffer);
     };
-  }, [isLoading, beat2Video, beat3Video]);
+  }, [beat2Video, beat3Video]);
 
   // "Explore 3D Viewer" text link that fades in during the tail of Beat 5
   // (see EXPLORE_LINK_GLOBAL_FRAME / _END_FRAME constants above) once the
@@ -2113,11 +2160,7 @@ export default function HomePage() {
           setLoadProgress(p);
           if (status) setLoadStatus(status);
         }}
-        onLoaded={() => {
-          setLoadProgress(100);
-          setLoadStatus("Experience ready");
-          setIsLoading(false);
-        }}
+        onLoaded={handle3DReady}
         metalPreset={metalPresets[metalPresetKey]}
         gemMaterialTypeOverride={gemMode}
         dracoDecoderPath="/draco/"
