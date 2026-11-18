@@ -90,6 +90,22 @@ export default defineConfig({
   build: {
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
     cssTarget: "chrome87",
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          const normalized = id.replace(/\\/g, "/");
+          if (normalized.includes("node_modules/three")) return "vendor-three";
+          if (normalized.includes("node_modules/gsap")) return "vendor-gsap";
+          if (
+            normalized.includes("node_modules/react") ||
+            normalized.includes("node_modules/react-dom") ||
+            normalized.includes("node_modules/react-router-dom")
+          ) {
+            return "vendor-react";
+          }
+        },
+      },
+    },
   },
 
   define: {
