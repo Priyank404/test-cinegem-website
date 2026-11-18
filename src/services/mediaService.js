@@ -54,6 +54,7 @@ export async function fetchMediaFolder(identifier) {
       const localUrl = `/manifests/${prefix}.json`;
       const remoteUrl = mediaUrl(`manifests/${prefix}.json`);
       let response;
+      let usedLocal = false;
 
       try {
         // Try local static manifest first for immediate zero-CORS response
@@ -61,6 +62,7 @@ export async function fetchMediaFolder(identifier) {
         if (!response.ok) {
           throw new Error(`Local manifest returned ${response.status}`);
         }
+        usedLocal = true;
       } catch {
         // Fallback to remote CDN manifest if local is missing or fails
         response = await fetch(remoteUrl, { cache: "default" });
@@ -86,6 +88,43 @@ export async function fetchMediaFolder(identifier) {
       };
 
       folderCache.set(prefix, result);
+
+      // If local manifest was served, trigger a non-blocking background revalidation
+      // against the CDN manifest so new remote media updates are never frozen.
+      if (usedLocal && typeof window !== "undefined") {
+        const revalidate = async () => {
+          try {
+            const remoteRes = await fetch(remoteUrl, { cache: "no-cache" });
+            if (remoteRes.ok) {
+              const remoteData = await remoteRes.json();
+              if (
+                remoteData.updatedAt &&
+                (!result.updatedAt || new Date(remoteData.updatedAt) > new Date(result.updatedAt))
+              ) {
+                const newItems = (Array.isArray(remoteData.items) ? remoteData.items : []).map(expandItemUrls);
+                const updatedResult = {
+                  prefix,
+                  items: newItems,
+                  images: newItems.filter((i) => i.type === "image"),
+                  videos: newItems.filter((i) => i.type === "video"),
+                  total: newItems.length,
+                  updatedAt: remoteData.updatedAt,
+                };
+                folderCache.set(prefix, updatedResult);
+              }
+            }
+          } catch {
+            // Benign background revalidation failure (e.g. offline dev or CORS); keep local manifest
+          }
+        };
+
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(() => revalidate());
+        } else {
+          setTimeout(revalidate, 2000);
+        }
+      }
+
       return result;
     } finally {
       inFlightRequests.delete(prefix);
