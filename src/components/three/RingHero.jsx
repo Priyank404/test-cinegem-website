@@ -1630,6 +1630,10 @@ export default function RingHero({
           gLoader.load(
             glbUrl,
             (gltf) => {
+              if (typeof window !== "undefined") {
+                window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+                window.__cinegemReadyGate.glbResolved = performance.now();
+              }
               progressMap.glb.loaded = progressMap.glb.total;
               updateOverallProgress("Ring geometry downloaded");
               resolve(gltf);
@@ -1658,28 +1662,46 @@ export default function RingHero({
       loadEnvironmentTexture(metalHdrUrl, pmrem, (xhr) => {
         if (xhr.loaded) progressMap.metalHdr.loaded = xhr.loaded;
         updateOverallProgress("Studio lighting loaded");
+      }).then((tex) => {
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.metalEnvResolved = performance.now();
+        }
+        return tex;
       }).catch((err) => {
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
         return null;
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
+      ((deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
         mono: gemBaseEnv?.mono ?? true,
         fileName: (deviceTier.tier === "mobile" ? "Diamond-Base-HDRI-mobile.exr" : baseFileNameHint),
         onProgress: (xhr) => {
           if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond base environment loaded");
         },
+      })).then((res) => {
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.baseExrResolved = performance.now();
+        }
+        return res;
       }).catch((err) => {
         console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
+      ((deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
         mono: gemSpotEnv?.mono ?? true,
         fileName: (deviceTier.tier === "mobile" ? "Diamond-Spotlight-HDRI-mobile.exr" : spotFileNameHint),
         onProgress: (xhr) => {
           if (xhr.loaded) progressMap.gemSpotHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond spotlight environment loaded");
         },
+      })).then((res) => {
+        if (typeof window !== "undefined") {
+          window.__cinegemReadyGate = window.__cinegemReadyGate || {};
+          window.__cinegemReadyGate.spotExrResolved = performance.now();
+        }
+        return res;
       }).catch((err) => {
         console.warn("RingHero: Diamond spot HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
@@ -1720,9 +1742,7 @@ export default function RingHero({
 
         if (typeof window !== "undefined") {
           window.__cinegemReadyGate = window.__cinegemReadyGate || {};
-          window.__cinegemReadyGate.metalEnvApplied = performance.now();
-          window.__cinegemReadyGate.baseExrApplied = performance.now();
-          window.__cinegemReadyGate.spotExrApplied = performance.now();
+          window.__cinegemReadyGate.texturesApplied = performance.now();
         }
 
         await yieldTask();

@@ -1889,7 +1889,6 @@ export default function HomePage() {
                     <div className="glassy-grid-item">
                       <MediaImage
                         item={beat2Images[0]}
-                        priority={true}
                         sizes="(max-width: 768px) 50vw, 25vw"
                         alt={beat2Images[0]?.alt || "Solitaire Marquise Ring - Angle 1"}
                       />
@@ -2493,6 +2492,7 @@ export default function HomePage() {
             width="1000"
             height="1000"
             fetchpriority="high"
+            decoding="async"
             className="h-[124px] sm:h-[124px] md:h-[194px] lg:h-[230px] w-auto object-contain filter drop-shadow block -mt-2 sm:-mt-4 md:-mt-14 lg:-mt-17"
           />
         </Link>
