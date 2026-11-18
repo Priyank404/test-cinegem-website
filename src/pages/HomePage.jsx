@@ -808,11 +808,11 @@ export default function HomePage() {
 
       if (beat2VideoRef.current && b2Src && !beat2VideoRef.current.src) {
         beat2VideoRef.current.src = b2Src;
-        beat2VideoRef.current.preload = "auto";
+        beat2VideoRef.current.preload = "metadata";
       }
       if (beat3VideoRef.current && b3Src && !beat3VideoRef.current.src) {
         beat3VideoRef.current.src = b3Src;
-        beat3VideoRef.current.preload = "auto";
+        beat3VideoRef.current.preload = "metadata";
       }
     };
 
