@@ -17,8 +17,8 @@ function saveTimelinePlugin() {
           req.on("end", () => {
             try {
               const { beats, target = "desktop" } = JSON.parse(body);
-              const ringHeroPath = path.resolve(__dirname, "src/components/three/RingHero.jsx");
-              let fileContent = fs.readFileSync(ringHeroPath, "utf8");
+              const ringBeatsPath = path.resolve(__dirname, "src/components/three/ringBeats.js");
+              let fileContent = fs.readFileSync(ringBeatsPath, "utf8");
 
               const varName = target === "mobile" ? "MOBILE_BEATS" : "BEATS";
 
@@ -47,7 +47,7 @@ function saveTimelinePlugin() {
               const regex = new RegExp(`export const ${varName} = \\[\\s*[\\s\\S]*?\\n\\];`, "g");
               const newContent = fileContent.replace(regex, serializedBeats);
 
-              fs.writeFileSync(ringHeroPath, newContent, "utf8");
+              fs.writeFileSync(ringBeatsPath, newContent, "utf8");
 
               res.statusCode = 200;
               res.setHeader("Content-Type", "application/json");
@@ -94,12 +94,12 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           const normalized = id.replace(/\\/g, "/");
-          if (normalized.includes("node_modules/three")) return "vendor-three";
-          if (normalized.includes("node_modules/gsap")) return "vendor-gsap";
+          if (normalized.includes("node_modules/three/")) return "vendor-three";
+          if (normalized.includes("node_modules/gsap/")) return "vendor-gsap";
           if (
-            normalized.includes("node_modules/react") ||
-            normalized.includes("node_modules/react-dom") ||
-            normalized.includes("node_modules/react-router-dom")
+            normalized.includes("node_modules/react/") ||
+            normalized.includes("node_modules/react-dom/") ||
+            normalized.includes("node_modules/react-router-dom/")
           ) {
             return "vendor-react";
           }

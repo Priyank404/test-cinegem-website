@@ -35,8 +35,9 @@ import { useSeo } from "@/seo/useSeo";
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import RingHero, { BEATS } from "@/components/three/RingHero";
-import VantaBeatFogBackground from "@/components/effects/VantaBeatFogBackground";
+import { BEATS } from "@/components/three/ringBeats";
+const RingHero = lazy(() => import("@/components/three/RingHero"));
+const VantaBeatFogBackground = lazy(() => import("@/components/effects/VantaBeatFogBackground"));
 import { useHomePageMedia } from "@/hooks/useHomePageMedia";
 import MediaImage from "@/components/shared/MediaImage";
 const VantaFogControlPanel = import.meta.env.DEV
@@ -53,7 +54,7 @@ import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
 const TimelineEditor = import.meta.env.DEV
   ? lazy(() => import("@/components/three/TimelineEditor"))
   : () => null;
-import { metalPresets } from "@/components/three/metalMaterials";
+import { metalPresets } from "@/components/three/metalPresets";
 import { usePerfFlags } from "@/components/dev/PerfDevHud";
 import "./HeroPage2.css";
 import LoadingScreen from "@/components/ui/LoadingScreen";
@@ -1819,11 +1820,13 @@ export default function HomePage() {
           shader BeatBackground layer has been removed — this is now the
           only background layer.) */}
       {shouldStart3D && !perfFlags.nofog && (
-        <VantaBeatFogBackground
-          ref={vantaBeatRef}
-          beatOptions={beatFogOptions}
-          zIndex={1}
-        />
+        <Suspense fallback={null}>
+          <VantaBeatFogBackground
+            ref={vantaBeatRef}
+            beatOptions={beatFogOptions}
+            zIndex={1}
+          />
+        </Suspense>
       )}
 
       {/* Dev-only tuning panel for the per-beat Vanta FOG colors/blur/
@@ -2152,7 +2155,8 @@ export default function HomePage() {
           everything else via z-index (see RingHero.jsx inline styles) */}
       {shouldStart3D && !perfFlags.noring && (
         <Hero3DErrorBoundary>
-          <RingHero
+          <Suspense fallback={null}>
+            <RingHero
           glbUrl="/models/ring-draco.glb"
         metalHdrUrl={metalHdrUrl}
         gemBaseHdrUrl={gemBaseHdrUrl}
@@ -2255,6 +2259,7 @@ export default function HomePage() {
           }, 150);
         }}
           />
+          </Suspense>
         </Hero3DErrorBoundary>
       )}
 
