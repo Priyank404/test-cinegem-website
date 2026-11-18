@@ -51,21 +51,21 @@ export async function fetchMediaFolder(identifier) {
 
   const fetchPromise = (async () => {
     try {
-      const manifestUrl = mediaUrl(`manifests/${prefix}.json`);
+      const localUrl = `/manifests/${prefix}.json`;
+      const remoteUrl = mediaUrl(`manifests/${prefix}.json`);
       let response;
+
       try {
-        response = await fetch(manifestUrl, { cache: "default" });
+        // Try local static manifest first for immediate zero-CORS response
+        response = await fetch(localUrl);
+        if (!response.ok) {
+          throw new Error(`Local manifest returned ${response.status}`);
+        }
+      } catch {
+        // Fallback to remote CDN manifest if local is missing or fails
+        response = await fetch(remoteUrl, { cache: "default" });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status} ${response.statusText}`);
-        }
-      } catch (networkErr) {
-        // Fallback to local /manifests/ if remote fetch fails (e.g. CORS on localhost or offline dev)
-        console.warn(
-          `[mediaService] Remote manifest fetch for "${prefix}" did not succeed (${networkErr.message}). Falling back to local /manifests/${prefix}.json...`
-        );
-        response = await fetch(`/manifests/${prefix}.json`);
-        if (!response.ok) {
-          throw networkErr;
         }
       }
 
