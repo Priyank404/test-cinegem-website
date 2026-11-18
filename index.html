@@ -35,6 +35,27 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" />
     </noscript>
 
+    <!-- Preload Draco decoder and base ring assets early -->
+    <link rel="preload" as="fetch" type="application/octet-stream" crossorigin href="/models/ring-draco.glb" />
+    <link rel="preload" as="fetch" type="application/wasm" crossorigin href="/draco/draco_decoder.wasm" />
+    <link rel="preload" as="script" crossorigin href="/draco/draco_wasm_wrapper.js" />
+    <link rel="preload" as="fetch" type="application/octet-stream" crossorigin href="/hdr/env_metal_001_d01c4504e0.hdr" />
+    <script>
+      (function() {
+        try {
+          var isMobile = (window.innerWidth < 768) || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+          var exrFile = isMobile ? '/hdr/Diamond-Base-HDRI-mobile.exr' : '/hdr/Diamond-Base-HDRI.exr';
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'fetch';
+          link.type = 'application/octet-stream';
+          link.crossOrigin = 'anonymous';
+          link.href = exrFile;
+          document.head.appendChild(link);
+        } catch (_) {}
+      })();
+    </script>
+
     <title>Cinegem Studio — High Jewellery CGI & 3D Visualization</title>
     <script>
       (function() {
