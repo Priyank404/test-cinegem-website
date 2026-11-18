@@ -44,14 +44,16 @@
       (function() {
         try {
           var isMobile = (window.innerWidth < 768) || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-          var exrFile = isMobile ? '/hdr/Diamond-Base-HDRI-mobile.exr' : '/hdr/Diamond-Base-HDRI.exr';
-          var link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'fetch';
-          link.type = 'application/octet-stream';
-          link.crossOrigin = 'anonymous';
-          link.href = exrFile;
-          document.head.appendChild(link);
+          // Preload the lightweight mobile EXR (561 KB) early; avoid preloading the 7.5 MB desktop EXR in HTML to prevent network contention with JS chunks
+          if (isMobile) {
+            var link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'fetch';
+            link.type = 'application/octet-stream';
+            link.crossOrigin = 'anonymous';
+            link.href = '/hdr/Diamond-Base-HDRI-mobile.exr';
+            document.head.appendChild(link);
+          }
         } catch (_) {}
       })();
     </script>
