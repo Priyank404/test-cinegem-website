@@ -22,56 +22,39 @@ export default function LoadingScreen({
 }) {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
-  const [hasAnimationFinished, setHasAnimationFinished] = useState(false);
   const hasFinishedRef = useRef(false);
-  const startTimeRef = useRef(Date.now());
 
-  // Minimum duration of 3800ms ensures the complete 3.6s animation plays gracefully
+  // Decision D2: The loading screen disappears the moment everything is ready
   useEffect(() => {
-    const isDebug =
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).has("ringdebug");
-
-    if (isDebug) {
-      setHasAnimationFinished(true);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setHasAnimationFinished(true);
-    }, 3800);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleAnimationComplete = () => {
-    setHasAnimationFinished(true);
-  };
-
-  useEffect(() => {
-    // Exit occurs only when BOTH the 3D scene is loaded AND the full intro animation completes!
-    if (!isLoading && hasAnimationFinished && !hasFinishedRef.current) {
+    if (!isLoading && !hasFinishedRef.current) {
       hasFinishedRef.current = true;
+      setIsFadingOut(true);
+      const timer = setTimeout(() => {
+        setIsMounted(false);
+        onFinished?.();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, onFinished]);
 
-      const elapsed = Date.now() - startTimeRef.current;
-      const remaining = Math.max(0, 3800 - elapsed);
-
-      const triggerFade = () => {
+  // Safety fallback: if anything hangs after 10s, auto-dismiss so the user is never trapped
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      if (!hasFinishedRef.current) {
+        hasFinishedRef.current = true;
         setIsFadingOut(true);
         setTimeout(() => {
           setIsMounted(false);
           onFinished?.();
-        }, 650);
-      };
-
-      if (remaining > 0) {
-        const t = setTimeout(triggerFade, remaining);
-        return () => clearTimeout(t);
-      } else {
-        triggerFade();
+        }, 600);
       }
-    }
-  }, [isLoading, hasAnimationFinished, onFinished]);
+    }, 10000);
+    return () => clearTimeout(safetyTimer);
+  }, [onFinished]);
+
+  const handleAnimationComplete = () => {
+    // Keep callback for RingAssembleLoader compatibility
+  };
 
   // Lock body scroll while active
   useEffect(() => {

@@ -617,7 +617,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadStatus, setLoadStatus] = useState("Initiating exhibition...");
-  const [shouldStart3D, setShouldStart3D] = useState(false);
+  const [shouldStart3D, setShouldStart3D] = useState(true);
 
   // Dev-only performance A/B switches (?perf=noring,nofog,noblur,novideo)
   const perfFlags = usePerfFlags();
@@ -627,19 +627,6 @@ export default function HomePage() {
       setIsLoading(false);
     }
   }, [perfFlags.noring]);
-
-  // Defer heavy 3D WebGL / Draco initialization so intro ring animation plays at buttery smooth 60fps
-  useEffect(() => {
-    const isDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("ringdebug");
-    if (isDebug) {
-      setShouldStart3D(true);
-      return;
-    }
-    const t = setTimeout(() => {
-      setShouldStart3D(true);
-    }, 1500);
-    return () => clearTimeout(t);
-  }, []);
 
   // Vertical Dot Navigation scroll handler
   const handleDotClick = useCallback((index, section) => {
