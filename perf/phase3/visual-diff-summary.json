@@ -1,0 +1,96 @@
+{
+  "desktop": {
+    "Beat1-Hero": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 62845,
+      "pageDiffPct": 4.849,
+      "ringTotalPixels": 36381,
+      "ringDiffPixels": 0,
+      "ringDiffPct": 0
+    },
+    "Beat2-Ecommerce": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 46955,
+      "pageDiffPct": 3.623,
+      "ringTotalPixels": 225951,
+      "ringDiffPixels": 20941,
+      "ringDiffPct": 9.268
+    },
+    "Beat3-Creative": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 55176,
+      "pageDiffPct": 4.257,
+      "ringTotalPixels": 248501,
+      "ringDiffPixels": 0,
+      "ringDiffPct": 0
+    },
+    "Beat4-OnBody": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 65285,
+      "pageDiffPct": 5.037,
+      "ringTotalPixels": 140751,
+      "ringDiffPixels": 13821,
+      "ringDiffPct": 9.819
+    },
+    "Beat5-3DViewer": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 79513,
+      "pageDiffPct": 6.135,
+      "ringTotalPixels": 36381,
+      "ringDiffPixels": 221,
+      "ringDiffPct": 0.607
+    },
+    "Beat6-Footer": {
+      "totalPixels": 1296000,
+      "pageDiffPixels": 33111,
+      "pageDiffPct": 2.555,
+      "ringTotalPixels": 73341,
+      "ringDiffPixels": 104,
+      "ringDiffPct": 0.142
+    }
+  },
+  "mobile": {
+    "Beat1-Hero": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 59180,
+      "diffPct": 1.998
+    },
+    "Beat2-Ecommerce": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 137626,
+      "diffPct": 4.646
+    },
+    "Beat3-Creative": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 133601,
+      "diffPct": 4.51
+    },
+    "Beat4-OnBody": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 2328029,
+      "diffPct": 78.585
+    },
+    "Beat5-3DViewer": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 57733,
+      "diffPct": 1.949
+    },
+    "Beat6-Footer": {
+      "width": 1170,
+      "height": 2532,
+      "totalPixels": 2962440,
+      "diffPixels": 41934,
+      "diffPct": 1.416
+    }
+  }
+}

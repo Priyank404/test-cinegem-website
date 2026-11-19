@@ -1,0 +1,182 @@
+{
+  "devtools": {
+    "mobile": {
+      "runs": [
+        {
+          "run": 1,
+          "score": 74,
+          "fcp": "2.44",
+          "lcp": "2.44",
+          "tbt": 435,
+          "si": "12.82",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 2,
+          "score": 72,
+          "fcp": "2.43",
+          "lcp": "2.43",
+          "tbt": 497,
+          "si": "12.89",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 3,
+          "score": 74,
+          "fcp": "2.43",
+          "lcp": "2.43",
+          "tbt": 423,
+          "si": "12.81",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        }
+      ],
+      "median": {
+        "run": 1,
+        "score": 74,
+        "fcp": "2.44",
+        "lcp": "2.44",
+        "tbt": 435,
+        "si": "12.82",
+        "cls": "0.000",
+        "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+      }
+    },
+    "desktop": {
+      "runs": [
+        {
+          "run": 1,
+          "score": 67,
+          "fcp": "0.11",
+          "lcp": "0.11",
+          "tbt": 608,
+          "si": "3.63",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 2,
+          "score": 65,
+          "fcp": "0.10",
+          "lcp": "0.10",
+          "tbt": 732,
+          "si": "3.71",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 3,
+          "score": 66,
+          "fcp": "0.09",
+          "lcp": "0.09",
+          "tbt": 679,
+          "si": "3.69",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        }
+      ],
+      "median": {
+        "run": 3,
+        "score": 66,
+        "fcp": "0.09",
+        "lcp": "0.09",
+        "tbt": 679,
+        "si": "3.69",
+        "cls": "0.000",
+        "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+      }
+    }
+  },
+  "sim": {
+    "mobile": {
+      "runs": [
+        {
+          "run": 1,
+          "score": 43,
+          "fcp": "1.24",
+          "lcp": "22.66",
+          "tbt": 2294,
+          "si": "5.00",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 2,
+          "score": 43,
+          "fcp": "1.23",
+          "lcp": "22.66",
+          "tbt": 2321,
+          "si": "5.06",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 3,
+          "score": 43,
+          "fcp": "1.24",
+          "lcp": "22.66",
+          "tbt": 2432,
+          "si": "4.85",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        }
+      ],
+      "median": {
+        "run": 2,
+        "score": 43,
+        "fcp": "1.23",
+        "lcp": "22.66",
+        "tbt": 2321,
+        "si": "5.06",
+        "cls": "0.000",
+        "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+      }
+    },
+    "desktop": {
+      "runs": [
+        {
+          "run": 1,
+          "score": 54,
+          "fcp": "0.32",
+          "lcp": "3.29",
+          "tbt": 534,
+          "si": "2.38",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 2,
+          "score": 57,
+          "fcp": "0.32",
+          "lcp": "3.29",
+          "tbt": 451,
+          "si": "2.36",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        },
+        {
+          "run": 3,
+          "score": 54,
+          "fcp": "0.32",
+          "lcp": "3.29",
+          "tbt": 539,
+          "si": "2.40",
+          "cls": "0.000",
+          "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+        }
+      ],
+      "median": {
+        "run": 3,
+        "score": 54,
+        "fcp": "0.32",
+        "lcp": "3.29",
+        "tbt": 539,
+        "si": "2.40",
+        "cls": "0.000",
+        "lcpElem": "div#cg-boot > div.cg-col > div.cg-logo > img"
+      }
+    }
+  }
+}

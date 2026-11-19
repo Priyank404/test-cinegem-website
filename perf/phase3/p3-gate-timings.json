@@ -1,0 +1,44 @@
+{
+  "desktopUnthrottled": {
+    "vantaFogInitialised": 886.8999999761581,
+    "metalEnvResolved": 924.1000000238419,
+    "glbResolved": 1209.3999999761581,
+    "spotExrResolved": 1236.8000000715256,
+    "baseExrResolved": 2712.8000000715256,
+    "texturesApplied": 2725.3000000715256,
+    "glbAdded": 2790.3000000715256,
+    "compileAsyncResolved": 2876.899999976158,
+    "firstFrameRendered": 2877.5,
+    "fontsReady": 2877.7000000476837,
+    "heroImageDecoded": 2878.3000000715256,
+    "loaderFadeStart": 2878.399999976158
+  },
+  "mobileUnthrottled": {
+    "vantaFogInitialised": 869.8000000715256,
+    "metalEnvResolved": 904.6000000238419,
+    "baseExrResolved": 1010.3000000715256,
+    "spotExrResolved": 1099.3000000715256,
+    "glbResolved": 1181.9000000953674,
+    "texturesApplied": 1182.1000000238419,
+    "glbAdded": 1245,
+    "compileAsyncResolved": 1320.6000000238419,
+    "firstFrameRendered": 1321.1000000238419,
+    "fontsReady": 1321.2000000476837,
+    "heroImageDecoded": 1321.8000000715256,
+    "loaderFadeStart": 1321.8000000715256
+  },
+  "mobileThrottled": {
+    "vantaFogInitialised": 7698.600000023842,
+    "metalEnvResolved": 7791.799999952316,
+    "spotExrResolved": 9249.600000023842,
+    "baseExrResolved": 11484.100000023842,
+    "glbResolved": 21707.600000023842,
+    "texturesApplied": 21709.399999976158,
+    "glbAdded": 21978.199999928474,
+    "compileAsyncResolved": 22168.5,
+    "firstFrameRendered": 22169.899999976158,
+    "fontsReady": 22170.600000023842,
+    "heroImageDecoded": 22172.899999976158,
+    "loaderFadeStart": 22172.899999976158
+  }
+}
