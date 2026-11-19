@@ -121,11 +121,11 @@ body::-webkit-scrollbar,
    only within its own frame range by HeroPage2. */
 .hero2-explore-link {
   position: fixed;
-  right: max(24px, 17vw);
+  right: max(32px, 5.5vw);
   left: auto;
   top: 50%;
-  width: max(200px, 18.75vw);
-  max-width: 380px;
+  width: min(520px, max(360px, 26vw));
+  max-width: 520px;
   z-index: 8;
   transform: translateY(calc(-50% + 20px));
   opacity: 0;
