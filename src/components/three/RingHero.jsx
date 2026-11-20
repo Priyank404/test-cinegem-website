@@ -472,10 +472,12 @@ export default function RingHero({
     base: null,
     rawSpot: null,
     spot: null,
+    metalEnvMap: null,
     baseMeta: null,
     spotMeta: null,
     prevBaseBlobUrl: null,
     prevSpotBlobUrl: null,
+    prevMetalBlobUrl: null,
   });
   const bloomEffectRef = useRef(null);
   const pmremRef = useRef(null);
@@ -840,26 +842,144 @@ export default function RingHero({
       }
     }
 
-    // 3. Metal HDR swap
+    // 3. Metal HDR/EXR swap
     if (liveLoadedTexturesRef.current.metalHdrUrl !== metalHdrUrl) {
       liveLoadedTexturesRef.current.metalHdrUrl = metalHdrUrl;
       if (metalHdrUrl && pmremRef.current) {
         loadEnvironmentTexture(metalHdrUrl, pmremRef.current)
           .then((tex) => {
             if (metalMaterialRef.current) {
+              const oldEnv = metalMaterialRef.current.envMap;
+              if (oldEnv && oldEnv !== tex) {
+                oldEnv.dispose?.();
+              }
+              if (
+                gemEnvTexturesRef.current.prevMetalBlobUrl &&
+                gemEnvTexturesRef.current.prevMetalBlobUrl !== metalHdrUrl &&
+                gemEnvTexturesRef.current.prevMetalBlobUrl.startsWith("blob:")
+              ) {
+                URL.revokeObjectURL(gemEnvTexturesRef.current.prevMetalBlobUrl);
+              }
+              if (metalHdrUrl.startsWith("blob:")) {
+                gemEnvTexturesRef.current.prevMetalBlobUrl = metalHdrUrl;
+              }
+
+              gemEnvTexturesRef.current.metalEnvMap = tex;
               metalMaterialRef.current.envMap = tex;
               metalMaterialRef.current.needsUpdate = true;
+              gemMaterialsRef.current.forEach((mat) => {
+                if (mat && mat.isMatteGemMaterial) {
+                  mat.envMap = tex;
+                  mat.needsUpdate = true;
+                }
+              });
+              applyHdrConfigToLiveMaterials();
             }
           })
           .catch((err) => {
             console.error(
-              "[RingHero] Failed to dynamically hot-swap Metal HDR:",
+              "[RingHero] Failed to dynamically hot-swap Metal HDR/EXR:",
               err,
             );
           });
       }
     }
   }, [effectiveBaseHdrUrl, gemBaseEnv?.mono, gemSpotHdrUrl, gemSpotEnv?.mono, metalHdrUrl, onRefreshPreviews]);
+
+  // Live dynamic hot-swapping for Metal Preset (gold / rose gold / white gold / platinum)
+  useEffect(() => {
+    const metalMat = metalMaterialRef.current;
+    if (metalMat && metalPreset) {
+      if (metalPreset.color !== undefined) {
+        metalMat.color.set(metalPreset.color);
+      }
+      metalMat.metalness = metalPreset.metalness ?? 1.0;
+      metalMat.roughness = Math.max(
+        metalPreset.roughness ?? 0.08,
+        metalPreset.minRoughness ?? 0.045
+      );
+      metalMat.clearcoat = metalPreset.clearcoat ?? 0.25;
+      metalMat.clearcoatRoughness = metalPreset.clearcoatRoughness ?? 0.14;
+      if (metalMat.specularColor && metalPreset.specularColor !== undefined) {
+        metalMat.specularColor.set(metalPreset.specularColor);
+      }
+      metalMat.specularIntensity = metalPreset.specularIntensity ?? 1.0;
+      metalMat.needsUpdate = true;
+      applyHdrConfigToLiveMaterials();
+    }
+  }, [metalPreset]);
+
+  // Live dynamic hot-swapping for Gem Material Mode (refraction / matte) & gemPreset
+  useEffect(() => {
+    if (!gemMeshesRef.current || gemMeshesRef.current.length === 0) return;
+
+    const isFallbackDevice = Boolean(
+      deviceTier.tier === "low" ||
+      deviceTier.tier === "minimal" ||
+      deviceTier.isLowOrMinimal
+    );
+    const isMatteMode = isFallbackDevice || gemMaterialTypeOverride === "matte";
+
+    // Fast path: if meshes already have RoughRefractionMaterial with isMatte support, simply toggle live!
+    let allUpdated = true;
+    for (const child of gemMeshesRef.current) {
+      if (child.material && "isMatte" in child.material) {
+        child.material.isMatte = isMatteMode ? 1.0 : 0.0;
+        child.material.ior = isMatteMode ? 1.5 : (gemPreset.ior ?? 2.417);
+        child.material.needsUpdate = true;
+      } else {
+        allUpdated = false;
+        break;
+      }
+    }
+
+    if (allUpdated) {
+      applyHdrConfigToLiveMaterials();
+      return;
+    }
+
+    const effectiveGemPreset = isMatteMode
+      ? { ...gemPreset, materialType: "matte", ior: 1.5 }
+      : (gemMaterialTypeOverride ? { ...gemPreset, materialType: gemMaterialTypeOverride } : gemPreset);
+
+    const pmremEnv = gemEnvTexturesRef.current.metalEnvMap || null;
+
+    const newMaterials = gemMeshesRef.current.map((child) => {
+      let mat = buildGemMaterial(
+        effectiveGemPreset,
+        gemEnvTexturesRef.current.base,
+        gemEnvTexturesRef.current.spot,
+        deviceTier.tier,
+        pmremEnv
+      );
+      if ("envMapIntensity" in mat) {
+        const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
+        mat.envMapIntensity = BEATS[0].gemEnvIntensity * intensityScale;
+      }
+      mat.fog = false;
+
+      if (child.material && child.material !== mat) {
+        child.material.dispose?.();
+      }
+
+      child.material = mat;
+
+      if (mat.isRoughRefractionMaterial) {
+        try {
+          attachBvhToGemMaterial(child, mat);
+        } catch (bvhErr) {
+          console.warn("RingHero: BVH attach failed on material switch:", bvhErr);
+        }
+      }
+
+      child.castShadow = false;
+      child.receiveShadow = false;
+      return mat;
+    });
+
+    gemMaterialsRef.current = newMaterials;
+    applyHdrConfigToLiveMaterials();
+  }, [gemMaterialTypeOverride, gemPreset, deviceTier.tier]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -981,9 +1101,10 @@ export default function RingHero({
       // - Footer Reveal (frames 245–260): scale comfortably so ring is centered in canvas above footer
       const isViewerSection = smooth(205, 218, localFrame) * (1 - smooth(245, 255, localFrame));
       const footerFactor = smooth(245, 260, localFrame);
-      const mobileViewerScale = 0.90;
+      const mobileViewerScale = 0.82; // Sized so ring sits with generous ~30px breathing room in inner box
+      const tabletViewerScale = 0.70; // Sized so ring frames with clean 35px+ clearance in perspective box on tablet
       const viewerScaleFactor = camera.aspect < 0.95
-        ? THREE.MathUtils.lerp(1.0, isMobilePortrait ? mobileViewerScale : 0.96, isViewerSection)
+        ? THREE.MathUtils.lerp(1.0, isMobilePortrait ? mobileViewerScale : tabletViewerScale, isViewerSection)
         : 1.0;
       const portraitFooterScale = isMobilePortrait ? 0.90 : 0.84;
       const footerScaleFactor = camera.aspect < 0.95
@@ -1010,8 +1131,8 @@ export default function RingHero({
       const isColumnBeats = smooth(18, 32, localFrame) * (1 - smooth(115, 128, localFrame));
       // In Beat 5 (frames ~205 to 245, Interactive 3D Viewer), on portrait screens
       // center the ring vertically in the open viewport between the top card and the bottom button
-      const tPortrait = smooth(0.55, 0.72, camera.aspect);
-      const portraitViewerShift = isMobilePortrait ? -0.14 : THREE.MathUtils.lerp(-0.08, -0.12, tPortrait);
+      const tPortrait = smooth(0.55, 0.75, camera.aspect);
+      const portraitViewerShift = isMobilePortrait ? -0.27 : THREE.MathUtils.lerp(-0.20, -0.25, tPortrait);
       const viewerShiftY = (camera.aspect < 0.95 ? portraitViewerShift : -0.06) * isViewerSection;
 
       // Dynamic Beat 2 to 3 motion arc and breathing scale (mobile & tablet)
@@ -1072,15 +1193,15 @@ export default function RingHero({
       // 1. Center calculation:
       // Open canvas height between top header and bottom footer:
       const openH = winH - headerH - footerH * footerFactor;
-      // Optical centroid compensation for the ring (diamond + shank):
-      const opticalShift = THREE.MathUtils.lerp(0.06, 0.02, footerFactor);
+      // Optical centroid compensation for the ring (diamond + shank) in Beat 5 & footer:
+      const opticalShift = THREE.MathUtils.lerp(0.01, 0.02, footerFactor);
       const targetFooterNy = (footerH * footerFactor - headerH) / winH + opticalShift;
 
       // 2. Adaptive scale calculation:
       // Ensure the ring fits within the open canvas with clean, balanced margins.
-      // On MacBook (1440x900) or laptops with shorter height, openH is ~547px, so ring scales gracefully.
+      // On MacBook (1440x900) or laptops with shorter height, scale to ~370px for balanced perspective cube
       const currentRingHeightPx = (ringBS.r * 2 * ring.scale.y / halfH) * (winH / 2);
-      const maxRingHeightPx = Math.max(160, openH * 0.72);
+      const maxRingHeightPx = winH < 950 ? Math.max(160, openH * 0.50) : Math.max(160, openH * 0.58);
       
       let scaleMult = 1.0;
       if (currentRingHeightPx > maxRingHeightPx) {
@@ -1091,7 +1212,7 @@ export default function RingHero({
         const blendScale = THREE.MathUtils.lerp(
           1.0,
           scaleMult,
-          Math.max(footerFactor, isViewerSection * (winH < 950 ? 0.7 : 0))
+          Math.max(footerFactor, isViewerSection * (winH < 950 ? 0.75 : 0.4))
         );
         ring.scale.multiplyScalar(blendScale);
         ring.updateMatrixWorld(true);
@@ -1614,6 +1735,18 @@ export default function RingHero({
       onLoaded?.();
     }, hardTimeoutMs);
 
+    const isFallbackDevice = Boolean(
+      deviceTier.tier === "low" ||
+      deviceTier.tier === "minimal" ||
+      deviceTier.isLowOrMinimal
+    );
+    const FALLBACK_HDR_URL = "/hdr/env_metal_029_1798f1cf07.hdr";
+
+    // When on fallback devices, default to env_metal_029 for metal & diamond
+    const effectiveMetalHdrUrl = isFallbackDevice
+      ? (metalHdrUrl && metalHdrUrl !== "/hdr/env_metal_001_d01c4504e0.hdr" ? metalHdrUrl : FALLBACK_HDR_URL)
+      : metalHdrUrl;
+
     Promise.all([
       new Promise((resolve, reject) => {
         const loadWithFallback = (decoderPath, isRetry = false) => {
@@ -1650,14 +1783,14 @@ export default function RingHero({
         };
         loadWithFallback(dracoDecoderPath);
       }),
-      loadEnvironmentTexture(metalHdrUrl, pmrem, (xhr) => {
+      loadEnvironmentTexture(effectiveMetalHdrUrl, pmrem, (xhr) => {
         if (xhr.loaded) progressMap.metalHdr.loaded = xhr.loaded;
         updateOverallProgress("Studio lighting loaded");
       }).catch((err) => {
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
         return null;
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
+      isFallbackDevice ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
         mono: gemBaseEnv?.mono ?? true,
         fileName: (deviceTier.tier === "mobile" ? "Diamond-Base-HDRI-mobile.exr" : baseFileNameHint),
         onProgress: (xhr) => {
@@ -1668,7 +1801,7 @@ export default function RingHero({
         console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
       }),
-      (deviceTier.tier === "low" || deviceTier.tier === "minimal") ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
+      (isFallbackDevice || !gemSpotHdrUrl) ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
         mono: gemSpotEnv?.mono ?? true,
         fileName: (deviceTier.tier === "mobile" ? "Diamond-Spotlight-HDRI-mobile.exr" : spotFileNameHint),
         onProgress: (xhr) => {
@@ -1685,6 +1818,7 @@ export default function RingHero({
         if (disposed) return;
 
         metalEnvMap = loadedMetalEnv;
+        gemEnvTexturesRef.current.metalEnvMap = loadedMetalEnv;
         gemEnvTexturesRef.current.base = loadedBaseResult?.texture || null;
         gemEnvTexturesRef.current.baseMeta = loadedBaseResult?.meta || null;
         gemEnvTexturesRef.current.rawSpot = loadedSpotResult?.texture || null;
@@ -1722,9 +1856,11 @@ export default function RingHero({
         metalMaterial.fog = false;
         metalMaterialRef.current = metalMaterial;
 
-        const effectiveGemPreset = gemMaterialTypeOverride
-          ? { ...gemPreset, materialType: gemMaterialTypeOverride }
-          : gemPreset;
+        // On fallback devices: diamond is strictly matte with IOR 1.5, and spotlight is none/off
+        const forcedMatte = isFallbackDevice || gemMaterialTypeOverride === "matte";
+        const effectiveGemPreset = forcedMatte
+          ? { ...gemPreset, materialType: "matte", ior: 1.5 }
+          : (gemMaterialTypeOverride ? { ...gemPreset, materialType: gemMaterialTypeOverride } : gemPreset);
 
         ring = gltf.scene;
 
@@ -1735,10 +1871,10 @@ export default function RingHero({
         gemMaterials = gemMeshes.map((child) => {
           let mat = buildGemMaterial(
             effectiveGemPreset,
-            gemEnvTexturesRef.current.base,
-            effectiveSpot,
+            isFallbackDevice ? null : gemEnvTexturesRef.current.base,
+            isFallbackDevice ? null : effectiveSpot,
             deviceTier.tier,
-            effectiveGemEnv
+            effectiveGemEnv // passes metalEnvMap (/hdr/env_metal_029_1798f1cf07.hdr) to buildMatteGemMaterial!
           );
           if ("envMapIntensity" in mat) {
             const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
@@ -2637,7 +2773,7 @@ export default function RingHero({
           const trim = metalMaterial.userData?._hdrTrim ?? 1;
           metalMaterial.envMapIntensity = metalEnvState.value * trim;
         }
-        gemMaterials.forEach((mat) => {
+        (gemMaterialsRef.current?.length ? gemMaterialsRef.current : gemMaterials).forEach((mat) => {
           if (!("envMapIntensity" in mat)) return;
           const trim = mat.userData?._hdrTrim ?? 1;
           const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
@@ -2945,6 +3081,42 @@ export default function RingHero({
       gsap.ticker.add(currentTickerFn);
     }
 
+    // ── Live 2D Screen Bounds Hook for Perspective Showcase Box ──────────
+    window.__getCinegemRingBounds = () => {
+      if (!ring || !camera) return null;
+      camera.updateMatrixWorld(true);
+      ring.updateMatrixWorld(true);
+      const _v = new THREE.Vector3();
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      ring.traverse((o) => {
+        const pos = o.isMesh && o.geometry?.attributes?.position;
+        if (!pos) return;
+        const step = Math.max(1, Math.floor(pos.count / 1500));
+        for (let i = 0; i < pos.count; i += step) {
+          _v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).project(camera);
+          if (_v.x < x0) x0 = _v.x; if (_v.x > x1) x1 = _v.x;
+          if (_v.y < y0) y0 = _v.y; if (_v.y > y1) y1 = _v.y;
+        }
+      });
+      if (!isFinite(x0)) return null;
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const left = ((x0 + 1) / 2) * winW;
+      const right = ((x1 + 1) / 2) * winW;
+      const top = ((1 - y1) / 2) * winH;
+      const bottom = ((1 - y0) / 2) * winH;
+      return {
+        left,
+        right,
+        top,
+        bottom,
+        w: right - left,
+        h: bottom - top,
+        cx: (left + right) / 2,
+        cy: (top + bottom) / 2,
+      };
+    };
+
     // ── Debug measurement hook (dev or ?ringdebug=1) ─────────────────────
     if (import.meta.env.DEV || new URLSearchParams(location.search).has("ringdebug")) {
       const _v = new THREE.Vector3();
@@ -2985,6 +3157,17 @@ export default function RingHero({
             visibleFraction: area > 0 ? +(vis / area).toFixed(4) : 0,
           };
         },
+        getGemMaterial() {
+          const m = gemMeshesRef.current?.[0]?.material;
+          if (!m) return null;
+          return {
+            type: m.type,
+            isRoughRefractionMaterial: Boolean(m.isRoughRefractionMaterial),
+            isMatte: m.isMatte ?? m.uniforms?.isMatte?.value ?? null,
+            envMapBase: Boolean(m.envMapBase || m.uniforms?.envMapBase?.value),
+            envMapSpot: Boolean(m.envMapSpot || m.uniforms?.envMapSpot?.value),
+          };
+        },
       };
     }
 
@@ -3018,6 +3201,7 @@ export default function RingHero({
     return () => {
       disposed = true;
       delete window.__ringDebug;
+      delete window.__getCinegemRingBounds;
       // No cancelAnimationFrame needed — render is driven by gsap.ticker now.
       if (RESPONSIVE_V2) {
         resizeObserver?.disconnect();
@@ -3055,7 +3239,7 @@ export default function RingHero({
         if (obj.geometry) obj.geometry.dispose();
       });
       metalMaterial?.dispose?.();
-      gemMaterials.forEach((mat) => mat?.dispose?.());
+      (gemMaterialsRef.current?.length ? gemMaterialsRef.current : gemMaterials).forEach((mat) => mat?.dispose?.());
       metalEnvMap?.dispose?.();
       if (proceduralGemEnv) {
         try {
@@ -3078,6 +3262,12 @@ export default function RingHero({
       if (gemEnvTexturesRef.current.prevSpotBlobUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(gemEnvTexturesRef.current.prevSpotBlobUrl);
       }
+      if (gemEnvTexturesRef.current.prevMetalBlobUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(gemEnvTexturesRef.current.prevMetalBlobUrl);
+      }
+      if (gemEnvTexturesRef.current.metalEnvMap) {
+        gemEnvTexturesRef.current.metalEnvMap.dispose?.();
+      }
       spotDilatorRef.current?.dispose?.();
       spotDilatorRef.current = null;
       envPreviewRendererRef.current?.dispose?.();
@@ -3085,18 +3275,11 @@ export default function RingHero({
       pmrem?.dispose();
       canvas?.removeEventListener("webglcontextlost", handleContextLost);
       canvas?.removeEventListener("webglcontextrestored", handleContextRestored);
-      try {
-        renderer?.forceContextLoss();
-      } catch (e) {}
       composer?.dispose();
       renderer?.dispose();
     };
   }, [
     glbUrl,
-    metalHdrUrl,
-    metalPreset,
-    gemPreset,
-    gemMaterialTypeOverride,
     dracoDecoderPath,
     scrollContainerSelector,
     postFxEnabled,
@@ -3177,6 +3360,7 @@ export default function RingHero({
           Tapping activates interaction; tapping again or scrolling automatically disengages it. */}
       {isMobileMode && inInteractiveWindow && (
         <button
+          className="ring-hero-drag-hint"
           type="button"
           onClick={handleToggleMobileInteraction}
           aria-pressed={mobileInteracting}
@@ -3188,7 +3372,7 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "clamp(50px, 8.5vh, 70px)",
+            bottom: "clamp(20px, 3.2vh, 32px)",
             transform: "translateX(-50%)",
             zIndex: 10,
             pointerEvents: "auto",
@@ -3270,10 +3454,11 @@ export default function RingHero({
           window opens, fades out on first drag (see dismissedOnceRef). */}
       {!isMobileMode && (
         <div
+          className="ring-hero-drag-hint"
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "8%",
+            bottom: "clamp(12px, 1.4vh, 18px)",
             transform: "translateX(-50%)",
             zIndex: 3,
             pointerEvents: "none",

@@ -48,11 +48,13 @@ import {
 } from "@/components/effects/beatFogPresets";
 import TitleGlassyCard from "@/components/ui/TitleGlassyCard";
 import ContentGlassyCard from "@/components/ui/ContentGlassyCard";
+import PerspectiveBox from "@/components/ui/PerspectiveBox";
 const TimelineEditor = import.meta.env.DEV
   ? lazy(() => import("@/components/three/TimelineEditor"))
   : () => null;
 import { metalPresets } from "@/components/three/metalMaterials";
 import { usePerfFlags } from "@/components/dev/PerfDevHud";
+import { getDeviceTier } from "@/lib/deviceTier";
 import "./HeroPage2.css";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import VerticalDotNav, {
@@ -506,24 +508,39 @@ export default function HomePage() {
   // the previous "/hdr/studio_small.hdr" default 404'd, which is why
   // RGBELoader was throwing "Bad File Format" and the ring never
   // rendered at all.
+  const initialTier = typeof window !== "undefined" ? getDeviceTier() : null;
+  const isFallbackDevice = Boolean(
+    initialTier?.isLowOrMinimal ||
+    initialTier?.tier === "low" ||
+    initialTier?.tier === "minimal"
+  );
+
   const [metalPresetKey, setMetalPresetKey] = useState("yellowGold");
+  // Default fallback for devices that can't afford normal diamonds:
+  // Both diamond and metal HDR will be env_metal_029, diamond will be matte, and spotlight will be none/off.
   const [metalHdrUrl, setMetalHdrUrl] = useState(
-    "/hdr/env_metal_001_d01c4504e0.hdr",
+    isFallbackDevice
+      ? "/hdr/env_metal_029_1798f1cf07.hdr"
+      : "/hdr/env_metal_001_d01c4504e0.hdr",
   );
   const [gemBaseHdrUrl, setGemBaseHdrUrl] = useState(
-    "/hdr/Diamond-Base-HDRI.exr",
+    isFallbackDevice
+      ? "/hdr/env_metal_029_1798f1cf07.hdr"
+      : "/hdr/Diamond-Base-HDRI.exr",
   );
   const [gemSpotHdrUrl, setGemSpotHdrUrl] = useState(
-    "/hdr/Diamond-Spotlight-HDRI.exr",
+    isFallbackDevice
+      ? ""
+      : "/hdr/Diamond-Spotlight-HDRI.exr",
   );
-  const [gemMode, setGemMode] = useState(null); // null = preset default ("refraction"), or "matte"
+  const [gemMode, setGemMode] = useState(isFallbackDevice ? "matte" : null); // null = preset default ("refraction"), or "matte"
   const [meshDebugList, setMeshDebugList] = useState([]);
 
   // Studio lighting & Octane Diamond Dual-EXR Slot States
   const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_METAL_HDR_CONFIG);
   const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
   const [gemSpotEnv, setGemSpotEnv] = useState(DEFAULT_GEM_SPOT_ENV);
-  const [gemEnvView, setGemEnvView] = useState(0); // 0 = Base+Spot, 1 = Base only, 2 = Spot only
+  const [gemEnvView, setGemEnvView] = useState(isFallbackDevice ? 1 : 0); // 0 = Base+Spot, 1 = Base only, 2 = Spot only
   const [gemGammaMode, setGemGammaMode] = useState(0); // 0 = Octane pow(x, γ), 1 = Legacy pow(x, 1/γ)
   const [bloomConfig, setBloomConfig] = useState(DEFAULT_BLOOM_CONFIG);
   const [baseFileMeta, setBaseFileMeta] = useState(null);
@@ -859,6 +876,7 @@ export default function HomePage() {
   // scroll callback as everything else, rather than React state, to
   // avoid re-rendering on every scroll tick.
   const exploreLinkRef = useRef(null);
+  const perspectiveBoxRef = useRef(null);
 
   // Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
   // above. Written directly every scroll tick (translateY %, not a class
@@ -1611,6 +1629,11 @@ export default function HomePage() {
         exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
       }
 
+      // 3D Perspective Box Showcase for Beat 5 Ring
+      if (perspectiveBoxRef.current) {
+        perspectiveBoxRef.current.update(frame, progress);
+      }
+
       // Footer reveal
       if (footerRevealRef.current) {
         const footerT = Math.min(
@@ -2241,6 +2264,9 @@ export default function HomePage() {
         />
       </div>
 
+      {/* 3D Perspective Box Showcase for Beat 5 Ring */}
+      <PerspectiveBox ref={perspectiveBoxRef} />
+
       {/* Footer reveal panel */}
       <footer
         ref={footerRevealRef}
@@ -2439,6 +2465,18 @@ export default function HomePage() {
                 setPostFxEnabled(true);
                 setExperimentalAtmosphere(true);
               }}
+              onApplyFallbackProfile={() => {
+                setMetalPresetKey("yellowGold");
+                setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
+                setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
+                setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
+                setGemSpotHdrUrl("");
+                setGemMode("matte");
+                setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
+                setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
+                setGemEnvView(1);
+                setGemGammaMode(0);
+              }}
             />
           )}
         </>
@@ -2630,6 +2668,7 @@ function MaterialDevPanel({
   defaultCardTimingConfig,
   onSaveCardTiming,
   onResetHdrDefaults,
+  onApplyFallbackProfile,
 }) {
   const gemCount = meshDebugList.filter((m) => m.type === "gem").length;
   const metalCount = meshDebugList.filter((m) => m.type === "metal").length;
@@ -2819,7 +2858,7 @@ function MaterialDevPanel({
             style={selectStyle}
           >
             <option value="default">Full Octane Refraction + Dispersion</option>
-            <option value="matte">Matte (flat preview)</option>
+            <option value="matte">Matte Diamond (Lightweight / Fallback)</option>
           </select>
         </label>
 
@@ -3051,6 +3090,7 @@ function MaterialDevPanel({
           url={gemBaseHdrUrl}
           setUrl={setGemBaseHdrUrl}
           presets={[
+            { label: "⚡ Fallback HDR (env_metal_029)", value: "/hdr/env_metal_029_1798f1cf07.hdr" },
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
             { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_001_d01c4504e0.hdr" },
           ]}
@@ -3070,6 +3110,7 @@ function MaterialDevPanel({
           url={gemSpotHdrUrl}
           setUrl={setGemSpotHdrUrl}
           presets={[
+            { label: "🚫 None (Disabled / Fallback)", value: "" },
             { label: "💡 Diamond Spotlight EXR (Pinpoints)", value: "/hdr/Diamond-Spotlight-HDRI.exr" },
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
           ]}
@@ -3117,6 +3158,32 @@ function MaterialDevPanel({
           ✨ Atmosphere (Fog Blend + Float)
         </span>
       </label>
+
+      {onApplyFallbackProfile && (
+        <button
+          onClick={onApplyFallbackProfile}
+          style={{
+            width: "100%",
+            background: "rgba(255, 120, 50, 0.18)",
+            border: "1px solid rgba(255, 140, 50, 0.45)",
+            borderRadius: 6,
+            color: "#ffc285",
+            padding: "6px 10px",
+            fontSize: 10,
+            cursor: "pointer",
+            fontWeight: 600,
+            marginTop: 4,
+            marginBottom: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+          title="Apply low-end fallback: env_metal_029 for metal & diamond, matte diamond, spotlight off"
+        >
+          ⚡ Low-End Fallback Profile (env_metal_029 + Matte + Spot: Off)
+        </button>
+      )}
 
       {onResetHdrDefaults && (
         <button

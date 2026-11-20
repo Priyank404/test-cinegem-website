@@ -1,0 +1,51 @@
+/* -------------------------------------------------------------------------
+   PerspectiveBox Component Styles
+   High-jewellery luxury showcase box for the 3D Interactive Viewer (Beat 5)
+   ------------------------------------------------------------------------- */
+
+.pbox-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  pointer-events: none !important;
+  z-index: 6; /* Sits in front of 3D Canvas (z:2), behind TitleGlassyCard (z:8) */
+  user-select: none;
+  -webkit-user-select: none;
+  contain: layout style paint;
+  will-change: opacity, transform;
+}
+
+/* Seamless Perspective Bevel with Zero Corner Seams & Smooth Optical Falloff */
+.pbox-bevel {
+  position: absolute;
+  pointer-events: none !important;
+  box-shadow: inset 0 0 65px 0 rgba(255, 255, 255, 0.13);
+  will-change: opacity;
+}
+
+.pbox-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none !important;
+}
+
+/* Outer stroke drawing lines */
+.pbox-outer-stroke {
+  pointer-events: none;
+  will-change: stroke-dashoffset;
+  /* Vector effect ensures razor-sharp 1.0px lines regardless of any SVG view scaling */
+  vector-effect: non-scaling-stroke;
+}
+
+/* Ensure smooth hardware accelerated rendering across all screens */
+@media (prefers-reduced-motion: reduce) {
+  .pbox-outer-stroke {
+    transition: none !important;
+  }
+}

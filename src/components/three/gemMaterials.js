@@ -30,12 +30,12 @@ import {
 import {
   RoughRefractionMaterialMobile,
   buildGemProceduralEnv,
-} from "./RoughRefractionMaterialMobile";
+} from "./RoughRefractionMaterialMobile.js";
 
 export { RoughRefractionMaterialMobile, buildGemProceduralEnv };
 
 // ---------------------------------------------------------------------------
-// Diamond preset — ported verbatim from Frontend/src/gems/presets/diamond.js
+// Diamond presets — ported from Frontend/src/gems/presets/diamond.js
 // ---------------------------------------------------------------------------
 export const diamondPreset = {
   key: "diamond",
@@ -44,39 +44,96 @@ export const diamondPreset = {
   transmissionColor: "#ffffff",
   color: "#ffffff",
   reflectionColor: "#ffffff",
-  ior: 1.8,
-  fresnel: 1,
+  ior: 2.417,
+  fresnel: 0.15,
   bounces: 5,
   smooth: false,
-  roughness: 0.08,
+  roughness: 0.0,
   spread: 0.01,
-  aberrationStrength: 0.01,
+  aberrationStrength: 0.006,
   saturation: 1.0,
   resolution: 256,
   swatchColor: "#e8f4ff",
 };
 
-// Add more gem presets here the same way (ruby, sapphire, etc.) if you
-// want to swap the stone later — same shape as Frontend/src/gems/presets/*.
+export const darkDiamondPreset = {
+  key: "darkDiamond",
+  label: "Dark Luxury Diamond (Noir)",
+  materialType: "refraction",
+  transmissionColor: "#20242e",
+  color: "#161820",
+  reflectionColor: "#ffffff",
+  ior: 2.417,
+  fresnel: 0.15,
+  bounces: 5,
+  smooth: false,
+  roughness: 0.0,
+  spread: 0.01,
+  aberrationStrength: 0.004,
+  saturation: 0.8,
+  resolution: 256,
+  swatchColor: "#20242e",
+};
 
 // ---------------------------------------------------------------------------
 // Cheap physical diamond material (fallback for low-tier devices and mobile)
-// High metalness + low roughness + studio HDR gives sparkling brilliant facets
-// without heavy raytracing or transmission passes.
+// Matte Diamond:
+// Translucent dark crystal with volumetric absorption, crisp flat-shaded
+// facet definition, razor-sharp studio reflections at IOR = 1.5,
+// running blazing fast on low-tier hardware without BVH raymarching.
 // ---------------------------------------------------------------------------
 export function buildMatteGemMaterial(preset, envMap) {
-  return new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(preset.color || "#ffffff"),
-    roughness: 0.02,
-    metalness: 0.95,
-    specularIntensity: 1.0,
-    specularColor: new THREE.Color("#ffffff"),
-    envMap: envMap || null,
-    envMapIntensity: 2.5,
-    transparent: false,
-    emissive: new THREE.Color(0x111111),
+  const safeEnvMap =
+    envMap && envMap.isTexture
+      ? envMap
+      : null;
+
+  const mat = new THREE.MeshPhysicalMaterial({
+    name: "BlackMatteDiamond",
+    // 1. Deep luxury smoky noir crystal color (Matte aesthetic)
+    color: new THREE.Color(0x181a20),
+    emissive: new THREE.Color(0x020204),
+    emissiveIntensity: 0.05,
+
+    // 2. Pure dielectric gemstone (no metalness)
+    metalness: 0.0,
+
+    // 3. Minor satin roughness for diamond facet micro-luster
+    roughness: 0.09,
+
+    // 4. Optical refractive index at IOR = 1.5 strictly for matte diamond (normal diamond stays 2.417)
+    ior: 1.5,
+    specularIntensity: 0.95,
+    specularColor: new THREE.Color(0xffffff),
+
+    // 5. Satin clearcoat for diamond facet sheen
+    clearcoat: 0.25,
+    clearcoatRoughness: 0.09,
+
+    // 6. True physical optical transparency
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: true,
+
+    // 7. Physical transmission & internal absorption (Beer-Lambert volume depth)
+    // Thinner halo stones sparkle transparently, thick center stone has deep noir depth
+    transmission: 0.70,
+    thickness: 1.8,
+    attenuationColor: new THREE.Color(0x0a0c12),
+    attenuationDistance: 1.2,
+
+    // 8. Smooth facet shading (no artificial wireframe seams)
+    flatShading: false,
+
+    // 9. Environment map from fallback HDR (env_metal_029_1798f1cf07.hdr)
+    envMap: safeEnvMap,
+    envMapIntensity: 1.0,
+
     side: THREE.FrontSide,
   });
+
+  mat.isMatteGemMaterial = true;
+  return mat;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,6 +221,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       color: { value: new THREE.Color("white") },
       opacity: { value: 1.0 },
       resolution: { value: new THREE.Vector2(1024, 1024) },
+      isMatte: { value: parameters.isMatte ? 1.0 : 0.0 },
     };
 
     const defines = {};
@@ -194,6 +252,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
 
       uniform float gammaMode;
       uniform float debugView;
+      uniform float isMatte;
 
       uniform float basePower;
       uniform float baseGamma;
@@ -267,6 +326,12 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
       }
 
+      vec3 baseRawLod(vec3 d, float lod) {
+        vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
+        vec4 s = textureLod(envMapBase, uv, lod);
+        return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+      }
+
       // Smooth fire: 7 taps from the "red" ray to the "blue" ray, Bernstein spectral weights.
       // Preserves pure white when sampling uniform or neutral regions (no hard rainbow bands).
       vec3 baseSpectral(vec3 dirR, vec3 dirB) {
@@ -333,12 +398,70 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         return colorKeyBase(bFiltered) + sFiltered;
       }
 
+      // Sample combined Octane environment with explicit mip LOD (for satin facet roughness)
+      vec3 sampleOctaneEnvironmentLod(vec3 dir, float lod) {
+        vec3 rawB = baseRawLod(dir, lod);
+        vec3 baseCol = vec3(
+          shapeTexel(rawB.r, basePower, baseGamma),
+          shapeTexel(rawB.g, basePower, baseGamma),
+          shapeTexel(rawB.b, basePower, baseGamma)
+        );
+        vec3 spotCol = vec3(sampleSpotAchro(dir));
+        vec3 bFiltered = (debugView > 1.5) ? vec3(0.0) : baseCol;
+        vec3 sFiltered = (debugView > 0.5 && debugView < 1.5) ? vec3(0.0) : spotCol;
+        return colorKeyBase(bFiltered) + sFiltered;
+      }
+
       void main() {
         vec3 normal = vNormal;
         vec3 rayOrigin = cameraPosition;
         vec3 rayDirection = normalize(vWorldPosition - cameraPosition);
 
         vec4 diffuseColor = vec4(color, opacity);
+
+        if (isMatte > 0.5) {
+          // Matte Diamond Aesthetic:
+          // Dark luxury diamond with true optical transparency (IOR 1.5),
+          // smoky crystal absorption, satin facet luster, and HDR environment reflections.
+          vec3 smoothNormal = normalize(vNormal);
+          float NdotV = clamp(dot(smoothNormal, -rayDirection), 0.0, 1.0);
+
+          // Matte Diamond IOR is strictly 1.5 (F0 = pow((1.5 - 1.0)/(1.5 + 1.0), 2.0) = 0.04)
+          // Normal diamond in else branch uses full diamond ior (2.417) completely unaffected.
+          const float matteIor = 1.5;
+          float fresnelTerm = 0.04 + 0.96 * pow(1.0 - NdotV, 5.0);
+
+          // 1. Optical Refraction through the diamond (single-pass Snell refraction):
+          vec3 refractDir = refract(rayDirection, smoothNormal, 1.0 / matteIor);
+          refractDir = (dot(refractDir, refractDir) > 0.0) ? refractDir : reflect(rayDirection, smoothNormal);
+
+          // Sample environment behind the diamond with slight diffusion for internal volume depth
+          vec3 envRefract = sampleOctaneEnvironmentLod(refractDir, 0.4);
+
+          // Dark smoky crystal absorption:
+          // Transmits light so transparency is clearly visible,
+          // with a rich dark noir tone (no pitch-black opaque cutout, no milky white wash)
+          vec3 darkSmokyTint = vec3(0.24, 0.24, 0.28);
+          vec3 transmittedLight = envRefract * darkSmokyTint * envMapIntensity;
+
+          // 2. Surface Reflection off facets:
+          vec3 reflectDir = reflect(rayDirection, smoothNormal);
+
+          // Sample reflection with subtle satin roughness (LOD 1.0) for diamond facet luster
+          vec3 envReflect = sampleOctaneEnvironmentLod(reflectDir, 1.0);
+
+          // Fresnel-weighted surface reflection: glancing rim reflects brightly, center lets you see through
+          vec3 reflectedLight = envReflect * envMapIntensity * (fresnelTerm * 0.85 + 0.05);
+
+          // 3. Composite transmitted light + facet reflection
+          vec3 finalDiamond = mix(transmittedLight, reflectedLight, fresnelTerm) + reflectedLight * 0.15;
+
+          // 4. Optical transparency (clear glass presence with solid rim)
+          float alpha = mix(0.75, 0.96, fresnelTerm);
+
+          gl_FragColor = vec4(finalDiamond, alpha);
+          return;
+        }
 
         #ifdef CHROMATIC_ABERRATIONS
           vec3 rayDirectionG = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior, 1.0), vModelMatrixInverse);
@@ -369,14 +492,17 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         #endif
 
         vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
-        float nFresnel = fresnelFunc(viewDirection, normal) * fresnel;
-        vec3 finalRgb = mix(diffuseColor.rgb, vec3(1.0), nFresnel);
+        // Physical Schlick Fresnel on surface reflection (avoids washed-out milky white fog)
+        float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+        float nFresnel = f0 + (1.0 - f0) * pow(clamp(1.0 + dot(viewDirection, normal), 0.0, 1.0), 5.0);
+        vec3 surfaceReflect = sampleOctaneEnvironment(reflect(viewDirection, normal)) * nFresnel * (fresnel > 0.0 ? fresnel : 0.2);
+        vec3 finalRgb = diffuseColor.rgb + surfaceReflect;
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
       }
     `;
 
-    super({ uniforms, defines, vertexShader, fragmentShader, transparent: false, toneMapped: false });
+    super({ uniforms, defines, vertexShader, fragmentShader, transparent: true, depthWrite: true, toneMapped: false });
     this.isRoughRefractionMaterial = true;
     this.isOctaneDualExr = true;
     this.setValues(parameters);
@@ -432,6 +558,10 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
 
   get hasSpotMap() { return this.uniforms?.hasSpotMap?.value; }
   set hasSpotMap(v) { if (this.uniforms?.hasSpotMap) this.uniforms.hasSpotMap.value = v ? 1.0 : 0.0; }
+
+  // Matte flat preview mode
+  get isMatte() { return this.uniforms?.isMatte?.value ?? 0.0; }
+  set isMatte(v) { if (this.uniforms?.isMatte) this.uniforms.isMatte.value = v ? 1.0 : 0.0; }
 
   // Global Modes
   get gammaMode() { return this.uniforms?.gammaMode?.value; }
@@ -550,8 +680,14 @@ export function buildGemMaterial(
   tier = "high",
   pmremFallback = null
 ) {
-  if (tier === "low" || tier === "minimal" || preset.materialType === "matte") {
-    return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+  const isMatte = preset.materialType === "matte";
+  const safePmrem =
+    pmremFallback && pmremFallback.isTexture
+      ? pmremFallback
+      : (envMapBase && envMapBase.isTexture ? envMapBase : null);
+
+  if (tier === "low" || tier === "minimal" || isMatte) {
+    return buildMatteGemMaterial(isMatte ? { ...preset, ior: 1.5 } : preset, safePmrem);
   }
 
   if (tier === "mobile") {
@@ -567,6 +703,7 @@ export function buildGemMaterial(
           roughness: preset.roughness ?? 0,
           aberrationStrength: preset.aberrationStrength ?? 0.006,
           color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
+          isMatte: isMatte ? 1.0 : 0.0,
         });
       } catch (err) {
         console.warn("RoughRefractionMaterial on mobile failed, trying mobile fallback:", err);
@@ -575,7 +712,7 @@ export function buildGemMaterial(
 
     try {
       return new RoughRefractionMaterialMobile({
-        envMap: pmremFallback || envMapBase,
+        envMap: safePmrem || envMapBase,
         ior: preset.ior ?? 2.417,
         bounces: 3,
         fresnel: 0.1,
@@ -583,10 +720,11 @@ export function buildGemMaterial(
         aberrationStrength: 0.003,
         color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
         envMapIntensity: 2.0,
+        isMatte: isMatte ? 1.0 : 0.0,
       });
     } catch (err) {
       console.warn("RoughRefractionMaterialMobile creation failed, using physical diamond fallback:", err);
-      return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+      return buildMatteGemMaterial(preset, safePmrem);
     }
   }
 
@@ -604,10 +742,11 @@ export function buildGemMaterial(
       roughness: preset.roughness ?? 0,
       aberrationStrength: aberration,
       color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
+      isMatte: isMatte ? 1.0 : 0.0,
     });
   } catch (err) {
     console.warn("RoughRefractionMaterial creation failed, using physical diamond fallback:", err);
-    return buildMatteGemMaterial(preset, pmremFallback || envMapBase);
+    return buildMatteGemMaterial(preset, safePmrem);
   }
 }
 

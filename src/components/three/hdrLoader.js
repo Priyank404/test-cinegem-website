@@ -32,8 +32,9 @@ export function loadEnvironmentTexture(url, pmrem, onProgress, formatHint) {
     const isExr = formatHint === "exr" || isExrUrl(url);
     const loader = isExr ? new EXRLoader() : new RGBELoader();
 
-    if (isExr && loader.setDataType) {
-      loader.setDataType(THREE.HalfFloatType);
+    if (isExr) {
+      if (loader.setDataType) loader.setDataType(THREE.HalfFloatType);
+      if (loader.setOutputFormat) loader.setOutputFormat(THREE.RGBAFormat);
     }
 
     loader.load(

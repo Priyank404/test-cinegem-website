@@ -77,6 +77,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       color:                   { value: new THREE.Color("white") },
       opacity:                 { value: 1.0 },
       resolution:              { value: new THREE.Vector2(1024, 1024) },
+      isMatte:                 { value: parameters.isMatte ? 1.0 : 0.0 },
       viewMatrixInverse:       { value: new THREE.Matrix4() },
       projectionMatrixInverse: { value: new THREE.Matrix4() },
     };
@@ -148,6 +149,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       uniform float aberrationStrength;
       uniform vec3 color;
       uniform float opacity;
+      uniform float isMatte;
 
       vec3 rotateX(vec3 v, float angle) {
         float c = cos(angle); float s = sin(angle);
@@ -201,6 +203,47 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
         vec4 diffuseColor = vec4(color, opacity);
         #include <color_fragment>
 
+        if (isMatte > 0.5) {
+          // Matte Diamond Aesthetic (Mobile):
+          // Dark luxury diamond with optical transparency (IOR 1.5),
+          // smoky crystal absorption, satin facet luster, and HDR environment reflections.
+          vec3 smoothNormal = normalize(vNormal);
+          float NdotV = clamp(dot(smoothNormal, -rayDirection), 0.0, 1.0);
+
+          // Matte Diamond IOR is strictly 1.5 (F0 = pow((1.5 - 1.0)/(1.5 + 1.0), 2.0) = 0.04)
+          // Normal diamond in else branch uses full diamond ior (2.417) completely unaffected.
+          const float matteIor = 1.5;
+          float fresnelTerm = 0.04 + 0.96 * pow(1.0 - NdotV, 5.0);
+
+          // 1. Optical Refraction through the diamond:
+          vec3 refractDir = refract(rayDirection, smoothNormal, 1.0 / matteIor);
+          refractDir = (dot(refractDir, refractDir) > 0.0) ? refractDir : reflect(rayDirection, smoothNormal);
+          refractDir = rotateX(refractDir, envRotationY);
+          refractDir = rotateY(refractDir, envRotation);
+          vec3 envRefract = textureCubeUV(envMap, refractDir, 0.05).rgb;
+
+          // Dark smoky crystal absorption (visible transparency, rich noir body):
+          vec3 darkSmokyTint = vec3(0.24, 0.24, 0.28);
+          vec3 transmittedLight = envRefract * darkSmokyTint * envMapIntensity;
+
+          // 2. Surface Reflection off facets (satin roughness 0.09):
+          vec3 reflectDir = reflect(rayDirection, smoothNormal);
+          reflectDir = rotateX(reflectDir, envRotationY);
+          reflectDir = rotateY(reflectDir, envRotation);
+          float matteRoughness = 0.09;
+          vec3 envReflect = textureCubeUV(envMap, reflectDir, matteRoughness).rgb;
+
+          vec3 reflectedLight = envReflect * envMapIntensity * (fresnelTerm * 0.85 + 0.05);
+
+          // 3. Composite transmitted + reflected:
+          vec3 finalDiamond = mix(transmittedLight, reflectedLight, fresnelTerm) + reflectedLight * 0.15;
+
+          float alpha = mix(0.75, 0.96, fresnelTerm);
+
+          gl_FragColor = vec4(finalDiamond, alpha);
+          return;
+        }
+
         #ifdef CHROMATIC_ABERRATIONS
           vec3 rayDirectionG = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior, 1.0), vModelMatrixInverse);
           rayDirectionG = rotateX(rayDirectionG, envRotationY);
@@ -228,8 +271,16 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
         #endif
 
         vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
-        float nFresnel = fresnelFunc(viewDirection, normal) * fresnel;
-        vec3 finalRgb  = mix(diffuseColor.rgb, vec3(1.0), nFresnel);
+        // Physical Schlick Fresnel on surface reflection (avoids washed-out milky white fog)
+        float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+        float nFresnel = f0 + (1.0 - f0) * pow(clamp(1.0 + dot(viewDirection, normal), 0.0, 1.0), 5.0);
+        vec3 surfReflectDir = reflect(viewDirection, normal);
+        surfReflectDir = rotateX(surfReflectDir, envRotationY);
+        surfReflectDir = rotateY(surfReflectDir, envRotation);
+        vec3 surfaceReflect = textureCubeUV(envMap, surfReflectDir, 0.02).rgb * nFresnel * (fresnel > 0.0 ? fresnel : 0.2);
+        vec3 finalRgb = diffuseColor.rgb + surfaceReflect;
+
+        gl_FragColor = vec4(finalRgb, diffuseColor.a);
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
         #include <tonemapping_fragment>
@@ -242,7 +293,8 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       defines,
       vertexShader,
       fragmentShader,
-      transparent: false,
+      transparent: true,
+      depthWrite: true,
       toneMapped: false,
     });
 
@@ -276,7 +328,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       "forceSinglePass","format","name","opacity","polygonOffset","polygonOffsetFactor",
       "polygonOffsetUnits","precision","premultipliedAlpha","dithering","side",
       "shadowSide","toneMapped","transparent","vertexColors","visible","wireframe",
-      "envMap","ior","bounces","fresnel","aberrationStrength","color","roughness","envMapIntensity"
+      "envMap","ior","bounces","fresnel","aberrationStrength","color","roughness","envMapIntensity","isMatte"
     ];
     const filteredParams = {};
     for (const key in parameters) {
@@ -330,6 +382,8 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
   set color(v)                  { if (!this.uniforms?.color) return; v instanceof THREE.Color ? this.uniforms.color.value.copy(v) : this.uniforms.color.value.set(v); }
   get opacity()                 { return this.uniforms?.opacity?.value; }
   set opacity(v)                { if (this.uniforms?.opacity) this.uniforms.opacity.value = v; }
+  get isMatte()                 { return this.uniforms?.isMatte?.value ?? 0.0; }
+  set isMatte(v)                { if (this.uniforms?.isMatte) this.uniforms.isMatte.value = v ? 1.0 : 0.0; }
   get bvh()                     { return this.uniforms?.bvh?.value; }
   set bvh(v)                    { if (this.uniforms?.bvh) this.uniforms.bvh.value = v; }
   get viewMatrixInverse()       { return this.uniforms?.viewMatrixInverse?.value; }
