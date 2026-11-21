@@ -34,6 +34,16 @@ const BOX_PERSPECTIVE_COMPLETE_FRAME = 224;
 const BOX_EXIT_START_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
 const BOX_EXIT_COMPLETE_FRAME = 249.5;
 
+// Desktop Experimental Animation Timing:
+// Ring exits Beat 4 at frame 156-158 and flies forward into Beat 5 (frame 214).
+// On desktop, the showcase box draws around the small ring early, then dynamically
+// expands in scale and descends simultaneously in lockstep with the arriving ring.
+const DESKTOP_BOX_START_FRAME = 158;
+const DESKTOP_BOX_DRAW_COMPLETE_FRAME = 176;
+const DESKTOP_BOX_PERSPECTIVE_START_FRAME = 210;
+const DESKTOP_BOX_PERSPECTIVE_COMPLETE_FRAME = 216;
+const DESKTOP_BOX_LAND_FRAME = 214;
+
 const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
@@ -341,9 +351,13 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const container = containerRef.current;
         if (!container) return;
 
+        const isDesktopTier = !geomRef.current.isMobile && !geomRef.current.isPortrait;
+        const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
+        const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
+
         // Visibility range gating
         const inWindow =
-          frame >= BOX_START_FRAME && frame < BOX_EXIT_COMPLETE_FRAME;
+          frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
 
         if (!inWindow) {
           if (lastStateRef.current.visible) {
@@ -361,26 +375,37 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           }
         }
 
-        // 1. Line Drawing Progress (frame 206 -> 220)
+        // 1. Line Drawing Progress:
+        // Desktop: draws around small ring from frame 158 -> 176
+        // Mobile/Tablet: draws from frame 205.5 -> 220
         const rawDrawProgress = Math.min(
           1,
           Math.max(
             0,
-            (frame - BOX_START_FRAME) /
-              (BOX_DRAW_COMPLETE_FRAME - BOX_START_FRAME)
+            (frame - boxStartFrame) /
+              (boxDrawCompleteFrame - boxStartFrame)
           )
         );
         // Smooth cubic ease for the drawing stroke
         const drawT =
           rawDrawProgress * rawDrawProgress * (3 - 2 * rawDrawProgress);
 
-        // 2. Perspective Assembly & Gradient Bloom (frame 219 -> 224)
+        // 2. Perspective Assembly & Gradient Bloom:
+        // Desktop: blooms in as the expanding box settles into Beat 5 (frame 210 -> 216)
+        // Mobile/Tablet: blooms in frame 219 -> 224
+        const perspStartFrame = isDesktopTier
+          ? DESKTOP_BOX_PERSPECTIVE_START_FRAME
+          : (BOX_DRAW_COMPLETE_FRAME - 1);
+        const perspEndFrame = isDesktopTier
+          ? DESKTOP_BOX_PERSPECTIVE_COMPLETE_FRAME
+          : BOX_PERSPECTIVE_COMPLETE_FRAME;
+
         const rawPerspProgress = Math.min(
           1,
           Math.max(
             0,
-            (frame - (BOX_DRAW_COMPLETE_FRAME - 1)) /
-              (BOX_PERSPECTIVE_COMPLETE_FRAME - (BOX_DRAW_COMPLETE_FRAME - 1))
+            (frame - perspStartFrame) /
+              (perspEndFrame - perspStartFrame)
           )
         );
         let perspT =
@@ -464,10 +489,44 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const containerOpacity = exitT >= 1 ? 0 : 1;
         container.style.opacity = `${containerOpacity}`;
 
-        // Dynamic vertical translation:
-        // 1. Mobile & tablet portrait: frames 205-218 ring descent tracking
+        // Dynamic vertical translation and scale:
+        let currentScale = 1.0;
         let translateY = 0;
-        if (geomRef.current.isMobile || geomRef.current.isPortrait) {
+
+        if (isDesktopTier) {
+          // ── DESKTOP EXPERIMENTAL EFFECT ──────────────────────────────────
+          // When the ring exits Beat 4 (frame 158) and flies forward into Beat 5 (frame 214):
+          // The box appears early at scale ~0.33, then scales up and descends in lockstep
+          // with the approaching ring, creating a seamless simultaneous appearance effect.
+          const winH = geomRef.current.winH || 900;
+          // In Three.js, ringPosOffset.y changes from 0.68 (Beat 4) to 0.21 (Beat 5) = 0.47 world units.
+          // At camera z=8.0 and FOV=45°, 0.47 units projects to exactly (0.47 / 6.627) * winH = 0.0709 * winH.
+          const maxShiftY = Math.round(winH * 0.0709);
+          const minScale = 0.33;
+
+          if (frame < DESKTOP_BOX_LAND_FRAME) {
+            const rawFlight = Math.min(
+              1,
+              Math.max(
+                0,
+                (frame - DESKTOP_BOX_START_FRAME) /
+                  (DESKTOP_BOX_LAND_FRAME - DESKTOP_BOX_START_FRAME)
+              )
+            );
+            // Quadratic in-out matching Three.js GSAP power1.inOut keyframe flight:
+            const flightEase =
+              rawFlight < 0.5
+                ? 2 * rawFlight * rawFlight
+                : 1 - Math.pow(-2 * rawFlight + 2, 2) / 2;
+
+            currentScale = minScale + (1.0 - minScale) * flightEase;
+            translateY = Math.round(-maxShiftY * (1 - flightEase));
+          } else {
+            currentScale = 1.0;
+            translateY = 0;
+          }
+        } else {
+          // Mobile & tablet portrait: frames 205-218 ring descent tracking
           if (frame < 218) {
             const tDescend = Math.min(1, Math.max(0, (frame - 205) / (218 - 205)));
             const easeDescend = tDescend * tDescend * (3 - 2 * tDescend);
@@ -479,7 +538,7 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           }
         }
 
-        // 2. Footer Clearance during exit (frame >= 245):
+        // Footer Clearance during exit (frame >= 245):
         // Provide gentle clearance above the rising footer, while strictly keeping
         // the bottom of the box and the convergence point safely below the ring shank across all viewports.
         if (frame >= BOX_EXIT_START_FRAME) {
@@ -503,7 +562,15 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           translateY -= Math.round(maxAllowedLift * easeLift);
         }
 
-        container.style.transform = translateY !== 0 ? `translateY(${translateY}px)` : "";
+        // Apply hardware-accelerated transform centered on the ring's resting anchor
+        const cx = geomRef.current.cx;
+        const cy = geomRef.current.cy;
+        container.style.transformOrigin = `${cx}px ${cy}px`;
+
+        const scaleStr = currentScale !== 1.0 ? ` scale(${currentScale.toFixed(4)})` : "";
+        const transStr = translateY !== 0 ? ` translateY(${translateY}px)` : "";
+        container.style.transform = (transStr || scaleStr) ? `${transStr}${scaleStr}`.trim() : "";
+
         if (typeof document !== "undefined") {
           document.documentElement.style.setProperty(
             "--pbox-translate-y",
