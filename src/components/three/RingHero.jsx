@@ -496,6 +496,7 @@ export default function RingHero({
   // rotState.y once latched, so the spin continues smoothly from wherever
   // scroll left off instead of snapping to a fixed angle.
   const autoRotateAngleRef = useRef(0);
+  const currentSpinYRef = useRef(0);
   // Latched offset when exiting the 360 spin window, wrapped to the shortest
   // angular path [-π, +π] so scroll-up never helicopter-spins or unwinds multi-turn rotations.
   const exitOffsetRef = useRef(0);
@@ -1627,6 +1628,7 @@ export default function RingHero({
       if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       dragStateRef.current = { dragging: true, prevX: clientX, prevY: clientY };
       if (canvas) canvas.style.cursor = "grabbing";
+      if (interactiveBoxRef.current) interactiveBoxRef.current.style.cursor = "grabbing";
       if (RINGHERO_DEBUG_INTERACTION) {
         // eslint-disable-next-line no-console
         console.log(
@@ -1641,7 +1643,11 @@ export default function RingHero({
       const dy = clientY - dragStateRef.current.prevY;
       dragStateRef.current.prevX = clientX;
       dragStateRef.current.prevY = clientY;
-      manualRotRef.current.y += dx * interactiveDragSensitivity;
+      if (dx === 0 && dy === 0) return;
+
+      currentSpinYRef.current += dx * interactiveDragSensitivity;
+      manualRotRef.current.y = currentSpinYRef.current;
+      autoRotateAngleRef.current = currentSpinYRef.current;
       manualRotRef.current.x = Math.max(
         -interactiveTiltClamp,
         Math.min(
@@ -1659,71 +1665,39 @@ export default function RingHero({
         interactiveBoxRef.current.style.cursor = "grab";
       }
     }
-    function onCanvasMouseDown(e) {
+    function onCanvasPointerDown(e) {
+      if (!interactiveActiveRef.current) return;
+      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+      if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
-    function onCanvasMouseMove(e) {
+    function onCanvasPointerMove(e) {
+      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
       onInteractiveMove(e.clientX, e.clientY);
     }
-    let touchStart = { x: 0, y: 0 };
-    let touchAxis = null;
+    function onCanvasPointerUp(e) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+      onInteractiveUp();
+    }
 
-    function onCanvasTouchStart(e) {
-      if (!interactiveActiveRef.current) return;
-      if (e.touches.length === 1) {
-        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        touchAxis = null;
-        onInteractiveDown(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }
-    function onCanvasTouchMove(e) {
-      if (!interactiveActiveRef.current) return;
-      if (e.touches.length === 1) {
-        const clientX = e.touches[0].clientX;
-        const clientY = e.touches[0].clientY;
-        if (RESPONSIVE_V2) {
-          const dx = clientX - touchStart.x;
-          const dy = clientY - touchStart.y;
-          if (touchAxis === null) {
-            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-              touchAxis = Math.abs(dy) > Math.abs(dx) ? "v" : "h";
-            }
-          }
-          if (touchAxis === "v") {
-            // Let the browser scroll vertically!
-            return;
-          }
-          if (dragStateRef.current.dragging) {
-            const stepDx = clientX - dragStateRef.current.prevX;
-            dragStateRef.current.prevX = clientX;
-            dragStateRef.current.prevY = clientY;
-            manualRotRef.current.y += stepDx * interactiveDragSensitivity;
-          }
-        } else {
-          e.preventDefault();
-          onInteractiveMove(clientX, clientY);
-        }
-      }
-    }
-    canvas.addEventListener("mousedown", onCanvasMouseDown);
-    window.addEventListener("mousemove", onCanvasMouseMove);
-    window.addEventListener("mouseup", onInteractiveUp);
-    canvas.addEventListener("touchstart", onCanvasTouchStart, {
-      passive: true,
-    });
-    canvas.addEventListener("touchmove", onCanvasTouchMove, {
-      passive: RESPONSIVE_V2 ? true : false,
-    });
-    canvas.addEventListener("touchend", onInteractiveUp);
+    canvas.addEventListener("pointerdown", onCanvasPointerDown);
+    canvas.addEventListener("pointermove", onCanvasPointerMove);
+    canvas.addEventListener("pointerup", onCanvasPointerUp);
+    canvas.addEventListener("pointercancel", onCanvasPointerUp);
+    window.addEventListener("pointerup", onInteractiveUp);
+    window.addEventListener("pointercancel", onInteractiveUp);
 
     // Dedicated 360-degree invisible interaction box for mobile & touch devices:
     const box = interactiveBoxRef.current;
     function onBoxPointerDown(e) {
       if (!interactiveActiveRef.current) return;
+      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       if (box) {
         try { box.setPointerCapture(e.pointerId); } catch (_) {}
         box.style.cursor = "grabbing";
       }
+      if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
     function onBoxPointerMove(e) {
@@ -1737,28 +1711,11 @@ export default function RingHero({
       }
       onInteractiveUp();
     }
-    function onBoxTouchStart(e) {
-      if (!interactiveActiveRef.current) return;
-      if (e.touches.length === 1) {
-        onInteractiveDown(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }
-    function onBoxTouchMove(e) {
-      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
-      if (e.touches.length === 1) {
-        if (e.cancelable) e.preventDefault();
-        onInteractiveMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }
     if (box) {
       box.addEventListener("pointerdown", onBoxPointerDown);
       box.addEventListener("pointermove", onBoxPointerMove);
       box.addEventListener("pointerup", onBoxPointerUp);
       box.addEventListener("pointercancel", onBoxPointerUp);
-      box.addEventListener("touchstart", onBoxTouchStart, { passive: true });
-      box.addEventListener("touchmove", onBoxTouchMove, { passive: false });
-      box.addEventListener("touchend", onInteractiveUp);
-      box.addEventListener("touchcancel", onInteractiveUp);
     }
 
     // ── Debug-only: always-on diagnostic pointerdown listener ───────────
@@ -2907,8 +2864,8 @@ export default function RingHero({
         }
 
         /* [EXPERIMENTAL_ATMOSPHERE] Subtle idle float, micro-tilt shimmer & mouse parallax whenever ring is still (Beats 1–4) */
-        // Active from Frame 0 up to end of Beat 4 (~frame 210); blends to 0 entering Beat 5 (frames 210–215)
-        const beatRangeFactor = Math.max(0, Math.min(1, (215 - localFrame) / 5));
+        // Active from Frame 0 up to end of Beat 4 (~frame 210); blends to 0 entering Beat 5 (frames 210–214)
+        const beatRangeFactor = Math.max(0, Math.min(1, (214 - localFrame) / 5));
 
         // Detect if the ring / scroll is actively moving across frames
         const frameDelta = Math.abs(localFrame - lastMotionFrameRef.current);
@@ -2983,7 +2940,7 @@ export default function RingHero({
         }
 
         if (ring) {
-          const spinStart = autoRotateStartFrame ?? 215;
+          const spinStart = autoRotateStartFrame ?? 214;
           const inSpinSection = localFrame >= spinStart;
 
           let interactiveOffsetY = 0;
@@ -2993,66 +2950,47 @@ export default function RingHero({
             wasInSpinSectionRef.current = true;
 
             // Inside the 360 spin & interactive section:
-            // The 360 spin is always active. While dragging, auto-rotate pauses momentarily
-            // so pointer drag has 1:1 precision; as soon as drag finishes, the 360 continuous spin
-            // keeps spinning smoothly from that orientation and tilt!
+            // Continuous unified turntable rotation around Y.
+            // When NOT dragging (and not in freeze debug), continuously advance currentSpinYRef
             if (!dragStateRef.current.dragging && !isRingDebug) {
-              autoRotateAngleRef.current = THREE.MathUtils.euclideanModulo(
-                autoRotateAngleRef.current + autoRotateSpeed * dt,
-                Math.PI * 2,
-              );
+              currentSpinYRef.current += autoRotateSpeed * dt;
             }
 
-            // Smooth return to default:
-            // - On desktop: while inside the 3D section (Beat 5), the ring STAYS in whatever orientation the user rotated it to.
-            //   Only when the user EXITS the section (scrolling into footer or scrolling back up), it smoothly damps back to default (0, 0).
-            // - On mobile: smoothly damps back to default when user stops interaction or exits the section.
-            const shouldDampToDefault =
+            // Keep legacy refs synchronized for inspector / debug compatibility
+            autoRotateAngleRef.current = currentSpinYRef.current;
+            manualRotRef.current.y = currentSpinYRef.current;
+
+            // Smooth return of tilt X back to default upright orientation (0)
+            const shouldDampTilt =
               viewport.profile === "portrait"
                 ? (!mobileInteractingRef.current || !interactiveActiveRef.current)
                 : (!interactiveActiveRef.current);
 
-            if (shouldDampToDefault) {
+            if (shouldDampTilt && !dragStateRef.current.dragging) {
               const safeDt = Math.min(dt, 0.1);
               const dampFactor = 1 - Math.exp(-5.0 * safeDt);
-
-              // Smoothly damp tilt X back to default upright orientation (0)
               if (Math.abs(manualRotRef.current.x) > 0.0001) {
                 manualRotRef.current.x += (0 - manualRotRef.current.x) * dampFactor;
                 if (Math.abs(manualRotRef.current.x) < 0.0001) {
                   manualRotRef.current.x = 0;
                 }
               }
-
-              // Smoothly damp manual Y rotation offset back to 0 using the shortest angular path
-              if (Math.abs(manualRotRef.current.y) > 0.0001) {
-                manualRotRef.current.y =
-                  THREE.MathUtils.euclideanModulo(
-                    manualRotRef.current.y + Math.PI,
-                    Math.PI * 2,
-                  ) - Math.PI;
-                manualRotRef.current.y += (0 - manualRotRef.current.y) * dampFactor;
-                if (Math.abs(manualRotRef.current.y) < 0.0001) {
-                  manualRotRef.current.y = 0;
-                }
-              }
             }
 
-            const rawOffsetY = autoRotateAngleRef.current + manualRotRef.current.y;
-            interactiveOffsetY = rawOffsetY;
+            interactiveOffsetY = currentSpinYRef.current;
             interactiveOffsetX = manualRotRef.current.x;
 
-            // Continually latch the exit offset normalized to shortest angular path [-π, +π]
-            // so if the user scrolls up this frame, the ring never has to turn more than 180°
+            // Latch exit offset normalized to shortest angular path [-π, +π]
+            // so if the user scrolls up into Beat 4, the ring smoothly blends without multi-turn spin
             exitOffsetRef.current =
               THREE.MathUtils.euclideanModulo(
-                rawOffsetY + Math.PI,
+                currentSpinYRef.current + Math.PI,
                 Math.PI * 2,
               ) - Math.PI;
             exitTiltXRef.current = interactiveOffsetX;
           } else {
             // Outside the 360 spin section (scrolling back up towards Beat 4):
-            // Transition zone (frames spinStart - 15 down to spinStart, e.g. 200–215):
+            // Transition zone (frames spinStart - 15 down to spinStart, e.g. 199–214):
             const transitionStart = Math.max(0, spinStart - 15);
             if (wasInSpinSectionRef.current && localFrame > transitionStart) {
               const scrollT = Math.max(
@@ -3070,6 +3008,7 @@ export default function RingHero({
               exitOffsetRef.current = 0;
               exitTiltXRef.current = 0;
               autoRotateAngleRef.current = 0;
+              currentSpinYRef.current = 0;
               manualRotRef.current.x = 0;
               manualRotRef.current.y = 0;
               interactiveOffsetY = 0;
@@ -3247,6 +3186,18 @@ export default function RingHero({
     if (import.meta.env.DEV || new URLSearchParams(location.search).has("ringdebug")) {
       const _v = new THREE.Vector3();
       window.__ringDebug = {
+        getRotationDebug() {
+          return {
+            frame: +(debugFrameStateRef.current?.localFrame ?? 0).toFixed(2),
+            ringRotY: ring ? +ring.rotation.y.toFixed(4) : 0,
+            ringRotX: ring ? +ring.rotation.x.toFixed(4) : 0,
+            autoRotateAngle: +autoRotateAngleRef.current.toFixed(4),
+            manualRotY: +manualRotRef.current.y.toFixed(4),
+            manualRotX: +manualRotRef.current.x.toFixed(4),
+            dragging: !!dragStateRef.current.dragging,
+            interactiveActive: !!interactiveActiveRef.current,
+          };
+        },
         getDiamondUniforms() {
           const mat = gemMaterialsRef.current?.[0] || gemMaterials?.[0];
           if (!mat) return null;
@@ -3349,21 +3300,17 @@ export default function RingHero({
         window.removeEventListener("resize", handleResize);
       }
       window.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("mousedown", onCanvasMouseDown);
-      window.removeEventListener("mousemove", onCanvasMouseMove);
-      window.removeEventListener("mouseup", onInteractiveUp);
-      canvas.removeEventListener("touchstart", onCanvasTouchStart);
-      canvas.removeEventListener("touchmove", onCanvasTouchMove);
-      canvas.removeEventListener("touchend", onInteractiveUp);
+      canvas.removeEventListener("pointerdown", onCanvasPointerDown);
+      canvas.removeEventListener("pointermove", onCanvasPointerMove);
+      canvas.removeEventListener("pointerup", onCanvasPointerUp);
+      canvas.removeEventListener("pointercancel", onCanvasPointerUp);
+      window.removeEventListener("pointerup", onInteractiveUp);
+      window.removeEventListener("pointercancel", onInteractiveUp);
       if (box) {
         box.removeEventListener("pointerdown", onBoxPointerDown);
         box.removeEventListener("pointermove", onBoxPointerMove);
         box.removeEventListener("pointerup", onBoxPointerUp);
         box.removeEventListener("pointercancel", onBoxPointerUp);
-        box.removeEventListener("touchstart", onBoxTouchStart);
-        box.removeEventListener("touchmove", onBoxTouchMove);
-        box.removeEventListener("touchend", onInteractiveUp);
-        box.removeEventListener("touchcancel", onInteractiveUp);
       }
       if (debugPointerDown) {
         window.removeEventListener("pointerdown", debugPointerDown, {

@@ -94,7 +94,7 @@ const TOTAL_FRAMES = 260;
 // below via `(frame / TOTAL_FRAMES) * 50` wherever passed into RingHero —
 // keep these constants in the global scale so they line up with every
 // other frame number in this file (card timing, etc).
-const AUTO_ROTATE_GLOBAL_FRAME = 215;
+const AUTO_ROTATE_GLOBAL_FRAME = 214;
 const AUTO_ROTATE_GLOBAL_END_FRAME = 260; // end of scroll — Beat 5/6 boundary
 const EXPLORE_LINK_GLOBAL_FRAME = 220;
 const EXPLORE_LINK_GLOBAL_END_FRAME = 260;
@@ -2244,10 +2244,10 @@ export default function HomePage() {
         spotFileNameHint={spotFileNameHint}
         postFxEnabled={postFxEnabled}
         experimentalAtmosphere={experimentalAtmosphere}
-        autoRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
+        autoRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME - 0.5}
         autoRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         autoRotateSpeed={0.35}
-        interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME}
+        interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME - 0.5}
         interactiveRotateEndFrame={FOOTER_REVEAL_GLOBAL_START_FRAME}
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
