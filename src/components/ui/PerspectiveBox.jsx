@@ -34,6 +34,11 @@ const BOX_PERSPECTIVE_COMPLETE_FRAME = 224;
 const BOX_EXIT_START_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
 const BOX_EXIT_COMPLETE_FRAME = 249.5;
 
+// Feature Flag: Desktop Dynamic Scaling Perspective Box
+// Set to true for the synchronized growth & descent effect on desktop;
+// toggling to false cleanly restores the standard late-entry box animation.
+export const ENABLE_DESKTOP_DYNAMIC_GROWING_BOX = true;
+
 // Desktop Experimental Animation Timing:
 // Ring exits Beat 4 at frame 156-158 and flies forward into Beat 5 (frame 214).
 // On desktop, the showcase box draws around the small ring early, then dynamically
@@ -351,7 +356,7 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const container = containerRef.current;
         if (!container) return;
 
-        const isDesktopTier = !geomRef.current.isMobile && !geomRef.current.isPortrait;
+        const isDesktopTier = ENABLE_DESKTOP_DYNAMIC_GROWING_BOX && !geomRef.current.isMobile && !geomRef.current.isPortrait;
         const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
         const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
 
