@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 
 export const DEFAULT_DIAMOND_CONFIG = {
-  roughness: 0.0,
-  ior: 2.417,
-  dispersion: 0.006, // aberrationStrength
-  bounces: 5,
-  fresnel: 0.15,
-  envMapIntensity: 1.0,
+  roughness: 0.04,
+  ior: 2.72,
+  dispersion: 0.02, // aberrationStrength
+  bounces: 3,
+  fresnel: 0.0,
+  envMapIntensity: 0.0,
   opacity: 1.0,
 
   // Physical Matte diamond fallback extras

@@ -128,18 +128,32 @@ function pickVideoSrc(v) {
     : v.src || v.full || v.srcLow || "";
 }
 const DEFAULT_METAL_HDR_CONFIG = {
-  rotation: -105,
-  rotationY: -9,
-  scale: 134,
-  power: 1,
-  gamma: 167,
+  rotation: -65,
+  rotationY: -57,
+  scale: 45,
+  power: 7,
+  gamma: 144,
 };
 
-// Octane Diamond Slot Defaults (Identity transform at first load)
+// Octane Diamond Slot Defaults (Calibrated to env_metal_029 diamond lighting)
 const DEFAULT_GEM_BASE_ENV = {
-  power: 1.0,
-  gamma: 1.2,
-  rot: 0,
+  power: 2.59,
+  gamma: 0.78,
+  rot: 63,
+  scaleU: 1.554,
+  scaleV: 3.601,
+  lockScale: false,
+  transU: -0.083,
+  transV: 0.0,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+export const GEM_BASE_ENV_HORIZON = {
+  power: 0.32,
+  gamma: 1.51,
+  rot: -2,
   scaleU: 1.0,
   scaleV: 1.0,
   lockScale: true,
@@ -151,8 +165,8 @@ const DEFAULT_GEM_BASE_ENV = {
 };
 
 const DEFAULT_GEM_SPOT_ENV = {
-  power: 4.0,
-  gamma: 1.8,
+  power: 0.5,
+  gamma: 1.05,
   size: 2,
   rot: 0,
   scaleU: 1.0,
@@ -221,7 +235,7 @@ const DEFAULT_POSTFX_CONFIG = {
   vignetteEnabled: true,
 };
 
-const DEFAULT_DISPERSION = 0.006;
+const DEFAULT_DISPERSION = 0.02;
 
 
 export default function HomePage() {
@@ -520,17 +534,14 @@ export default function HomePage() {
   );
 
   const [metalPresetKey, setMetalPresetKey] = useState("yellowGold");
-  // Default fallback for devices that can't afford normal diamonds:
-  // Both diamond and metal HDR will be env_metal_029, diamond will be matte, and spotlight will be none/off.
+  // Default HDRs tuned to studio calibration:
+  // Metal: env_metal_029_1798f1cf07-metal.hdr
+  // Diamond: env_metal_029_1798f1cf07.hdr
   const [metalHdrUrl, setMetalHdrUrl] = useState(
-    isFallbackDevice
-      ? "/hdr/env_metal_029_1798f1cf07.hdr"
-      : "/hdr/env_metal_001_d01c4504e0.hdr",
+    "/hdr/env_metal_029_1798f1cf07-metal.hdr"
   );
   const [gemBaseHdrUrl, setGemBaseHdrUrl] = useState(
-    isFallbackDevice
-      ? "/hdr/env_metal_029_1798f1cf07.hdr"
-      : "/hdr/Diamond-Base-HDRI.exr",
+    "/hdr/env_metal_029_1798f1cf07.hdr"
   );
   const [gemSpotHdrUrl, setGemSpotHdrUrl] = useState(
     isFallbackDevice
@@ -544,7 +555,7 @@ export default function HomePage() {
   const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_METAL_HDR_CONFIG);
   const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
   const [gemSpotEnv, setGemSpotEnv] = useState(DEFAULT_GEM_SPOT_ENV);
-  const [gemEnvView, setGemEnvView] = useState(isFallbackDevice ? 1 : 0); // 0 = Base+Spot, 1 = Base only, 2 = Spot only
+  const [gemEnvView, setGemEnvView] = useState(0); // 0 = Base+Spot
   const [gemGammaMode, setGemGammaMode] = useState(0); // 0 = Octane pow(x, γ), 1 = Legacy pow(x, 1/γ)
   const [bloomConfig, setBloomConfig] = useState(DEFAULT_BLOOM_CONFIG);
   const [baseFileMeta, setBaseFileMeta] = useState(null);
@@ -553,7 +564,13 @@ export default function HomePage() {
   const [diamondConfig, setDiamondConfig] = useState(() => {
     try {
       const saved = localStorage.getItem("cinegem_dev_diamond_config");
-      if (saved) return { ...DEFAULT_DIAMOND_CONFIG, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.ior === 2.417 || parsed.roughness === 0.0) {
+          return DEFAULT_DIAMOND_CONFIG;
+        }
+        return { ...DEFAULT_DIAMOND_CONFIG, ...parsed };
+      }
     } catch {
       /* ignore */
     }
@@ -573,7 +590,7 @@ export default function HomePage() {
   });
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG);
   const [postFxConfig, setPostFxConfig] = useState(DEFAULT_POSTFX_CONFIG);
-  const [baseFileNameHint, setBaseFileNameHint] = useState("Diamond-Base-HDRI.exr");
+  const [baseFileNameHint, setBaseFileNameHint] = useState("env_metal_029_1798f1cf07.hdr");
   const [spotFileNameHint, setSpotFileNameHint] = useState("Diamond-Spotlight-HDRI.exr");
 
   // Live 2:1 EXR preview canvas refs and renderer callback (Task B)
@@ -2519,9 +2536,9 @@ export default function HomePage() {
               onSaveCardTiming={saveCardTimingConfig}
               onResetHdrDefaults={() => {
                 setMetalPresetKey("yellowGold");
-                setMetalHdrUrl("/hdr/env_metal_001_d01c4504e0.hdr");
+                setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07-metal.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
-                setGemBaseHdrUrl("/hdr/Diamond-Base-HDRI.exr");
+                setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setGemSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
                 setGemMode(null);
                 setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
@@ -3174,9 +3191,20 @@ function MaterialDevPanel({
           url={gemBaseHdrUrl}
           setUrl={setGemBaseHdrUrl}
           presets={[
-            { label: "⚡ Fallback HDR (env_metal_029)", value: "/hdr/env_metal_029_1798f1cf07.hdr" },
+            {
+              key: "env_029_waves",
+              label: "💎 Tuned Facet Waves (Power 2.59, 63°)",
+              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              config: DEFAULT_GEM_BASE_ENV,
+            },
+            {
+              key: "env_029_horizon",
+              label: "💎 Clean Horizon Arch (Power 0.32, -2°)",
+              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              config: GEM_BASE_ENV_HORIZON,
+            },
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
-            { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_001_d01c4504e0.hdr" },
+            { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_029_1798f1cf07-metal.hdr" },
           ]}
           config={gemBaseEnv}
           setConfig={setGemBaseEnv}
@@ -3510,7 +3538,11 @@ function ExrSlotControls({
             value={isPreset ? url : "custom"}
             onChange={(e) => {
               if (e.target.value !== "custom") {
-                setUrl(e.target.value);
+                const found = presets.find((p) => p.value === e.target.value || p.key === e.target.value);
+                setUrl(found?.value ?? e.target.value);
+                if (found?.config && setConfig) {
+                  setConfig(found.config);
+                }
               }
             }}
             style={selectStyle}

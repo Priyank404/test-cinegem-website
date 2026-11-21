@@ -307,9 +307,9 @@ export const MOBILE_BEATS = [
 
 export default function RingHero({
   glbUrl = "/models/ring-draco.glb",
-  metalHdrUrl = "/hdr/env_metal_001_d01c4504e0.hdr",
-  gemHdrUrl = "/hdr/Diamond-Base-HDRI.exr",
-  gemBaseHdrUrl = "/hdr/Diamond-Base-HDRI.exr",
+  metalHdrUrl = "/hdr/env_metal_029_1798f1cf07-metal.hdr",
+  gemHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
+  gemBaseHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
   gemSpotHdrUrl = "/hdr/Diamond-Spotlight-HDRI.exr",
   metalPreset = metalPresets.yellowGold,
   gemPreset = diamondPreset,
@@ -322,11 +322,11 @@ export default function RingHero({
   activeTimelineMode = "auto", // "auto" | "desktop" | "mobile"
 
   // Dev-panel HDR controls tuned to production studio defaults
-  metalHdrRotation = -105,
-  metalHdrRotationY = -9,
-  metalHdrScale = 134,
-  metalHdrPower = 1,
-  metalHdrGamma = 167,
+  metalHdrRotation = -65,
+  metalHdrRotationY = -57,
+  metalHdrScale = 45,
+  metalHdrPower = 7,
+  metalHdrGamma = 144,
 
   // Diamond Octane Dual-EXR controls (Base & Spotlight slots, View, Gamma Mode)
   gemBaseEnv = null,
@@ -1819,9 +1819,9 @@ export default function RingHero({
         console.warn("RingHero: Metal HDR failed to load, continuing with ambient fallback:", err);
         return null;
       }),
-      isFallbackDevice ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect((deviceTier.tier === "mobile" ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
+      isFallbackDevice ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
         mono: gemBaseEnv?.mono ?? true,
-        fileName: (deviceTier.tier === "mobile" ? "Diamond-Base-HDRI-mobile.exr" : baseFileNameHint),
+        fileName: ((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "Diamond-Base-HDRI-mobile.exr" : (baseFileNameHint || "env_metal_029_1798f1cf07.hdr")),
         onProgress: (xhr) => {
           if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
           updateOverallProgress("Diamond base environment loaded");
