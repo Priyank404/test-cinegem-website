@@ -135,8 +135,23 @@ const DEFAULT_METAL_HDR_CONFIG = {
   gamma: 144,
 };
 
-// Octane Diamond Slot Defaults (Calibrated to env_metal_029 diamond lighting)
-const DEFAULT_GEM_BASE_ENV = {
+// Octane Diamond Slot Defaults (Calibrated to env_metal_029 diamond lighting - New Default for Beats 0-4)
+export const DEFAULT_GEM_BASE_ENV = {
+  power: 0.69,
+  gamma: 1.21,
+  rot: 0,
+  scaleU: 1.01,
+  scaleV: 1.01,
+  lockScale: true,
+  transU: 0.798,
+  transV: 0.514,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+// 3D Interactive Viewer Section Diamond Slot Defaults (Beat 5: Power 2.59, Gamma 0.78, Rot 63°, Scale 1.554/3.601, Trans -0.083/0)
+export const INTERACTIVE_GEM_BASE_ENV = {
   power: 2.59,
   gamma: 0.78,
   rot: 63,
@@ -2208,6 +2223,7 @@ export default function HomePage() {
         metalHdrPower={metalHdrConfig.power}
         metalHdrGamma={metalHdrConfig.gamma}
         gemBaseEnv={gemBaseEnv}
+        interactiveGemBaseEnv={INTERACTIVE_GEM_BASE_ENV}
         gemSpotEnv={gemSpotEnv}
         gemEnvView={gemEnvView}
         gemGammaMode={gemGammaMode}
@@ -3192,10 +3208,16 @@ function MaterialDevPanel({
           setUrl={setGemBaseHdrUrl}
           presets={[
             {
-              key: "env_029_waves",
-              label: "💎 Tuned Facet Waves (Power 2.59, 63°)",
+              key: "env_029_default",
+              label: "💎 New Default (Power 0.69, 0°)",
               value: "/hdr/env_metal_029_1798f1cf07.hdr",
               config: DEFAULT_GEM_BASE_ENV,
+            },
+            {
+              key: "env_029_interactive",
+              label: "💎 3D Viewer Interactive (Power 2.59, 63°)",
+              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              config: INTERACTIVE_GEM_BASE_ENV,
             },
             {
               key: "env_029_horizon",

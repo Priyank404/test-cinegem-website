@@ -305,6 +305,84 @@ export const MOBILE_BEATS = [
   },
 ];
 
+// Fallback diamond HDR base slot calibrations
+export const FALLBACK_DEFAULT_GEM_BASE_ENV = {
+  power: 0.69,
+  gamma: 1.21,
+  rot: 0,
+  scaleU: 1.01,
+  scaleV: 1.01,
+  lockScale: true,
+  transU: 0.798,
+  transV: 0.514,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+export const FALLBACK_INTERACTIVE_GEM_BASE_ENV = {
+  power: 2.59,
+  gamma: 0.78,
+  rot: 63,
+  scaleU: 1.554,
+  scaleV: 3.601,
+  lockScale: false,
+  transU: -0.083,
+  transV: 0.0,
+  lod: 0.5,
+  mono: true,
+  scaleInvert: false,
+};
+
+export function computeBlendedGemBaseEnv(
+  baseEnv = FALLBACK_DEFAULT_GEM_BASE_ENV,
+  targetEnv = FALLBACK_INTERACTIVE_GEM_BASE_ENV,
+  localFrame = 0
+) {
+  let blendT = 0;
+  if (localFrame <= 156) {
+    blendT = 0;
+  } else if (localFrame >= 214) {
+    blendT = 1;
+  } else {
+    const rawT = (localFrame - 156) / (214 - 156);
+    blendT = rawT * rawT * (3 - 2 * rawT); // smoothstep
+  }
+
+  const b = baseEnv || FALLBACK_DEFAULT_GEM_BASE_ENV;
+  const t = targetEnv || FALLBACK_INTERACTIVE_GEM_BASE_ENV;
+
+  return {
+    blendT,
+    power: THREE.MathUtils.lerp(b.power ?? 0.69, t.power ?? 2.59, blendT),
+    gamma: THREE.MathUtils.lerp(b.gamma ?? 1.21, t.gamma ?? 0.78, blendT),
+    rot: THREE.MathUtils.lerp(b.rot ?? 0, t.rot ?? 63, blendT),
+    scaleU: THREE.MathUtils.lerp(b.scaleU ?? 1.01, t.scaleU ?? 1.554, blendT),
+    scaleV: THREE.MathUtils.lerp(b.scaleV ?? 1.01, t.scaleV ?? 3.601, blendT),
+    transU: THREE.MathUtils.lerp(b.transU ?? 0.798, t.transU ?? -0.083, blendT),
+    transV: THREE.MathUtils.lerp(b.transV ?? 0.514, t.transV ?? 0.0, blendT),
+    scaleInvert: blendT > 0.5 ? (t.scaleInvert ? 1.0 : 0.0) : (b.scaleInvert ? 1.0 : 0.0),
+    lod: THREE.MathUtils.lerp(b.lod ?? 0.5, t.lod ?? 0.5, blendT),
+    mono: blendT > 0.5 ? (t.mono ? 1.0 : 0.0) : (b.mono ? 1.0 : 0.0),
+  };
+}
+
+export function applyGemBaseEnvToMaterial(mat, blended) {
+  if (!mat) return;
+  if (mat.isRoughRefractionMaterial) {
+    mat.basePower = blended.power;
+    mat.baseGamma = blended.gamma;
+    mat.baseRot = degToRad(blended.rot);
+    mat.baseScale?.set(blended.scaleU, blended.scaleV);
+    mat.baseTrans?.set(blended.transU, blended.transV);
+    mat.baseScaleInvert = blended.scaleInvert;
+    mat.baseLod = blended.lod;
+    if (mat.isOctaneDualExr) {
+      mat.baseMono = blended.mono;
+    }
+  }
+}
+
 export default function RingHero({
   glbUrl = "/models/ring-draco.glb",
   metalHdrUrl = "/hdr/env_metal_029_1798f1cf07-metal.hdr",
@@ -330,6 +408,7 @@ export default function RingHero({
 
   // Diamond Octane Dual-EXR controls (Base & Spotlight slots, View, Gamma Mode)
   gemBaseEnv = null,
+  interactiveGemBaseEnv = null,
   gemSpotEnv = null,
   gemEnvView = 0,
   gemGammaMode = 0,
@@ -482,6 +561,7 @@ export default function RingHero({
   });
   const bloomEffectRef = useRef(null);
   const pmremRef = useRef(null);
+  const lastAppliedGemBlendRef = useRef(-1);
 
   const effectiveBaseHdrUrl = gemBaseHdrUrl || gemHdrUrl;
 
@@ -493,6 +573,7 @@ export default function RingHero({
     metalHdrGamma,
 
     gemBaseEnv,
+    interactiveGemBaseEnv,
     gemSpotEnv,
     gemEnvView,
     gemGammaMode,
@@ -568,6 +649,7 @@ export default function RingHero({
       metalHdrGamma,
 
       gemBaseEnv,
+      interactiveGemBaseEnv,
       gemSpotEnv,
       gemEnvView,
       gemGammaMode,
@@ -588,6 +670,7 @@ export default function RingHero({
     metalHdrPower,
     metalHdrGamma,
     gemBaseEnv,
+    interactiveGemBaseEnv,
     gemSpotEnv,
     gemEnvView,
     gemGammaMode,
@@ -602,6 +685,7 @@ export default function RingHero({
 
   function applyHdrConfigToLiveMaterials(customCfg) {
     const cfg = customCfg || hdrConfigRef.current;
+    lastAppliedGemBlendRef.current = -1;
 
     // Metal HDR
     const metalFactor = computeMetalHdrFactor({
@@ -620,7 +704,12 @@ export default function RingHero({
     }
 
     // Diamond Octane Dual-EXR & Optical Physics Settings
-    const baseEnv = cfg.gemBaseEnv || {};
+    const localFrame = debugFrameStateRef.current?.localFrame ?? 0;
+    const blendedBase = computeBlendedGemBaseEnv(
+      cfg.gemBaseEnv,
+      cfg.interactiveGemBaseEnv,
+      localFrame
+    );
     const spotEnv = cfg.gemSpotEnv || {};
     const debugView = cfg.gemEnvView ?? 0;
     const gammaMode = cfg.gemGammaMode ?? 0;
@@ -649,6 +738,8 @@ export default function RingHero({
         mat.envMapIntensity = envMapIntensity;
         mat.opacity = opacity;
 
+        applyGemBaseEnvToMaterial(mat, blendedBase);
+
         if (mat.isOctaneDualExr) {
           // Desktop Octane dual-EXR material
           mat.debugView = debugView;
@@ -660,15 +751,6 @@ export default function RingHero({
               /* ignore */
             }
           }
-
-          mat.basePower = typeof baseEnv.power === "number" ? baseEnv.power : 1.0;
-          mat.baseGamma = typeof baseEnv.gamma === "number" ? baseEnv.gamma : 1.2;
-          mat.baseRot = degToRad(baseEnv.rot ?? 0);
-          mat.baseScale.set(baseEnv.scaleU ?? 1.0, baseEnv.scaleV ?? 1.0);
-          mat.baseTrans.set(baseEnv.transU ?? 0.0, baseEnv.transV ?? 0.0);
-          mat.baseScaleInvert = baseEnv.scaleInvert ? 1.0 : 0.0;
-          mat.baseLod = typeof baseEnv.lod === "number" ? baseEnv.lod : 0.5;
-          mat.baseMono = baseEnv.mono ? 1.0 : 0.0;
 
           mat.spotPower = typeof spotEnv.power === "number" ? spotEnv.power : 4.0;
           mat.spotGamma = typeof spotEnv.gamma === "number" ? spotEnv.gamma : 1.8;
@@ -2811,6 +2893,19 @@ export default function RingHero({
           mat.envMapIntensity = gemEnvState.value * trim * intensityScale;
         });
 
+        // Smooth continuous transition of diamond base environment exiting Beat 4 (frame 156) -> Beat 5 (frame 214)
+        const curBlend = computeBlendedGemBaseEnv(
+          hdrConfigRef.current.gemBaseEnv,
+          hdrConfigRef.current.interactiveGemBaseEnv,
+          localFrame
+        );
+        if (Math.abs(curBlend.blendT - lastAppliedGemBlendRef.current) > 1e-4) {
+          lastAppliedGemBlendRef.current = curBlend.blendT;
+          (gemMaterialsRef.current?.length ? gemMaterialsRef.current : gemMaterials).forEach((mat) => {
+            applyGemBaseEnvToMaterial(mat, curBlend);
+          });
+        }
+
         /* [EXPERIMENTAL_ATMOSPHERE] Subtle idle float, micro-tilt shimmer & mouse parallax whenever ring is still (Beats 1–4) */
         // Active from Frame 0 up to end of Beat 4 (~frame 210); blends to 0 entering Beat 5 (frames 210–215)
         const beatRangeFactor = Math.max(0, Math.min(1, (215 - localFrame) / 5));
@@ -3152,6 +3247,20 @@ export default function RingHero({
     if (import.meta.env.DEV || new URLSearchParams(location.search).has("ringdebug")) {
       const _v = new THREE.Vector3();
       window.__ringDebug = {
+        getDiamondUniforms() {
+          const mat = gemMaterialsRef.current?.[0] || gemMaterials?.[0];
+          if (!mat) return null;
+          return {
+            frame: +(debugFrameStateRef.current?.localFrame ?? 0).toFixed(2),
+            basePower: +Number(mat.basePower ?? mat.uniforms?.basePower?.value ?? 0).toFixed(3),
+            baseGamma: +Number(mat.baseGamma ?? mat.uniforms?.baseGamma?.value ?? 0).toFixed(3),
+            baseRotDeg: +Number(THREE.MathUtils.radToDeg(mat.baseRot ?? mat.uniforms?.baseRot?.value ?? 0)).toFixed(2),
+            scaleU: +Number(mat.baseScale?.x ?? mat.uniforms?.baseScale?.value?.x ?? 0).toFixed(3),
+            scaleV: +Number(mat.baseScale?.y ?? mat.uniforms?.baseScale?.value?.y ?? 0).toFixed(3),
+            transU: +Number(mat.baseTrans?.x ?? mat.uniforms?.baseTrans?.value?.x ?? 0).toFixed(3),
+            transV: +Number(mat.baseTrans?.y ?? mat.uniforms?.baseTrans?.value?.y ?? 0).toFixed(3),
+          };
+        },
         // Tight screen-space bounds of the ring in NDC (-1..1). Samples mesh vertices.
         measure() {
           if (!ring || !camera) return null;
