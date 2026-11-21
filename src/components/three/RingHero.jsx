@@ -334,6 +334,7 @@ export default function RingHero({
   gemEnvView = 0,
   gemGammaMode = 0,
   dispersionStrength = 0.006,
+  diamondConfig = null,
   bloomConfig = null,
   bloomIntensity = 0.15,
   bloomThreshold = 0.95,
@@ -572,6 +573,7 @@ export default function RingHero({
       gemGammaMode,
 
       dispersionStrength,
+      diamondConfig,
       bloomConfig,
       bloomIntensity,
       bloomThreshold,
@@ -590,6 +592,7 @@ export default function RingHero({
     gemEnvView,
     gemGammaMode,
     dispersionStrength,
+    diamondConfig,
     bloomConfig,
     bloomIntensity,
     bloomThreshold,
@@ -616,12 +619,20 @@ export default function RingHero({
       metalMat.needsUpdate = true;
     }
 
-    // Diamond Octane Dual-EXR Settings
+    // Diamond Octane Dual-EXR & Optical Physics Settings
     const baseEnv = cfg.gemBaseEnv || {};
     const spotEnv = cfg.gemSpotEnv || {};
     const debugView = cfg.gemEnvView ?? 0;
     const gammaMode = cfg.gemGammaMode ?? 0;
-    const dispersion = typeof cfg.dispersionStrength === "number" ? cfg.dispersionStrength : 0.006;
+    const dCfg = cfg.diamondConfig || {};
+    const dispersion = typeof dCfg.dispersion === "number" ? dCfg.dispersion : (typeof cfg.dispersionStrength === "number" ? cfg.dispersionStrength : 0.006);
+    const roughness = typeof dCfg.roughness === "number" ? dCfg.roughness : 0.0;
+    const ior = typeof dCfg.ior === "number" ? dCfg.ior : 2.417;
+    const bounces = typeof dCfg.bounces === "number" ? dCfg.bounces : 5;
+    const fresnel = typeof dCfg.fresnel === "number" ? dCfg.fresnel : 0.15;
+    const color = dCfg.color || "#ffffff";
+    const envMapIntensity = typeof dCfg.envMapIntensity === "number" ? dCfg.envMapIntensity : 1.0;
+    const opacity = typeof dCfg.opacity === "number" ? dCfg.opacity : 1.0;
 
     gemMaterialsRef.current.forEach((mat) => {
       if (!mat) return;
@@ -629,15 +640,25 @@ export default function RingHero({
       mat.userData._hdrTrim = 1.0;
 
       if (mat.isRoughRefractionMaterial) {
+        mat.aberrationStrength = dispersion;
+        mat.roughness = roughness;
+        mat.ior = ior;
+        mat.bounces = bounces;
+        mat.fresnel = fresnel;
+        mat.color = color;
+        mat.envMapIntensity = envMapIntensity;
+        mat.opacity = opacity;
+
         if (mat.isOctaneDualExr) {
           // Desktop Octane dual-EXR material
           mat.debugView = debugView;
           mat.gammaMode = gammaMode;
-          mat.aberrationStrength = dispersion;
           if (typeof mat.updateDefines === "function") {
             try {
-              mat.updateDefines();
-            } catch (e) {}
+              mat.updateDefines(dispersion);
+            } catch {
+              /* ignore */
+            }
           }
 
           mat.basePower = typeof baseEnv.power === "number" ? baseEnv.power : 1.0;
@@ -657,12 +678,20 @@ export default function RingHero({
           mat.spotScaleInvert = spotEnv.scaleInvert ? 1.0 : 0.0;
           mat.spotLod = typeof spotEnv.lod === "number" ? spotEnv.lod : 0.0;
           mat.spotMono = spotEnv.mono ? 1.0 : 0.0;
-        } else {
-          // Mobile single-environment material
-          if (typeof cfg.dispersionStrength === "number") {
-            mat.aberrationStrength = cfg.dispersionStrength;
-          }
         }
+        mat.needsUpdate = true;
+      } else if (mat.isMatteGemMaterial || mat.isMeshPhysicalMaterial) {
+        mat.roughness = roughness;
+        mat.ior = ior;
+        if (color && mat.color) mat.color.set(color);
+        mat.envMapIntensity = envMapIntensity;
+        mat.opacity = opacity;
+        if (typeof dCfg.transmission === "number") mat.transmission = dCfg.transmission;
+        if (typeof dCfg.thickness === "number") mat.thickness = dCfg.thickness;
+        if (typeof dCfg.attenuationDistance === "number") mat.attenuationDistance = dCfg.attenuationDistance;
+        if (dCfg.attenuationColor && mat.attenuationColor) mat.attenuationColor.set(dCfg.attenuationColor);
+        if (typeof dCfg.clearcoat === "number") mat.clearcoat = dCfg.clearcoat;
+        if (typeof dCfg.clearcoatRoughness === "number") mat.clearcoatRoughness = dCfg.clearcoatRoughness;
         mat.needsUpdate = true;
       }
     });
@@ -925,7 +954,7 @@ export default function RingHero({
     for (const child of gemMeshesRef.current) {
       if (child.material && "isMatte" in child.material) {
         child.material.isMatte = isMatteMode ? 1.0 : 0.0;
-        child.material.ior = isMatteMode ? 1.5 : (gemPreset.ior ?? 2.417);
+        child.material.ior = isMatteMode ? (diamondConfig?.ior ?? 1.5) : (diamondConfig?.ior ?? gemPreset.ior ?? 2.417);
         child.material.needsUpdate = true;
       } else {
         allUpdated = false;
@@ -939,8 +968,8 @@ export default function RingHero({
     }
 
     const effectiveGemPreset = isMatteMode
-      ? { ...gemPreset, materialType: "matte", ior: 1.5 }
-      : (gemMaterialTypeOverride ? { ...gemPreset, materialType: gemMaterialTypeOverride } : gemPreset);
+      ? { ...gemPreset, ...diamondConfig, materialType: "matte", ior: diamondConfig?.ior ?? 1.5 }
+      : { ...gemPreset, ...diamondConfig, ...(gemMaterialTypeOverride ? { materialType: gemMaterialTypeOverride } : {}) };
 
     const pmremEnv = gemEnvTexturesRef.current.metalEnvMap || null;
 
@@ -1859,8 +1888,8 @@ export default function RingHero({
         // On fallback devices: diamond is strictly matte with IOR 1.5, and spotlight is none/off
         const forcedMatte = isFallbackDevice || gemMaterialTypeOverride === "matte";
         const effectiveGemPreset = forcedMatte
-          ? { ...gemPreset, materialType: "matte", ior: 1.5 }
-          : (gemMaterialTypeOverride ? { ...gemPreset, materialType: gemMaterialTypeOverride } : gemPreset);
+          ? { ...gemPreset, ...diamondConfig, materialType: "matte", ior: diamondConfig?.ior ?? 1.5 }
+          : { ...gemPreset, ...diamondConfig, ...(gemMaterialTypeOverride ? { materialType: gemMaterialTypeOverride } : {}) };
 
         ring = gltf.scene;
 
@@ -2326,9 +2355,11 @@ export default function RingHero({
                 if (disposed) return;
                 ring = gltf.scene;
 
-                const effectiveGemPreset = gemMaterialTypeOverride
-                  ? { ...gemPreset, materialType: gemMaterialTypeOverride }
-                  : gemPreset;
+                const effectiveGemPreset = {
+                  ...gemPreset,
+                  ...diamondConfig,
+                  ...(gemMaterialTypeOverride ? { materialType: gemMaterialTypeOverride } : {}),
+                };
 
                 const { gemMeshes, metalMeshes, debugList } =
                   classifyRingMeshes(ring);
@@ -3357,10 +3388,11 @@ export default function RingHero({
 
       {/* Mobile "Tap & Interact" toggle button — minimal frosted glass matching the original hint pill.
           Allows mobile users to opt into 3D ring rotation without trapping scrolling thumbs.
+          Positioned comfortably inside the bottom edge of the perspective showcase box.
           Tapping activates interaction; tapping again or scrolling automatically disengages it. */}
       {isMobileMode && inInteractiveWindow && (
         <button
-          className="ring-hero-drag-hint"
+          className="ring-hero-drag-hint ring-hero-drag-hint--mobile"
           type="button"
           onClick={handleToggleMobileInteraction}
           aria-pressed={mobileInteracting}
@@ -3372,14 +3404,14 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "clamp(20px, 3.2vh, 32px)",
-            transform: "translateX(-50%)",
+            bottom: "calc(var(--pbox-bottom-offset, 112px) + var(--pbox-btn-pad, 14px))",
+            transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
             zIndex: 10,
             pointerEvents: "auto",
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "10px 18px",
+            padding: "8px 16px",
             borderRadius: "999px",
             background: mobileInteracting
               ? "rgba(22, 22, 28, 0.75)"
@@ -3390,7 +3422,7 @@ export default function RingHero({
               ? "1px solid rgba(255, 255, 255, 0.2)"
               : "1px solid rgba(255, 255, 255, 0.08)",
             color: "rgba(255, 255, 255, 0.9)",
-            fontSize: "13px",
+            fontSize: "12px",
             letterSpacing: "0.04em",
             textTransform: "uppercase",
             fontFamily: "inherit",
@@ -3449,18 +3481,18 @@ export default function RingHero({
         </button>
       )}
 
-      {/* Desktop "Drag to explore" hint — purely visual, pointerEvents:"none" so it
-          never intercepts the drag itself. Fades in when the interactive
+      {/* Desktop "Drag to explore" hint — purely visual, positioned inside the bottom of the showcase box.
+          pointerEvents:"none" so it never intercepts the drag itself. Fades in when the interactive
           window opens, fades out on first drag (see dismissedOnceRef). */}
       {!isMobileMode && (
         <div
-          className="ring-hero-drag-hint"
+          className="ring-hero-drag-hint ring-hero-drag-hint--desktop"
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "clamp(12px, 1.4vh, 18px)",
-            transform: "translateX(-50%)",
-            zIndex: 3,
+            bottom: "calc(var(--pbox-bottom-offset, 66px) + var(--pbox-btn-pad, 22px))",
+            transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
+            zIndex: 10,
             pointerEvents: "none",
             display: "flex",
             alignItems: "center",
@@ -3469,6 +3501,8 @@ export default function RingHero({
             borderRadius: "999px",
             background: "rgba(10,10,12,0.55)",
             backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
             color: "rgba(255,255,255,0.9)",
             fontSize: "13px",
             letterSpacing: "0.04em",

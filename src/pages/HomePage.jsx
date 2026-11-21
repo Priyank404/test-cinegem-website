@@ -61,6 +61,10 @@ import VerticalDotNav, {
   DEFAULT_HOME_SECTIONS,
 } from "@/components/ui/VerticalDotNav";
 import { isDevMode } from "@/config/env";
+import DiamondDevPanel, {
+  DiamondControlsContent,
+  DEFAULT_DIAMOND_CONFIG,
+} from "@/components/dev/DiamondDevPanel";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -545,7 +549,28 @@ export default function HomePage() {
   const [bloomConfig, setBloomConfig] = useState(DEFAULT_BLOOM_CONFIG);
   const [baseFileMeta, setBaseFileMeta] = useState(null);
   const [spotFileMeta, setSpotFileMeta] = useState(null);
-  const [dispersionStrength, setDispersionStrength] = useState(DEFAULT_DISPERSION);
+  const [showDiamondPanel, setShowDiamondPanel] = useState(false);
+  const [diamondConfig, setDiamondConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cinegem_dev_diamond_config");
+      if (saved) return { ...DEFAULT_DIAMOND_CONFIG, ...JSON.parse(saved) };
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_DIAMOND_CONFIG;
+  });
+  const [dispersionStrength, setDispersionStrength] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cinegem_dev_diamond_config");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.dispersion === "number") return parsed.dispersion;
+      }
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_DISPERSION;
+  });
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG);
   const [postFxConfig, setPostFxConfig] = useState(DEFAULT_POSTFX_CONFIG);
   const [baseFileNameHint, setBaseFileNameHint] = useState("Diamond-Base-HDRI.exr");
@@ -2169,7 +2194,8 @@ export default function HomePage() {
         gemSpotEnv={gemSpotEnv}
         gemEnvView={gemEnvView}
         gemGammaMode={gemGammaMode}
-        dispersionStrength={dispersionStrength}
+        dispersionStrength={diamondConfig.dispersion ?? dispersionStrength}
+        diamondConfig={diamondConfig}
         bloomConfig={bloomConfig}
         bloomIntensity={bloomConfig.intensity}
         bloomThreshold={bloomConfig.threshold}
@@ -2376,6 +2402,19 @@ export default function HomePage() {
             </button>
 
             <button
+              onClick={() => setShowDiamondPanel((v) => !v)}
+              className={`hero2-dev-btn hero2-dev-btn-diamond ${showDiamondPanel ? "is-active" : ""}`}
+              style={{
+                borderColor: showDiamondPanel ? "#64d2ff" : undefined,
+                color: showDiamondPanel ? "#64d2ff" : undefined,
+                background: showDiamondPanel ? "rgba(100, 210, 255, 0.22)" : undefined,
+                boxShadow: showDiamondPanel ? "0 0 10px rgba(100, 210, 255, 0.4)" : undefined,
+              }}
+            >
+              💎 Diamond Panel: {showDiamondPanel ? "On" : "Off"}
+            </button>
+
+            <button
               onClick={() => setTimelineVisible((v) => !v)}
               className="hero2-dev-btn hero2-dev-btn-timeline"
             >
@@ -2391,8 +2430,39 @@ export default function HomePage() {
 
           </div>
 
+          {showDiamondPanel && (
+            <DiamondDevPanel
+              config={diamondConfig}
+              onChange={(newCfg) => {
+                setDiamondConfig(newCfg);
+                if (typeof newCfg.dispersion === "number") {
+                  setDispersionStrength(newCfg.dispersion);
+                }
+              }}
+              onReset={() => {
+                setDiamondConfig(DEFAULT_DIAMOND_CONFIG);
+                setDispersionStrength(DEFAULT_DIAMOND_CONFIG.dispersion);
+                try {
+                  localStorage.removeItem("cinegem_dev_diamond_config");
+                } catch {
+                  /* ignore */
+                }
+              }}
+              onSave={() => {
+                try {
+                  localStorage.setItem("cinegem_dev_diamond_config", JSON.stringify(diamondConfig));
+                } catch {
+                  /* ignore */
+                }
+              }}
+              onClose={() => setShowDiamondPanel(false)}
+            />
+          )}
+
           {panelVisible && (
             <MaterialDevPanel
+              diamondConfig={diamondConfig}
+              setDiamondConfig={setDiamondConfig}
               metalPresetKey={metalPresetKey}
               setMetalPresetKey={setMetalPresetKey}
               metalHdrUrl={metalHdrUrl}
@@ -2613,6 +2683,8 @@ ${contentPosCss}
 // BeatCoordPanel was replaced by the advanced TimelineEditor component at the bottom of the viewport.
 
 function MaterialDevPanel({
+  diamondConfig,
+  setDiamondConfig,
   metalPresetKey,
   setMetalPresetKey,
   metalHdrUrl,
@@ -2897,17 +2969,27 @@ function MaterialDevPanel({
           </label>
         </div>
 
-        {/* Task A2: Dispersion (Fire) Slider */}
-        <SliderRow
-          label="Dispersion (Fire)"
-          value={dispersionStrength}
-          min={0}
-          max={0.03}
-          step={0.001}
-          onChange={(e) => setDispersionStrength(Number(e.target.value))}
-        />
-        <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 8, color: "#8ecbff" }}>
-          * 0 = Achromatic diamond (no rainbow). 0.006 = Smooth 7-tap spectral fire.
+        {/* Diamond Core Controls: Roughness, IOR, Dispersion, Bounces, Fresnel, Body Color, Radiance */}
+        <div style={{ marginTop: 8, marginBottom: 10 }}>
+          <DiamondControlsContent
+            config={diamondConfig}
+            onChange={(newCfg) => {
+              setDiamondConfig?.(newCfg);
+              if (typeof newCfg.dispersion === "number") {
+                setDispersionStrength(newCfg.dispersion);
+              }
+            }}
+            onReset={() => {
+              setDiamondConfig?.(DEFAULT_DIAMOND_CONFIG);
+              setDispersionStrength(DEFAULT_DIAMOND_CONFIG.dispersion);
+              try {
+                localStorage.removeItem("cinegem_dev_diamond_config");
+              } catch {
+                /* ignore */
+              }
+            }}
+            isEmbedded={true}
+          />
         </div>
 
         {/* Reference & Reset Preset Buttons */}
@@ -2917,6 +2999,7 @@ function MaterialDevPanel({
             onClick={() => {
               setGemBaseEnv(OCTANE_ER11_BASE_ENV);
               setGemSpotEnv(OCTANE_ER11_SPOT_ENV);
+              setDiamondConfig?.((prev) => ({ ...prev, dispersion: DEFAULT_DISPERSION }));
               setDispersionStrength(DEFAULT_DISPERSION);
               setBloomConfig(DEFAULT_BLOOM_CONFIG);
             }}
@@ -2940,6 +3023,7 @@ function MaterialDevPanel({
             onClick={() => {
               setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
               setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
+              setDiamondConfig?.((prev) => ({ ...prev, dispersion: DEFAULT_DISPERSION }));
               setDispersionStrength(DEFAULT_DISPERSION);
               setBloomConfig(DEFAULT_BLOOM_CONFIG);
             }}

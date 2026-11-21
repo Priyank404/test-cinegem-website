@@ -95,6 +95,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
 
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
+      varying vec3 vLocalPosition;
       varying mat4 vModelMatrixInverse;
 
       #include <color_pars_vertex>
@@ -113,6 +114,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
           vModelMatrixInverse  = inverse(modelMatrix);
         #endif
 
+        vLocalPosition = transformedPosition.xyz;
         vWorldPosition = (modelMatrix * transformedPosition).xyz;
         vNormal = normalize(mat3(transpose(inverse(modelMatrix))) * transformedNormal.xyz);
         
@@ -126,6 +128,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       precision highp usampler2D;
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
+      varying vec3 vLocalPosition;
       varying mat4 vModelMatrixInverse;
 
       #include <color_pars_fragment>
@@ -196,9 +199,10 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
       #include <cube_uv_reflection_fragment>
 
       void main() {
-        vec3 normal       = vNormal;
+        vec3 normal       = normalize(vNormal);
         vec3 rayOrigin    = cameraPosition;
         vec3 rayDirection = normalize(vWorldPosition - cameraPosition);
+        vec3 V            = -rayDirection;
 
         vec4 diffuseColor = vec4(color, opacity);
         #include <color_fragment>
@@ -208,7 +212,7 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
           // Dark luxury diamond with optical transparency (IOR 1.5),
           // smoky crystal absorption, satin facet luster, and HDR environment reflections.
           vec3 smoothNormal = normalize(vNormal);
-          float NdotV = clamp(dot(smoothNormal, -rayDirection), 0.0, 1.0);
+          float NdotV = clamp(dot(smoothNormal, V), 0.0, 1.0);
 
           // Matte Diamond IOR is strictly 1.5 (F0 = pow((1.5 - 1.0)/(1.5 + 1.0), 2.0) = 0.04)
           // Normal diamond in else branch uses full diamond ior (2.417) completely unaffected.
@@ -220,18 +224,17 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
           refractDir = (dot(refractDir, refractDir) > 0.0) ? refractDir : reflect(rayDirection, smoothNormal);
           refractDir = rotateX(refractDir, envRotationY);
           refractDir = rotateY(refractDir, envRotation);
-          vec3 envRefract = textureCubeUV(envMap, refractDir, 0.05).rgb;
+          vec3 envRefract = textureCubeUV(envMap, refractDir, 0.05 + roughness * 0.4).rgb;
 
           // Dark smoky crystal absorption (visible transparency, rich noir body):
           vec3 darkSmokyTint = vec3(0.24, 0.24, 0.28);
           vec3 transmittedLight = envRefract * darkSmokyTint * envMapIntensity;
 
-          // 2. Surface Reflection off facets (satin roughness 0.09):
+          // 2. Surface Reflection off facets:
           vec3 reflectDir = reflect(rayDirection, smoothNormal);
           reflectDir = rotateX(reflectDir, envRotationY);
           reflectDir = rotateY(reflectDir, envRotation);
-          float matteRoughness = 0.09;
-          vec3 envReflect = textureCubeUV(envMap, reflectDir, matteRoughness).rgb;
+          vec3 envReflect = textureCubeUV(envMap, reflectDir, max(0.09, roughness)).rgb;
 
           vec3 reflectedLight = envReflect * envMapIntensity * (fresnelTerm * 0.85 + 0.05);
 
@@ -270,17 +273,40 @@ export class RoughRefractionMaterialMobile extends THREE.ShaderMaterial {
           diffuseColor.rgb *= textureCubeUV(envMap, rayDirection, roughness).rgb * envMapIntensity;
         #endif
 
+        // Smooth frosted crystal volume transmission (zero noise)
+        if (roughness > 0.001) {
+          vec3 diffuseRefractDir = refract(rayDirection, normal, 1.0 / max(ior, 1.0));
+          diffuseRefractDir = rotateX(diffuseRefractDir, envRotationY);
+          diffuseRefractDir = rotateY(diffuseRefractDir, envRotation);
+          vec3 diffuseTransCol = textureCubeUV(envMap, diffuseRefractDir, roughness).rgb * color * envMapIntensity;
+          float frostWeight = smoothstep(0.0, 0.75, roughness) * 0.60;
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseTransCol, frostWeight);
+
+          float ambientLift = roughness * 0.25;
+          diffuseColor.rgb = max(diffuseColor.rgb, diffuseTransCol * ambientLift);
+        }
+
         vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
         // Physical Schlick Fresnel on surface reflection (avoids washed-out milky white fog)
         float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
-        float nFresnel = f0 + (1.0 - f0) * pow(clamp(1.0 + dot(viewDirection, normal), 0.0, 1.0), 5.0);
+        float NdotV = clamp(dot(normal, V), 0.0, 1.0);
+        float nFresnel = f0 + (1.0 - f0) * pow(1.0 - NdotV, 5.0);
         vec3 surfReflectDir = reflect(viewDirection, normal);
         surfReflectDir = rotateX(surfReflectDir, envRotationY);
         surfReflectDir = rotateY(surfReflectDir, envRotation);
-        vec3 surfaceReflect = textureCubeUV(envMap, surfReflectDir, 0.02).rgb * nFresnel * (fresnel > 0.0 ? fresnel : 0.2);
-        vec3 finalRgb = diffuseColor.rgb + surfaceReflect;
 
-        gl_FragColor = vec4(finalRgb, diffuseColor.a);
+        float specMult = (fresnel >= 0.0) ? fresnel : 0.2;
+        float mirrorFade = 1.0 - smoothstep(0.01, 0.22, roughness);
+        vec3 surfaceReflect = textureCubeUV(envMap, surfReflectDir, max(0.02, roughness)).rgb * (nFresnel * specMult * mirrorFade);
+
+        // Smooth Adamantine Satin Facet Sheen
+        if (roughness > 0.001) {
+          float satinRim = pow(1.0 - NdotV, 2.0);
+          float satinLobe = (satinRim * 0.65 + 0.35) * smoothstep(0.01, 0.45, roughness);
+          vec3 sheenEnv = textureCubeUV(envMap, surfReflectDir, roughness).rgb;
+          surfaceReflect += sheenEnv * (satinLobe * f0 * 3.8 * envMapIntensity);
+        }
+        vec3 finalRgb = diffuseColor.rgb + surfaceReflect;
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
         #include <tonemapping_fragment>

@@ -91,43 +91,43 @@ export function buildMatteGemMaterial(preset, envMap) {
   const mat = new THREE.MeshPhysicalMaterial({
     name: "BlackMatteDiamond",
     // 1. Deep luxury smoky noir crystal color (Matte aesthetic)
-    color: new THREE.Color(0x181a20),
-    emissive: new THREE.Color(0x020204),
-    emissiveIntensity: 0.05,
+    color: new THREE.Color(preset.color ?? 0x181a20),
+    emissive: new THREE.Color(preset.emissive ?? 0x020204),
+    emissiveIntensity: preset.emissiveIntensity ?? 0.05,
 
     // 2. Pure dielectric gemstone (no metalness)
-    metalness: 0.0,
+    metalness: preset.metalness ?? 0.0,
 
     // 3. Minor satin roughness for diamond facet micro-luster
-    roughness: 0.09,
+    roughness: preset.roughness ?? 0.09,
 
     // 4. Optical refractive index at IOR = 1.5 strictly for matte diamond (normal diamond stays 2.417)
-    ior: 1.5,
-    specularIntensity: 0.95,
-    specularColor: new THREE.Color(0xffffff),
+    ior: preset.ior ?? 1.5,
+    specularIntensity: preset.specularIntensity ?? 0.95,
+    specularColor: new THREE.Color(preset.specularColor ?? 0xffffff),
 
     // 5. Satin clearcoat for diamond facet sheen
-    clearcoat: 0.25,
-    clearcoatRoughness: 0.09,
+    clearcoat: preset.clearcoat ?? 0.25,
+    clearcoatRoughness: preset.clearcoatRoughness ?? 0.09,
 
     // 6. True physical optical transparency
     transparent: true,
-    opacity: 1.0,
+    opacity: preset.opacity ?? 1.0,
     depthWrite: true,
 
     // 7. Physical transmission & internal absorption (Beer-Lambert volume depth)
     // Thinner halo stones sparkle transparently, thick center stone has deep noir depth
-    transmission: 0.70,
-    thickness: 1.8,
-    attenuationColor: new THREE.Color(0x0a0c12),
-    attenuationDistance: 1.2,
+    transmission: preset.transmission ?? 0.70,
+    thickness: preset.thickness ?? 1.8,
+    attenuationColor: new THREE.Color(preset.attenuationColor ?? 0x0a0c12),
+    attenuationDistance: preset.attenuationDistance ?? 1.2,
 
     // 8. Smooth facet shading (no artificial wireframe seams)
-    flatShading: false,
+    flatShading: preset.flatShading ?? false,
 
     // 9. Environment map from fallback HDR (env_metal_029_1798f1cf07.hdr)
     envMap: safeEnvMap,
-    envMapIntensity: 1.0,
+    envMapIntensity: preset.envMapIntensity ?? 1.0,
 
     side: THREE.FrontSide,
   });
@@ -229,9 +229,11 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
     const vertexShader = `
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
+      varying vec3 vLocalPosition;
       varying mat4 vModelMatrixInverse;
 
       void main() {
+        vLocalPosition = position;
         vModelMatrixInverse = inverse(modelMatrix);
         vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
         vNormal = normalize(mat3(transpose(inverse(modelMatrix))) * normal);
@@ -244,6 +246,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       precision highp usampler2D;
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
+      varying vec3 vLocalPosition;
       varying mat4 vModelMatrixInverse;
 
       uniform sampler2D envMapBase;
@@ -292,16 +295,16 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         return pow(clamp(1.0 + dot(viewDirection, worldNormal), 0.0, 1.0), 10.0);
       }
 
-      vec3 totalInternalReflection(vec3 ro, vec3 rd, vec3 normal, float ior, mat4 modelMatrixInverse) {
+      vec3 totalInternalReflection(vec3 ro, vec3 rd, vec3 normal, float iorVal, mat4 modelMatrixInverse) {
         vec3 rayOrigin = ro;
         vec3 rayDirection = rd;
-        vec3 refracted = refract(rayDirection, normal, 1.0 / ior);
+        vec3 refracted = refract(rayDirection, normal, 1.0 / iorVal);
         rayDirection = (dot(refracted, refracted) > 0.0) ? refracted : reflect(rayDirection, normal);
         rayOrigin = vWorldPosition + rayDirection * 0.001;
         rayOrigin = (modelMatrixInverse * vec4(rayOrigin, 1.0)).xyz;
         rayDirection = normalize((modelMatrixInverse * vec4(rayDirection, 0.0)).xyz);
         #ifndef MAX_BOUNCES
-        #define MAX_BOUNCES 8
+        #define MAX_BOUNCES 16
         #endif
         for (int i = 0; i < MAX_BOUNCES; i++) {
           if (float(i) >= bounces) break;
@@ -311,7 +314,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
           float side = 1.0, dist = 0.0;
           bvhIntersectFirstHit(bvh, rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist);
           vec3 hitPos = rayOrigin + rayDirection * max(dist - 0.001, 0.0);
-          vec3 tempDir = refract(rayDirection, faceNormal, ior);
+          vec3 tempDir = refract(rayDirection, faceNormal, iorVal);
           if (length(tempDir) != 0.0) { rayDirection = tempDir; break; }
           rayDirection = reflect(rayDirection, faceNormal);
           rayOrigin = hitPos + rayDirection * 0.01;
@@ -319,17 +322,19 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         return normalize((modelMatrix * vec4(rayDirection, 0.0)).xyz);
       }
 
-      // Raw base sample at direction d (mono reads .r)
-      vec3 baseRaw(vec3 d) {
-        vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
-        vec4 s = textureLod(envMapBase, uv, baseLod);
-        return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
-      }
-
-      vec3 baseRawLod(vec3 d, float lod) {
+      // Clean sample of Octane Base EXR environment without artificial texture blurring
+      vec3 sampleBaseKernel(vec3 d, float lod) {
         vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
         vec4 s = textureLod(envMapBase, uv, lod);
         return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+      }
+
+      vec3 baseRaw(vec3 d) {
+        return sampleBaseKernel(d, baseLod);
+      }
+
+      vec3 baseRawLod(vec3 d, float lod) {
+        return sampleBaseKernel(d, lod);
       }
 
       // Smooth fire: 7 taps from the "red" ray to the "blue" ray, Bernstein spectral weights.
@@ -360,7 +365,6 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         if (hasSpotMap < 0.5) return 0.0;
         vec2 uvS = octaneUv(equirectUv(dir), spotRot, spotScale, spotTrans, spotScaleInvert);
 
-        // Tight circular optical disk (~2.2 degrees angular diameter)
         vec2 d = vec2(0.006, 0.012);
         float m = textureLod(envMapSpot, uvS, spotLod).r;
         m = max(m, textureLod(envMapSpot, uvS + vec2( d.x,  0.0), spotLod).r);
@@ -373,7 +377,6 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         m = max(m, textureLod(envMapSpot, uvS - vec2( d.x * 0.707, -d.y * 0.707), spotLod).r);
 
         float shaped = shapeTexel(m, spotPower, spotGamma);
-        // Cap to safe peak radiance so it never overflows float16 (65,504)
         return min(shaped, 30.0);
       }
 
@@ -398,7 +401,29 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         return colorKeyBase(bFiltered) + sFiltered;
       }
 
-      // Sample combined Octane environment with explicit mip LOD (for satin facet roughness)
+      // Deterministic 5-tap smooth optical blur cone around the internal ray (zero noise)
+      // Produces the smooth internal caustic diffusion seen in Matte & Frosted diamonds
+      vec3 sampleSmoothInternal(vec3 dir, float rough) {
+        if (rough <= 0.015) {
+          return sampleOctaneEnvironment(dir);
+        }
+
+        vec3 up = abs(dir.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+        vec3 t = normalize(cross(dir, up));
+        vec3 b = cross(dir, t);
+
+        float spread = clamp(rough * 0.09, 0.0, 0.12);
+
+        vec3 c0 = sampleOctaneEnvironment(dir) * 0.36;
+        vec3 c1 = sampleOctaneEnvironment(normalize(dir + t * spread)) * 0.16;
+        vec3 c2 = sampleOctaneEnvironment(normalize(dir - t * spread)) * 0.16;
+        vec3 c3 = sampleOctaneEnvironment(normalize(dir + b * spread)) * 0.16;
+        vec3 c4 = sampleOctaneEnvironment(normalize(dir - b * spread)) * 0.16;
+
+        return c0 + c1 + c2 + c3 + c4;
+      }
+
+      // Sample combined Octane environment with explicit mip LOD
       vec3 sampleOctaneEnvironmentLod(vec3 dir, float lod) {
         vec3 rawB = baseRawLod(dir, lod);
         vec3 baseCol = vec3(
@@ -413,64 +438,65 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       }
 
       void main() {
-        vec3 normal = vNormal;
+        vec3 normal = normalize(vNormal);
         vec3 rayOrigin = cameraPosition;
-        vec3 rayDirection = normalize(vWorldPosition - cameraPosition);
+        vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
+        vec3 V = -viewDirection;
 
         vec4 diffuseColor = vec4(color, opacity);
 
         if (isMatte > 0.5) {
           // Matte Diamond Aesthetic:
-          // Dark luxury diamond with true optical transparency (IOR 1.5),
+          // Dark luxury diamond with optical transparency (IOR 1.5),
           // smoky crystal absorption, satin facet luster, and HDR environment reflections.
           vec3 smoothNormal = normalize(vNormal);
-          float NdotV = clamp(dot(smoothNormal, -rayDirection), 0.0, 1.0);
+          float NdotV = clamp(dot(smoothNormal, V), 0.0, 1.0);
 
-          // Matte Diamond IOR is strictly 1.5 (F0 = pow((1.5 - 1.0)/(1.5 + 1.0), 2.0) = 0.04)
-          // Normal diamond in else branch uses full diamond ior (2.417) completely unaffected.
-          const float matteIor = 1.5;
-          float fresnelTerm = 0.04 + 0.96 * pow(1.0 - NdotV, 5.0);
+          float matteIor = ior > 1.0 ? ior : 1.5;
+          float f0 = pow((matteIor - 1.0) / (matteIor + 1.0), 2.0);
+          float fresnelTerm = f0 + (1.0 - f0) * pow(1.0 - NdotV, 5.0);
 
-          // 1. Optical Refraction through the diamond (single-pass Snell refraction):
-          vec3 refractDir = refract(rayDirection, smoothNormal, 1.0 / matteIor);
-          refractDir = (dot(refractDir, refractDir) > 0.0) ? refractDir : reflect(rayDirection, smoothNormal);
+          // 1. Optical Refraction through the diamond:
+          vec3 refractDir = refract(viewDirection, smoothNormal, 1.0 / matteIor);
+          refractDir = (dot(refractDir, refractDir) > 0.0) ? refractDir : reflect(viewDirection, smoothNormal);
+          vec3 envRefract = sampleOctaneEnvironment(refractDir);
 
-          // Sample environment behind the diamond with slight diffusion for internal volume depth
-          vec3 envRefract = sampleOctaneEnvironmentLod(refractDir, 0.4);
-
-          // Dark smoky crystal absorption:
-          // Transmits light so transparency is clearly visible,
-          // with a rich dark noir tone (no pitch-black opaque cutout, no milky white wash)
-          vec3 darkSmokyTint = vec3(0.24, 0.24, 0.28);
+          // Dark smoky crystal absorption / body tint:
+          vec3 darkSmokyTint = color;
           vec3 transmittedLight = envRefract * darkSmokyTint * envMapIntensity;
 
           // 2. Surface Reflection off facets:
-          vec3 reflectDir = reflect(rayDirection, smoothNormal);
+          vec3 reflectDir = reflect(viewDirection, smoothNormal);
+          vec3 envReflect = sampleOctaneEnvironment(reflectDir);
 
-          // Sample reflection with subtle satin roughness (LOD 1.0) for diamond facet luster
-          vec3 envReflect = sampleOctaneEnvironmentLod(reflectDir, 1.0);
+          float reflScale = fresnel > 0.0 ? fresnel * 4.0 : 0.85;
+          vec3 reflectedLight = envReflect * envMapIntensity * (fresnelTerm * reflScale + 0.05);
 
-          // Fresnel-weighted surface reflection: glancing rim reflects brightly, center lets you see through
-          vec3 reflectedLight = envReflect * envMapIntensity * (fresnelTerm * 0.85 + 0.05);
+          // Silky satin facet luster on matte diamond
+          float satinSheen = (pow(1.0 - NdotV, 2.5) * 0.65 + 0.35) * roughness;
+          reflectedLight += envReflect * (satinSheen * f0 * 3.0 * envMapIntensity);
 
           // 3. Composite transmitted light + facet reflection
           vec3 finalDiamond = mix(transmittedLight, reflectedLight, fresnelTerm) + reflectedLight * 0.15;
 
-          // 4. Optical transparency (clear glass presence with solid rim)
-          float alpha = mix(0.75, 0.96, fresnelTerm);
+          // 4. Optical transparency
+          float alpha = mix(0.75, 0.96, fresnelTerm) * opacity;
 
           gl_FragColor = vec4(finalDiamond, alpha);
           return;
         }
 
         #ifdef CHROMATIC_ABERRATIONS
-          vec3 rayDirectionG = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior, 1.0), vModelMatrixInverse);
+          // In rough/frosted diamonds, microfacets mix spectral wavelengths back into white light
+          float effectiveChroma = aberrationStrength * (1.0 - smoothstep(0.04, 0.30, roughness));
+
+          vec3 rayDirectionG = totalInternalReflection(rayOrigin, viewDirection, normal, max(ior, 1.0), vModelMatrixInverse);
           #ifdef FAST_CHROMA
-            vec3 rayDirectionR = normalize(rayDirectionG + vec3(aberrationStrength * 0.5));
-            vec3 rayDirectionB = normalize(rayDirectionG - vec3(aberrationStrength * 0.5));
+            vec3 rayDirectionR = normalize(rayDirectionG + vec3(effectiveChroma * 0.5));
+            vec3 rayDirectionB = normalize(rayDirectionG - vec3(effectiveChroma * 0.5));
           #else
-            vec3 rayDirectionR = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 - aberrationStrength), 1.0), vModelMatrixInverse);
-            vec3 rayDirectionB = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 + aberrationStrength), 1.0), vModelMatrixInverse);
+            vec3 rayDirectionR = totalInternalReflection(rayOrigin, viewDirection, normal, max(ior * (1.0 - effectiveChroma), 1.0), vModelMatrixInverse);
+            vec3 rayDirectionB = totalInternalReflection(rayOrigin, viewDirection, normal, max(ior * (1.0 + effectiveChroma), 1.0), vModelMatrixInverse);
           #endif
 
           // Spectral base fire (7 taps, Bernstein weights, preserves white, no hard rainbow bands)
@@ -487,15 +513,54 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
           vec3 envCol = colorKeyBase(bFiltered) + sFiltered;
           diffuseColor.rgb *= envCol * envMapIntensity;
         #else
-          rayDirection = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior, 1.0), vModelMatrixInverse);
-          diffuseColor.rgb *= sampleOctaneEnvironment(rayDirection) * envMapIntensity;
+          vec3 rayDirection = totalInternalReflection(rayOrigin, viewDirection, normal, max(ior, 1.0), vModelMatrixInverse);
+          diffuseColor.rgb *= sampleSmoothInternal(rayDirection, roughness) * envMapIntensity;
         #endif
 
-        vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
-        // Physical Schlick Fresnel on surface reflection (avoids washed-out milky white fog)
+        // Frosted / Matte translucent crystal body (matching real-life frosted diamonds):
+        // Replicates the 5 reference stages:
+        // POLISHED (0.00) -> SATIN (0.08) -> MATTE (0.30) -> FROSTED (0.60) -> RAW (0.90)
+        vec3 refractDir = refract(viewDirection, normal, 1.0 / max(ior, 1.0));
+        vec3 envDirect = sampleOctaneEnvironment(refractDir);
+
+        // Facet geometry shading:
+        // Each facet plane reflects/transmits light according to its orientation
+        float NdotV = clamp(dot(normal, V), 0.0, 1.0);
+        float facetBodyShading = 0.52 + 0.48 * NdotV;
+        
+        // Translucent frosted milky-white crystal core
+        vec3 frostedCore = (envDirect * 0.70 + vec3(0.92, 0.94, 0.98) * 0.30) * color * (facetBodyShading * envMapIntensity);
+
+        // 1. Blend sharp caustics into frosted crystal body as roughness increases
+        float frostWeight = smoothstep(0.02, 0.55, roughness);
+        diffuseColor.rgb = mix(diffuseColor.rgb, frostedCore, frostWeight * 0.88);
+
+        // 2. Soften deep shadow cavities: in Matte and Frosted stones, dark cavities become luminous misty gray
+        float shadowFill = smoothstep(0.01, 0.40, roughness) * 0.42;
+        diffuseColor.rgb = max(diffuseColor.rgb, frostedCore * shadowFill);
+
+        // Dielectric Fresnel F0 for diamond (IOR ~ 2.417 => F0 ~ 0.172)
         float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
-        float nFresnel = f0 + (1.0 - f0) * pow(clamp(1.0 + dot(viewDirection, normal), 0.0, 1.0), 5.0);
-        vec3 surfaceReflect = sampleOctaneEnvironment(reflect(viewDirection, normal)) * nFresnel * (fresnel > 0.0 ? fresnel : 0.2);
+        float nFresnel = f0 + (1.0 - f0) * pow(1.0 - NdotV, 5.0);
+
+        // Surface reflection of the environment
+        vec3 surfReflectDir = reflect(viewDirection, normal);
+        vec3 surfaceEnv = sampleOctaneEnvironment(surfReflectDir);
+
+        // Mirror reflection smoothly dissolves as roughness increases (from 0.00 to 0.22)
+        float mirrorFade = 1.0 - smoothstep(0.01, 0.22, roughness);
+        float specMult = (fresnel >= 0.0) ? fresnel : 0.2;
+        vec3 mirrorReflect = surfaceEnv * (nFresnel * specMult * mirrorFade);
+
+        // Smooth Adamantine Satin Facet Sheen (Cook-Torrance GGX luster):
+        // In SATIN (0.08), MATTE (0.30), FROSTED (0.60), this gives the facet faces their silky 3D definition!
+        float satinSheenWeight = smoothstep(0.01, 0.45, roughness);
+        float satinRim = pow(1.0 - NdotV, 2.0);
+        float satinLobe = (satinRim * 0.65 + 0.35) * satinSheenWeight;
+        vec3 satinFacetSheen = surfaceEnv * (satinLobe * f0 * 3.8 * envMapIntensity);
+
+        vec3 surfaceReflect = mirrorReflect + satinFacetSheen;
+
         vec3 finalRgb = diffuseColor.rgb + surfaceReflect;
 
         gl_FragColor = vec4(finalRgb, diffuseColor.a);
@@ -637,8 +702,17 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
   set roughness(v) { if (this.uniforms?.roughness) this.uniforms.roughness.value = v; }
   get envMapIntensity() { return this.uniforms?.envMapIntensity?.value; }
   set envMapIntensity(v) { if (this.uniforms?.envMapIntensity) this.uniforms.envMapIntensity.value = v; }
+  get opacity() { return this.uniforms?.opacity?.value ?? 1.0; }
+  set opacity(v) { if (this.uniforms?.opacity) this.uniforms.opacity.value = v; }
   get color() { return this.uniforms?.color?.value; }
-  set color(v) { if (!this.uniforms?.color) return; v instanceof THREE.Color ? this.uniforms.color.value.copy(v) : this.uniforms.color.value.set(v); }
+  set color(v) {
+    if (!this.uniforms?.color) return;
+    if (v instanceof THREE.Color) {
+      this.uniforms.color.value.copy(v);
+    } else {
+      this.uniforms.color.value.set(v);
+    }
+  }
   get bvh() { return this.uniforms?.bvh?.value; }
   set bvh(v) { if (this.uniforms?.bvh) this.uniforms.bvh.value = v; }
 }

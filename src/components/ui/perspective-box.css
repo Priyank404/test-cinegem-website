@@ -3,6 +3,33 @@
    High-jewellery luxury showcase box for the 3D Interactive Viewer (Beat 5)
    ------------------------------------------------------------------------- */
 
+:root {
+  --pbox-bottom-offset: 66px;
+  --pbox-btn-pad: 22px;
+  --pbox-translate-y: 0px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --pbox-bottom-offset: 112px;
+    --pbox-btn-pad: 14px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root {
+    --pbox-bottom-offset: 111px;
+    --pbox-btn-pad: 18px;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1536px) {
+  :root {
+    --pbox-bottom-offset: 104px;
+    --pbox-btn-pad: 20px;
+  }
+}
+
 .pbox-container {
   position: fixed;
   inset: 0;

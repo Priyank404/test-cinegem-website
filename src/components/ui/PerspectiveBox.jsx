@@ -308,6 +308,20 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
       diagLength,
     };
 
+    // Keep the interaction hint button dynamically positioned inside the bottom of the box across all screen sizes
+    if (typeof document !== "undefined") {
+      const bottomOffset = Math.max(0, winH - outerBottom);
+      const btnPad = isMobile ? 14 : isPortrait ? 18 : isMac ? 20 : 22;
+      document.documentElement.style.setProperty(
+        "--pbox-bottom-offset",
+        `${bottomOffset}px`
+      );
+      document.documentElement.style.setProperty(
+        "--pbox-btn-pad",
+        `${btnPad}px`
+      );
+    }
+
     updateGeometryDOM();
   }, [updateGeometryDOM]);
 
@@ -490,6 +504,12 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         }
 
         container.style.transform = translateY !== 0 ? `translateY(${translateY}px)` : "";
+        if (typeof document !== "undefined") {
+          document.documentElement.style.setProperty(
+            "--pbox-translate-y",
+            `${translateY}px`
+          );
+        }
 
         lastStateRef.current = {
           frame,
