@@ -373,8 +373,20 @@ export function applyGemBaseEnvToMaterial(mat, blended) {
     mat.basePower = blended.power;
     mat.baseGamma = blended.gamma;
     mat.baseRot = degToRad(blended.rot);
-    mat.baseScale?.set(blended.scaleU, blended.scaleV);
-    mat.baseTrans?.set(blended.transU, blended.transV);
+    if (mat.baseScale) {
+      if (typeof mat.baseScale.set === "function") {
+        mat.baseScale.set(blended.scaleU, blended.scaleV);
+      } else {
+        mat.baseScale = new THREE.Vector2(blended.scaleU, blended.scaleV);
+      }
+    }
+    if (mat.baseTrans) {
+      if (typeof mat.baseTrans.set === "function") {
+        mat.baseTrans.set(blended.transU, blended.transV);
+      } else {
+        mat.baseTrans = new THREE.Vector2(blended.transU, blended.transV);
+      }
+    }
     mat.baseScaleInvert = blended.scaleInvert;
     mat.baseLod = blended.lod;
     if (mat.isOctaneDualExr) {
@@ -701,7 +713,6 @@ export default function RingHero({
         metalMat.envMapRotation.y = degToRad(cfg.metalHdrRotation);
         metalMat.envMapRotation.x = degToRad(cfg.metalHdrRotationY);
       }
-      metalMat.needsUpdate = true;
     }
 
     // Diamond Octane Dual-EXR & Optical Physics Settings
@@ -762,7 +773,6 @@ export default function RingHero({
           mat.spotLod = typeof spotEnv.lod === "number" ? spotEnv.lod : 0.0;
           mat.spotMono = spotEnv.mono ? 1.0 : 0.0;
         }
-        mat.needsUpdate = true;
       } else if (mat.isMatteGemMaterial || mat.isMeshPhysicalMaterial) {
         mat.roughness = roughness;
         mat.ior = ior;
@@ -1674,17 +1684,24 @@ export default function RingHero({
     }
     function onCanvasPointerMove(e) {
       if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
+      if (e.cancelable) e.preventDefault();
       onInteractiveMove(e.clientX, e.clientY);
     }
     function onCanvasPointerUp(e) {
       try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
       onInteractiveUp();
     }
+    function onWindowPointerMove(e) {
+      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
+      if (e.cancelable) e.preventDefault();
+      onInteractiveMove(e.clientX, e.clientY);
+    }
 
     canvas.addEventListener("pointerdown", onCanvasPointerDown);
     canvas.addEventListener("pointermove", onCanvasPointerMove);
     canvas.addEventListener("pointerup", onCanvasPointerUp);
     canvas.addEventListener("pointercancel", onCanvasPointerUp);
+    window.addEventListener("pointermove", onWindowPointerMove, { passive: false });
     window.addEventListener("pointerup", onInteractiveUp);
     window.addEventListener("pointercancel", onInteractiveUp);
 
@@ -1702,6 +1719,7 @@ export default function RingHero({
     }
     function onBoxPointerMove(e) {
       if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
+      if (e.cancelable) e.preventDefault();
       onInteractiveMove(e.clientX, e.clientY);
     }
     function onBoxPointerUp(e) {
@@ -2242,14 +2260,14 @@ export default function RingHero({
             debugFrameStateRef.current.localFrame = localFrame;
             if (autoRotateStartFrame != null) {
               const inRange =
-                localFrame >= autoRotateStartFrame &&
+                localFrame >= (autoRotateStartFrame - 0.25) &&
                 (autoRotateEndFrame == null ||
                   localFrame <= autoRotateEndFrame);
               autoRotateActiveRef.current = inRange;
             }
             if (interactiveRotateStartFrame != null) {
               const inInteractiveRange =
-                localFrame >= interactiveRotateStartFrame &&
+                localFrame >= (interactiveRotateStartFrame - 0.25) &&
                 (interactiveRotateEndFrame == null ||
                   localFrame <= interactiveRotateEndFrame);
               debugFrameStateRef.current.inRange = inInteractiveRange;
@@ -2265,6 +2283,7 @@ export default function RingHero({
                 canvas.style.pointerEvents =
                   inInteractiveRange && !isPortrait ? "auto" : "none";
                 canvas.style.cursor = inInteractiveRange ? "grab" : "";
+                canvas.style.touchAction = inInteractiveRange ? "none" : (RESPONSIVE_V2 ? "pan-y" : "auto");
               }
 
               if (interactiveBoxRef.current) {
@@ -2940,7 +2959,7 @@ export default function RingHero({
         }
 
         if (ring) {
-          const spinStart = autoRotateStartFrame ?? 214;
+          const spinStart = (autoRotateStartFrame ?? 214) - 0.25;
           const inSpinSection = localFrame >= spinStart;
 
           let interactiveOffsetY = 0;
@@ -2980,13 +2999,8 @@ export default function RingHero({
             interactiveOffsetY = currentSpinYRef.current;
             interactiveOffsetX = manualRotRef.current.x;
 
-            // Latch exit offset normalized to shortest angular path [-π, +π]
-            // so if the user scrolls up into Beat 4, the ring smoothly blends without multi-turn spin
-            exitOffsetRef.current =
-              THREE.MathUtils.euclideanModulo(
-                currentSpinYRef.current + Math.PI,
-                Math.PI * 2,
-              ) - Math.PI;
+            // Latch exit offset continuously so there is zero angular snap at the boundary
+            exitOffsetRef.current = currentSpinYRef.current;
             exitTiltXRef.current = interactiveOffsetX;
           } else {
             // Outside the 360 spin section (scrolling back up towards Beat 4):
@@ -3306,6 +3320,7 @@ export default function RingHero({
       canvas.removeEventListener("pointercancel", onCanvasPointerUp);
       window.removeEventListener("pointerup", onInteractiveUp);
       window.removeEventListener("pointercancel", onInteractiveUp);
+      window.removeEventListener("pointermove", onWindowPointerMove);
       if (box) {
         box.removeEventListener("pointerdown", onBoxPointerDown);
         box.removeEventListener("pointermove", onBoxPointerMove);
