@@ -58,6 +58,7 @@ import { getDeviceTier, recordContextLossDowngrade } from "@/lib/deviceTier";
 import { diagnostics } from "@/lib/diagnostics";
 import { SpotDilator } from "./spotDilator";
 import { EnvPreviewRenderer } from "./envPreviewRenderer";
+import { isDevMode } from "@/config/env";
 import {
   BASE_FOV,
   REF_ASPECT,
@@ -82,7 +83,8 @@ export const RESPONSIVE_V2 = true;
 // tell "event never fired" (canvas pointerEvents stuck at none, or the
 // interactive window never actually opened) apart from "event fired on
 // the wrong element" (something is covering the canvas).
-const RINGHERO_DEBUG_INTERACTION = true;
+// Diagnostic logs disabled by default in production to prevent main-thread serialization stalls
+const RINGHERO_DEBUG_INTERACTION = false;
 
 // Scroll "beats" — camera + rotation. Material intensities live per-material
 // below and are tweened separately so gem and metal can react differently.
@@ -395,6 +397,18 @@ export function applyGemBaseEnvToMaterial(mat, blended) {
   }
 }
 
+/**
+ * Wraps an angle in radians to the shortest angular path [-π, +π].
+ * Guarantees that rotational unwinding never executes multi-turn helicopter spins.
+ */
+function wrapAngle(rad) {
+  if (!Number.isFinite(rad)) return 0;
+  let a = rad % (2 * Math.PI);
+  if (a > Math.PI) a -= 2 * Math.PI;
+  if (a < -Math.PI) a += 2 * Math.PI;
+  return a;
+}
+
 export default function RingHero({
   glbUrl = "/models/ring-draco.glb",
   metalHdrUrl = "/hdr/env_metal_029_1798f1cf07-metal.hdr",
@@ -414,9 +428,26 @@ export default function RingHero({
   // Dev-panel HDR controls tuned to production studio defaults
   metalHdrRotation = -65,
   metalHdrRotationY = -57,
+  metalHdrRot = 0,
   metalHdrScale = 45,
+  metalHdrScaleU = 1.0,
+  metalHdrScaleV = 1.0,
+  metalHdrTransU = 0.0,
+  metalHdrTransV = 0.0,
+  metalHdrScaleInvert = false,
   metalHdrPower = 7,
   metalHdrGamma = 144,
+  metalHdrSaturation = 100,
+
+  // Metal Spotlight HDR controls (Independent controls, reusing diamond spotlight asset)
+  metalSpotEnv = null,
+  metalEnvView = 0,
+  metalSpotHdrUrl = "/hdr/Diamond-Spotlight-HDRI.exr",
+  metalSpotFileNameHint = "Diamond-Spotlight-HDRI.exr",
+  onMetalSpotMetaUpdate = null,
+
+  // Three.js Scene Directional Lights
+  sceneLightsConfig = null,
 
   // Diamond Octane Dual-EXR controls (Base & Spotlight slots, View, Gamma Mode)
   gemBaseEnv = null,
@@ -497,6 +528,7 @@ export default function RingHero({
   // this is an offset ON TOP OF the beat's own scroll-tweened effRotX
   // (±1.35 rad ≈ ±77° allows wide top-table to bottom-shank inspection).
   interactiveTiltClamp = 1.35,
+  onDragStateChange = null,
 }) {
   const canvasRef = useRef(null);
   const interactiveBoxRef = useRef(null);
@@ -513,6 +545,7 @@ export default function RingHero({
   // angular path [-π, +π] so scroll-up never helicopter-spins or unwinds multi-turn rotations.
   const exitOffsetRef = useRef(0);
   const exitTiltXRef = useRef(0);
+  const interactiveOffsetYRef = useRef(0);
   const wasInSpinSectionRef = useRef(false);
   // True only while the scroll-tweened frame is inside the interactive
   // drag-to-rotate range — same range-check pattern as auto-rotate.
@@ -561,29 +594,47 @@ export default function RingHero({
   const envPreviewRendererRef = useRef(null);
   const noiseEffectRef = useRef(null);
   const vignetteEffectRef = useRef(null);
+  const keyLightRef = useRef(null);
+  const fillLightRef = useRef(null);
   const gemEnvTexturesRef = useRef({
     base: null,
     rawSpot: null,
     spot: null,
     metalEnvMap: null,
+    metalRaw: null,
+    metalSpotRaw: null,
+    metalSpot: null,
     baseMeta: null,
     spotMeta: null,
+    metalSpotMeta: null,
     prevBaseBlobUrl: null,
     prevSpotBlobUrl: null,
     prevMetalBlobUrl: null,
+    prevMetalSpotBlobUrl: null,
   });
   const bloomEffectRef = useRef(null);
   const pmremRef = useRef(null);
   const lastAppliedGemBlendRef = useRef(-1);
+  const metalEnvStateRef = useRef({ value: BEATS[0].metalEnvIntensity });
 
   const effectiveBaseHdrUrl = gemBaseHdrUrl || gemHdrUrl;
 
   const hdrConfigRef = useRef({
     metalHdrRotation,
     metalHdrRotationY,
+    metalHdrRot,
     metalHdrScale,
+    metalHdrScaleU,
+    metalHdrScaleV,
+    metalHdrTransU,
+    metalHdrTransV,
+    metalHdrScaleInvert,
     metalHdrPower,
     metalHdrGamma,
+    metalHdrSaturation,
+
+    metalSpotEnv,
+    metalEnvView,
 
     gemBaseEnv,
     interactiveGemBaseEnv,
@@ -597,6 +648,7 @@ export default function RingHero({
     bloomThreshold,
     glareConfig,
     postFxConfig,
+    sceneLightsConfig,
   });
 
   // Live pose-override state — null fields mean "use the scroll-tweened
@@ -657,9 +709,19 @@ export default function RingHero({
     hdrConfigRef.current = {
       metalHdrRotation,
       metalHdrRotationY,
+      metalHdrRot,
       metalHdrScale,
+      metalHdrScaleU,
+      metalHdrScaleV,
+      metalHdrTransU,
+      metalHdrTransV,
+      metalHdrScaleInvert,
       metalHdrPower,
       metalHdrGamma,
+      metalHdrSaturation,
+
+      metalSpotEnv,
+      metalEnvView,
 
       gemBaseEnv,
       interactiveGemBaseEnv,
@@ -674,14 +736,26 @@ export default function RingHero({
       bloomThreshold,
       glareConfig,
       postFxConfig,
+      sceneLightsConfig,
     };
     applyHdrConfigToLiveMaterials();
+    onRefreshPreviews?.();
   }, [
     metalHdrRotation,
     metalHdrRotationY,
+    metalHdrRot,
     metalHdrScale,
+    metalHdrScaleU,
+    metalHdrScaleV,
+    metalHdrTransU,
+    metalHdrTransV,
+    metalHdrScaleInvert,
     metalHdrPower,
     metalHdrGamma,
+    metalHdrSaturation,
+    metalSpotEnv,
+    metalEnvView,
+    sceneLightsConfig,
     gemBaseEnv,
     interactiveGemBaseEnv,
     gemSpotEnv,
@@ -709,9 +783,65 @@ export default function RingHero({
     const metalMat = metalMaterialRef.current;
     if (metalMat) {
       metalMat.userData._hdrTrim = metalFactor;
+      if (metalMat.userData?.envSaturation) {
+        metalMat.userData.envSaturation.value = (cfg.metalHdrSaturation ?? 100) / 100;
+      }
+      if (metalMat.userData?.metalScale) {
+        metalMat.userData.metalScale.value.set(
+          cfg.metalHdrScaleU ?? 1.0,
+          cfg.metalHdrScaleV ?? 1.0
+        );
+      }
+      if (metalMat.userData?.metalTrans) {
+        metalMat.userData.metalTrans.value.set(
+          cfg.metalHdrTransU ?? 0.0,
+          cfg.metalHdrTransV ?? 0.0
+        );
+      }
+      if (metalMat.userData?.metalRot) {
+        metalMat.userData.metalRot.value = degToRad(cfg.metalHdrRot ?? cfg.metalHdrRotation ?? 0);
+      }
+      if (metalMat.userData?.metalScaleInvert) {
+        metalMat.userData.metalScaleInvert.value = cfg.metalHdrScaleInvert ? 1.0 : 0.0;
+      }
       if (metalMat.envMapRotation) {
         metalMat.envMapRotation.y = degToRad(cfg.metalHdrRotation);
         metalMat.envMapRotation.x = degToRad(cfg.metalHdrRotationY);
+      }
+      const curBeatIntensity = metalEnvStateRef.current?.value ?? BEATS[0].metalEnvIntensity;
+      metalMat.envMapIntensity = curBeatIntensity * metalFactor;
+
+      // Metal Spotlight configuration (Independent controls & separate HDR/EXR asset)
+      const spotTex = gemEnvTexturesRef.current.metalSpot || gemEnvTexturesRef.current.metalSpotRaw || gemEnvTexturesRef.current.spot || gemEnvTexturesRef.current.rawSpot;
+      const mSpot = cfg.metalSpotEnv || {};
+      const spotEnabled = mSpot.enabled !== false && Boolean(spotTex);
+
+      if (metalMat.userData?.envMapMetalSpot && spotTex) {
+        metalMat.userData.envMapMetalSpot.value = spotTex;
+      }
+      if (metalMat.userData?.hasMetalSpot) {
+        metalMat.userData.hasMetalSpot.value = spotEnabled ? 1.0 : 0.0;
+      }
+      if (metalMat.userData?.metalSpotPower) {
+        metalMat.userData.metalSpotPower.value = typeof mSpot.power === "number" ? mSpot.power : 2.0;
+      }
+      if (metalMat.userData?.metalSpotGamma) {
+        metalMat.userData.metalSpotGamma.value = typeof mSpot.gamma === "number" ? mSpot.gamma : 1.05;
+      }
+      if (metalMat.userData?.metalSpotRot) {
+        metalMat.userData.metalSpotRot.value = degToRad(mSpot.rot ?? 0);
+      }
+      if (metalMat.userData?.metalSpotScale) {
+        metalMat.userData.metalSpotScale.value.set(mSpot.scaleU ?? 1.0, mSpot.scaleV ?? 1.0);
+      }
+      if (metalMat.userData?.metalSpotTrans) {
+        metalMat.userData.metalSpotTrans.value.set(mSpot.transU ?? 0.0, mSpot.transV ?? 0.0);
+      }
+      if (metalMat.userData?.metalSpotScaleInvert) {
+        metalMat.userData.metalSpotScaleInvert.value = mSpot.scaleInvert ? 1.0 : 0.0;
+      }
+      if (metalMat.userData?.metalEnvView) {
+        metalMat.userData.metalEnvView.value = cfg.metalEnvView ?? 0;
       }
     }
 
@@ -807,6 +937,18 @@ export default function RingHero({
         }
       }
     }
+
+    // Three.js Scene Directional Lights
+    const lCfg = cfg.sceneLightsConfig || {};
+    const lightsOn = lCfg.enabled !== false;
+    if (keyLightRef.current) {
+      keyLightRef.current.visible = lightsOn && lCfg.keyLightEnabled !== false;
+      keyLightRef.current.intensity = typeof lCfg.keyLightIntensity === "number" ? lCfg.keyLightIntensity : 1.2;
+    }
+    if (fillLightRef.current) {
+      fillLightRef.current.visible = lightsOn && lCfg.fillLightEnabled !== false;
+      fillLightRef.current.intensity = typeof lCfg.fillLightIntensity === "number" ? lCfg.fillLightIntensity : 0.4;
+    }
   }
 
   // Pre-pass spot size dilation effect (Task C2)
@@ -832,13 +974,14 @@ export default function RingHero({
     }
   }, [gemSpotEnv?.size, onRefreshPreviews]);
 
-  // Live dynamic hot-swapping for Base EXR, Spotlight EXR, and Metal HDR
+  // Live dynamic hot-swapping for Base EXR, Spotlight EXR, Metal HDR, and Metal Spotlight HDR/EXR
   const liveLoadedTexturesRef = useRef({
     baseHdrUrl: effectiveBaseHdrUrl,
     baseMono: gemBaseEnv?.mono ?? true,
     spotHdrUrl: gemSpotHdrUrl,
     spotMono: gemSpotEnv?.mono ?? true,
     metalHdrUrl,
+    metalSpotHdrUrl,
   });
 
   useEffect(() => {
@@ -933,6 +1076,10 @@ export default function RingHero({
                 mat.needsUpdate = true;
               }
             });
+            if (metalMaterialRef.current?.userData?.envMapMetalSpot) {
+              metalMaterialRef.current.userData.envMapMetalSpot.value = effectiveSpot;
+              metalMaterialRef.current.userData.hasMetalSpot.value = (hdrConfigRef.current.metalSpotEnv?.enabled !== false && effectiveSpot) ? 1.0 : 0.0;
+            }
             onRefreshPreviews?.();
           })
           .catch((err) => {
@@ -961,6 +1108,9 @@ export default function RingHero({
             mat.needsUpdate = true;
           }
         });
+        if (metalMaterialRef.current?.userData?.hasMetalSpot) {
+          metalMaterialRef.current.userData.hasMetalSpot.value = 0.0;
+        }
       }
     }
 
@@ -987,6 +1137,7 @@ export default function RingHero({
               }
 
               gemEnvTexturesRef.current.metalEnvMap = tex;
+              gemEnvTexturesRef.current.metalRaw = tex?._rawTexture || null;
               metalMaterialRef.current.envMap = tex;
               metalMaterialRef.current.needsUpdate = true;
               gemMaterialsRef.current.forEach((mat) => {
@@ -996,6 +1147,7 @@ export default function RingHero({
                 }
               });
               applyHdrConfigToLiveMaterials();
+              onRefreshPreviews?.();
             }
           })
           .catch((err) => {
@@ -1006,7 +1158,72 @@ export default function RingHero({
           });
       }
     }
-  }, [effectiveBaseHdrUrl, gemBaseEnv?.mono, gemSpotHdrUrl, gemSpotEnv?.mono, metalHdrUrl, onRefreshPreviews]);
+
+    // 4. Metal Spotlight separate HDR/EXR swap
+    if (liveLoadedTexturesRef.current.metalSpotHdrUrl !== metalSpotHdrUrl) {
+      liveLoadedTexturesRef.current.metalSpotHdrUrl = metalSpotHdrUrl;
+      if (metalSpotHdrUrl) {
+        loadRawEquirect(metalSpotHdrUrl, { mono: false, fileName: metalSpotFileNameHint })
+          .then(({ texture, meta }) => {
+            if (
+              gemEnvTexturesRef.current.metalSpotRaw &&
+              gemEnvTexturesRef.current.metalSpotRaw !== texture &&
+              gemEnvTexturesRef.current.metalSpotRaw !== gemEnvTexturesRef.current.rawSpot
+            ) {
+              gemEnvTexturesRef.current.metalSpotRaw.dispose();
+            }
+            if (
+              gemEnvTexturesRef.current.prevMetalSpotBlobUrl &&
+              gemEnvTexturesRef.current.prevMetalSpotBlobUrl !== metalSpotHdrUrl &&
+              gemEnvTexturesRef.current.prevMetalSpotBlobUrl.startsWith("blob:")
+            ) {
+              URL.revokeObjectURL(gemEnvTexturesRef.current.prevMetalSpotBlobUrl);
+            }
+            if (metalSpotHdrUrl.startsWith("blob:")) {
+              gemEnvTexturesRef.current.prevMetalSpotBlobUrl = metalSpotHdrUrl;
+            }
+
+            gemEnvTexturesRef.current.metalSpotRaw = texture;
+            gemEnvTexturesRef.current.metalSpot = texture;
+            gemEnvTexturesRef.current.metalSpotMeta = meta;
+            onMetalSpotMetaUpdate?.(meta);
+
+            if (metalMaterialRef.current?.userData?.envMapMetalSpot) {
+              metalMaterialRef.current.userData.envMapMetalSpot.value = texture;
+              metalMaterialRef.current.userData.hasMetalSpot.value =
+                (hdrConfigRef.current.metalSpotEnv?.enabled !== false && texture) ? 1.0 : 0.0;
+            }
+            onRefreshPreviews?.();
+          })
+          .catch((err) => {
+            console.error(
+              "[RingHero] Failed to dynamically hot-swap Metal Spotlight HDR/EXR:",
+              err,
+            );
+            onMetalSpotMetaUpdate?.({ error: err?.message || String(err) });
+          });
+      } else {
+        if (
+          gemEnvTexturesRef.current.metalSpotRaw &&
+          gemEnvTexturesRef.current.metalSpotRaw !== gemEnvTexturesRef.current.rawSpot
+        ) {
+          gemEnvTexturesRef.current.metalSpotRaw.dispose();
+        }
+        gemEnvTexturesRef.current.metalSpotRaw = null;
+        gemEnvTexturesRef.current.metalSpot = null;
+        gemEnvTexturesRef.current.metalSpotMeta = null;
+        onMetalSpotMetaUpdate?.(null);
+
+        const fallbackTex = gemEnvTexturesRef.current.spot || gemEnvTexturesRef.current.rawSpot;
+        if (metalMaterialRef.current?.userData?.envMapMetalSpot) {
+          metalMaterialRef.current.userData.envMapMetalSpot.value = fallbackTex || null;
+          metalMaterialRef.current.userData.hasMetalSpot.value =
+            (hdrConfigRef.current.metalSpotEnv?.enabled !== false && fallbackTex) ? 1.0 : 0.0;
+        }
+        onRefreshPreviews?.();
+      }
+    }
+  }, [effectiveBaseHdrUrl, gemBaseEnv?.mono, gemSpotHdrUrl, gemSpotEnv?.mono, metalHdrUrl, metalSpotHdrUrl, onRefreshPreviews]);
 
   // Live dynamic hot-swapping for Metal Preset (gold / rose gold / white gold / platinum)
   useEffect(() => {
@@ -1116,15 +1333,6 @@ export default function RingHero({
       interactiveBoxRef.current.style.pointerEvents = "none";
       interactiveBoxRef.current.style.display = "none";
     }
-    // StrictMode runs this effect mount -> cleanup -> mount once in dev.
-    // interactiveActiveRef (a ref) survives that remount untouched, but
-    // the line above unconditionally forces the DOM back to "none" — if
-    // the ref was already true from before the remount, the transition
-    // check in the ScrollTrigger onUpdate below (`inInteractiveRange !==
-    // interactiveActiveRef.current`) would never fire again for as long
-    // as scroll stayed inside the same range, permanently stranding the
-    // canvas at pointerEvents:"none" even while the ref said "active".
-    // Reset it here too so mount always starts from a truly clean state.
     interactiveActiveRef.current = false;
 
     let renderer, scene, camera, ring;
@@ -1513,7 +1721,7 @@ export default function RingHero({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
-    const isDesktopTier = deviceTier.tier === "high" || deviceTier.tier === "mid";
+    const isDesktopTier = deviceTier.tier === "high" || deviceTier.tier === "mid" || isDevMode();
     if (isDesktopTier) {
       try {
         spotDilatorRef.current = new SpotDilator(renderer);
@@ -1531,12 +1739,32 @@ export default function RingHero({
     if (onRegisterEnvPreview) {
       onRegisterEnvPreview((c, opts) => {
         if (envPreviewRendererRef.current) {
+          const mEnv = {
+            rot: hdrConfigRef.current.metalHdrRot ?? hdrConfigRef.current.metalHdrRotation ?? 0,
+            rotation: hdrConfigRef.current.metalHdrRotation,
+            rotationY: hdrConfigRef.current.metalHdrRotationY,
+            scale: hdrConfigRef.current.metalHdrScale,
+            scaleU: hdrConfigRef.current.metalHdrScaleU ?? 1.0,
+            scaleV: hdrConfigRef.current.metalHdrScaleV ?? 1.0,
+            transU: hdrConfigRef.current.metalHdrTransU ?? 0.0,
+            transV: hdrConfigRef.current.metalHdrTransV ?? 0.0,
+            scaleInvert: hdrConfigRef.current.metalHdrScaleInvert ?? false,
+            power: hdrConfigRef.current.metalHdrPower,
+            gamma: hdrConfigRef.current.metalHdrGamma,
+            saturation: hdrConfigRef.current.metalHdrSaturation ?? 100,
+            ...(opts?.metalEnv || {}),
+          };
           envPreviewRendererRef.current.requestPreview(c, {
             ...opts,
             baseTexture: gemEnvTexturesRef.current.base,
             spotTexture: gemEnvTexturesRef.current.rawSpot || gemEnvTexturesRef.current.spot,
+            metalTexture: gemEnvTexturesRef.current.metalRaw || gemEnvTexturesRef.current.metalEnvMap?._rawTexture,
+            metalSpotTexture: gemEnvTexturesRef.current.metalSpot || gemEnvTexturesRef.current.metalSpotRaw || gemEnvTexturesRef.current.spot || gemEnvTexturesRef.current.rawSpot,
             baseEnv: hdrConfigRef.current.gemBaseEnv,
             spotEnv: hdrConfigRef.current.gemSpotEnv,
+            metalEnv: mEnv,
+            metalSpotEnv: opts?.metalSpotEnv || hdrConfigRef.current.metalSpotEnv,
+            metalEnvView: opts?.metalEnvView ?? hdrConfigRef.current.metalEnvView ?? 0,
             gammaMode: hdrConfigRef.current.gemGammaMode,
           });
         }
@@ -1636,26 +1864,48 @@ export default function RingHero({
     function onInteractiveDown(clientX, clientY) {
       if (!interactiveActiveRef.current) return;
       if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
-      dragStateRef.current = { dragging: true, prevX: clientX, prevY: clientY };
-      if (canvas) canvas.style.cursor = "grabbing";
-      if (interactiveBoxRef.current) interactiveBoxRef.current.style.cursor = "grabbing";
+      dragStateRef.current = {
+        pending: true,
+        dragging: false,
+        startX: clientX,
+        startY: clientY,
+        prevX: clientX,
+        prevY: clientY,
+      };
+      // Do NOT fire onDragStateChange(true) here: a stationary tap/click must never stop Lenis scroll.
       if (RINGHERO_DEBUG_INTERACTION) {
         // eslint-disable-next-line no-console
         console.log(
-          `[RingHero] drag START at (${clientX}, ${clientY}) — reached the canvas fine.`,
+          `[RingHero] drag PENDING at (${clientX}, ${clientY}) — reached canvas fine.`,
         );
       }
     }
     function onInteractiveMove(clientX, clientY) {
-      if (!interactiveActiveRef.current || !dragStateRef.current.dragging)
+      if (!interactiveActiveRef.current || !dragStateRef.current.pending)
         return;
+
+      if (!dragStateRef.current.dragging) {
+        const totalDx = clientX - dragStateRef.current.startX;
+        const totalDy = clientY - dragStateRef.current.startY;
+        if (Math.abs(totalDx) > 3 || Math.abs(totalDy) > 3) {
+          dragStateRef.current.dragging = true;
+          onDragStateChange?.(true);
+          if (canvas) canvas.style.cursor = "grabbing";
+          if (interactiveBoxRef.current) interactiveBoxRef.current.style.cursor = "grabbing";
+        } else {
+          return;
+        }
+      }
+
       const dx = clientX - dragStateRef.current.prevX;
       const dy = clientY - dragStateRef.current.prevY;
       dragStateRef.current.prevX = clientX;
       dragStateRef.current.prevY = clientY;
       if (dx === 0 && dy === 0) return;
 
-      currentSpinYRef.current += dx * interactiveDragSensitivity;
+      currentSpinYRef.current = wrapAngle(
+        currentSpinYRef.current + dx * interactiveDragSensitivity,
+      );
       manualRotRef.current.y = currentSpinYRef.current;
       autoRotateAngleRef.current = currentSpinYRef.current;
       manualRotRef.current.x = Math.max(
@@ -1667,7 +1917,18 @@ export default function RingHero({
       );
     }
     function onInteractiveUp() {
-      dragStateRef.current.dragging = false;
+      const wasDragging = dragStateRef.current.dragging;
+      dragStateRef.current = {
+        pending: false,
+        dragging: false,
+        startX: 0,
+        startY: 0,
+        prevX: 0,
+        prevY: 0,
+      };
+      if (wasDragging) {
+        onDragStateChange?.(false);
+      }
       if (canvas && interactiveActiveRef.current) {
         canvas.style.cursor = "grab";
       }
@@ -1678,29 +1939,21 @@ export default function RingHero({
     function onCanvasPointerDown(e) {
       if (!interactiveActiveRef.current) return;
       if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
       if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
-    function onCanvasPointerMove(e) {
-      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
-      if (e.cancelable) e.preventDefault();
-      onInteractiveMove(e.clientX, e.clientY);
-    }
-    function onCanvasPointerUp(e) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
-      onInteractiveUp();
-    }
     function onWindowPointerMove(e) {
-      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
-      if (e.cancelable) e.preventDefault();
+      if (
+        !interactiveActiveRef.current ||
+        (!dragStateRef.current.pending && !dragStateRef.current.dragging)
+      ) {
+        return;
+      }
+      if (dragStateRef.current.dragging && e.cancelable) e.preventDefault();
       onInteractiveMove(e.clientX, e.clientY);
     }
 
     canvas.addEventListener("pointerdown", onCanvasPointerDown);
-    canvas.addEventListener("pointermove", onCanvasPointerMove);
-    canvas.addEventListener("pointerup", onCanvasPointerUp);
-    canvas.addEventListener("pointercancel", onCanvasPointerUp);
     window.addEventListener("pointermove", onWindowPointerMove, { passive: false });
     window.addEventListener("pointerup", onInteractiveUp);
     window.addEventListener("pointercancel", onInteractiveUp);
@@ -1710,30 +1963,11 @@ export default function RingHero({
     function onBoxPointerDown(e) {
       if (!interactiveActiveRef.current) return;
       if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
-      if (box) {
-        try { box.setPointerCapture(e.pointerId); } catch (_) {}
-        box.style.cursor = "grabbing";
-      }
       if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
-    function onBoxPointerMove(e) {
-      if (!interactiveActiveRef.current || !dragStateRef.current.dragging) return;
-      if (e.cancelable) e.preventDefault();
-      onInteractiveMove(e.clientX, e.clientY);
-    }
-    function onBoxPointerUp(e) {
-      if (box) {
-        try { box.releasePointerCapture(e.pointerId); } catch (_) {}
-        box.style.cursor = "grab";
-      }
-      onInteractiveUp();
-    }
     if (box) {
       box.addEventListener("pointerdown", onBoxPointerDown);
-      box.addEventListener("pointermove", onBoxPointerMove);
-      box.addEventListener("pointerup", onBoxPointerUp);
-      box.addEventListener("pointercancel", onBoxPointerUp);
     }
 
     // ── Debug-only: always-on diagnostic pointerdown listener ───────────
@@ -1771,10 +2005,21 @@ export default function RingHero({
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(3, 4, 5);
     scene.add(keyLight);
+    keyLightRef.current = keyLight;
 
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
     fillLight.position.set(-4, -1, -3);
     scene.add(fillLight);
+    fillLightRef.current = fillLight;
+
+    if (hdrConfigRef.current?.sceneLightsConfig) {
+      const lCfg = hdrConfigRef.current.sceneLightsConfig;
+      const lightsOn = lCfg.enabled !== false;
+      keyLight.visible = lightsOn && lCfg.keyLightEnabled !== false;
+      keyLight.intensity = typeof lCfg.keyLightIntensity === "number" ? lCfg.keyLightIntensity : 1.2;
+      fillLight.visible = lightsOn && lCfg.fillLightEnabled !== false;
+      fillLight.intensity = typeof lCfg.fillLightIntensity === "number" ? lCfg.fillLightIntensity : 0.4;
+    }
 
     const pmrem = new PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
@@ -1905,9 +2150,12 @@ export default function RingHero({
 
         metalEnvMap = loadedMetalEnv;
         gemEnvTexturesRef.current.metalEnvMap = loadedMetalEnv;
+        gemEnvTexturesRef.current.metalRaw = loadedMetalEnv?._rawTexture || null;
         gemEnvTexturesRef.current.base = loadedBaseResult?.texture || null;
         gemEnvTexturesRef.current.baseMeta = loadedBaseResult?.meta || null;
         gemEnvTexturesRef.current.rawSpot = loadedSpotResult?.texture || null;
+        gemEnvTexturesRef.current.metalSpotRaw = loadedSpotResult?.texture || null;
+        gemEnvTexturesRef.current.metalSpot = loadedSpotResult?.texture || null;
 
         if (deviceTier.tier === "mobile" && !loadedMetalEnv) {
           try {
@@ -2221,6 +2469,7 @@ export default function RingHero({
         ringPosOffsetState = { ...(baselineTarget.ringPosOffset || { x: 0, y: 0, z: 0 }) };
         ringScaleState = { value: baselineTarget.ringScale ?? 1 };
         metalEnvState = { value: baselineTarget.metalEnvIntensity ?? 4 };
+        metalEnvStateRef.current = metalEnvState;
         gemEnvState = { value: baselineTarget.gemEnvIntensity ?? 1.2 };
         bgState = { top: baselineTarget.bgTop ?? "#0d0d10", bottom: baselineTarget.bgBottom ?? "#1a1a1f" };
         cornerParkState = { value: baselineTarget.cornerPark ?? 0 };
@@ -2279,7 +2528,7 @@ export default function RingHero({
 
               if (canvas) {
                 // On portrait (mobile/tablet), canvas stays pointerEvents: none so outside touches scroll page;
-                // on desktop landscape, canvas handles full-screen drag.
+                // on desktop landscape, canvas handles full-screen drag in interactive section only.
                 canvas.style.pointerEvents =
                   inInteractiveRange && !isPortrait ? "auto" : "none";
                 canvas.style.cursor = inInteractiveRange ? "grab" : "";
@@ -2972,7 +3221,9 @@ export default function RingHero({
             // Continuous unified turntable rotation around Y.
             // When NOT dragging (and not in freeze debug), continuously advance currentSpinYRef
             if (!dragStateRef.current.dragging && !isRingDebug) {
-              currentSpinYRef.current += autoRotateSpeed * dt;
+              currentSpinYRef.current = wrapAngle(
+                currentSpinYRef.current + autoRotateSpeed * dt,
+              );
             }
 
             // Keep legacy refs synchronized for inspector / debug compatibility
@@ -2999,13 +3250,15 @@ export default function RingHero({
             interactiveOffsetY = currentSpinYRef.current;
             interactiveOffsetX = manualRotRef.current.x;
 
-            // Latch exit offset continuously so there is zero angular snap at the boundary
-            exitOffsetRef.current = currentSpinYRef.current;
+            // Latch exit offset continuously so there is zero angular snap at the boundary.
+            // Wrapped to [-π, +π] so scroll-up never helicopter-spins or unwinds multi-turn rotations.
+            exitOffsetRef.current = wrapAngle(currentSpinYRef.current);
             exitTiltXRef.current = interactiveOffsetX;
           } else {
             // Outside the 360 spin section (scrolling back up towards Beat 4):
-            // Transition zone (frames spinStart - 15 down to spinStart, e.g. 199–214):
-            const transitionStart = Math.max(0, spinStart - 15);
+            // Transition zone (frames spinStart - 25 down to spinStart, e.g. 188.75–213.75):
+            const transitionDist = 25;
+            const transitionStart = Math.max(0, spinStart - transitionDist);
             if (wasInSpinSectionRef.current && localFrame > transitionStart) {
               const scrollT = Math.max(
                 0,
@@ -3016,6 +3269,12 @@ export default function RingHero({
 
               interactiveOffsetY = exitOffsetRef.current * blend;
               interactiveOffsetX = exitTiltXRef.current * blend;
+
+              // Keep currentSpinYRef synchronized with the eased offset so scrolling back down
+              // into Beat 5 has zero angular snap or jump at the boundary.
+              currentSpinYRef.current = exitOffsetRef.current;
+              autoRotateAngleRef.current = exitOffsetRef.current;
+              manualRotRef.current.y = exitOffsetRef.current;
             } else {
               // Below the transition zone (cleanly in Beats 1 to 4):
               wasInSpinSectionRef.current = false;
@@ -3029,6 +3288,8 @@ export default function RingHero({
               interactiveOffsetX = 0;
             }
           }
+
+          interactiveOffsetYRef.current = interactiveOffsetY;
 
           let finalRotY = effRotY + interactiveOffsetY + idleSwayY + parallaxX;
           let finalRotX = effRotX + interactiveOffsetX + idleTiltX - parallaxY;
@@ -3200,6 +3461,9 @@ export default function RingHero({
     if (import.meta.env.DEV || new URLSearchParams(location.search).has("ringdebug")) {
       const _v = new THREE.Vector3();
       window.__ringDebug = {
+        scene,
+        keyLight,
+        fillLight,
         getRotationDebug() {
           return {
             frame: +(debugFrameStateRef.current?.localFrame ?? 0).toFixed(2),
@@ -3208,9 +3472,21 @@ export default function RingHero({
             autoRotateAngle: +autoRotateAngleRef.current.toFixed(4),
             manualRotY: +manualRotRef.current.y.toFixed(4),
             manualRotX: +manualRotRef.current.x.toFixed(4),
+            exitOffset: +exitOffsetRef.current.toFixed(4),
+            currentSpinY: +currentSpinYRef.current.toFixed(4),
+            interactiveOffsetY: +interactiveOffsetYRef.current.toFixed(4),
             dragging: !!dragStateRef.current.dragging,
             interactiveActive: !!interactiveActiveRef.current,
           };
+        },
+        resetRotation() {
+          currentSpinYRef.current = 0;
+          autoRotateAngleRef.current = 0;
+          manualRotRef.current.x = 0;
+          manualRotRef.current.y = 0;
+          exitOffsetRef.current = 0;
+          exitTiltXRef.current = 0;
+          interactiveOffsetYRef.current = 0;
         },
         getDiamondUniforms() {
           const mat = gemMaterialsRef.current?.[0] || gemMaterials?.[0];
@@ -3224,6 +3500,76 @@ export default function RingHero({
             scaleV: +Number(mat.baseScale?.y ?? mat.uniforms?.baseScale?.value?.y ?? 0).toFixed(3),
             transU: +Number(mat.baseTrans?.x ?? mat.uniforms?.baseTrans?.value?.x ?? 0).toFixed(3),
             transV: +Number(mat.baseTrans?.y ?? mat.uniforms?.baseTrans?.value?.y ?? 0).toFixed(3),
+          };
+        },
+        getMetalUniforms() {
+          const mat = metalMaterialRef.current;
+          if (!mat) return null;
+          return {
+            envMapIntensity: +Number(mat.envMapIntensity ?? 0).toFixed(3),
+            hdrTrim: +Number(mat.userData?._hdrTrim ?? 1).toFixed(3),
+            envSaturation: +Number(mat.userData?.envSaturation?.value ?? 1).toFixed(3),
+            scaleU: mat.userData?.metalScale ? +Number(mat.userData.metalScale.value.x).toFixed(3) : 1.0,
+            scaleV: mat.userData?.metalScale ? +Number(mat.userData.metalScale.value.y).toFixed(3) : 1.0,
+            transU: mat.userData?.metalTrans ? +Number(mat.userData.metalTrans.value.x).toFixed(3) : 0.0,
+            transV: mat.userData?.metalTrans ? +Number(mat.userData.metalTrans.value.y).toFixed(3) : 0.0,
+            rotYDeg: mat.envMapRotation ? +Number(THREE.MathUtils.radToDeg(mat.envMapRotation.y)).toFixed(2) : 0,
+            rotXDeg: mat.envMapRotation ? +Number(THREE.MathUtils.radToDeg(mat.envMapRotation.x)).toFixed(2) : 0,
+            hasMetalSpot: mat.userData?.hasMetalSpot?.value ?? 0,
+            metalSpotPower: mat.userData?.metalSpotPower?.value ?? 0,
+            metalSpotGamma: mat.userData?.metalSpotGamma?.value ?? 0,
+            metalSpotRotDeg: mat.userData?.metalSpotRot ? +Number(THREE.MathUtils.radToDeg(mat.userData.metalSpotRot.value)).toFixed(2) : 0,
+            metalSpotScaleU: mat.userData?.metalSpotScale?.value?.x ?? 1,
+            metalSpotScaleV: mat.userData?.metalSpotScale?.value?.y ?? 1,
+            metalSpotTransU: mat.userData?.metalSpotTrans?.value?.x ?? 0,
+            metalSpotTransV: mat.userData?.metalSpotTrans?.value?.y ?? 0,
+            metalEnvView: mat.userData?.metalEnvView?.value ?? 0,
+          };
+        },
+        getPreviewDebug() {
+          const r = envPreviewRendererRef.current;
+          const u = r?.material?.uniforms;
+          const mTex = u?.envMapMetal?.value;
+          return {
+            hasRenderer: Boolean(r),
+            metalTexturePresent: Boolean(mTex),
+            isDummyBlack: mTex === r?.dummyBlackTexture,
+            mTexType: mTex?.constructor?.name,
+            mTexImage: mTex?.image ? { w: mTex.image.width, h: mTex.image.height } : null,
+            uMode: u?.uMode?.value,
+            hasMetal: u?.hasMetal?.value,
+            metalScale: u?.metalFactorScale?.value ?? u?.metalScale?.value,
+            metalScaleU: u?.metalScale?.value?.x,
+            metalScaleV: u?.metalScale?.value?.y,
+            metalTransU: u?.metalTrans?.value?.x,
+            metalTransV: u?.metalTrans?.value?.y,
+            metalRot: u?.metalRot?.value,
+            metalPower: u?.metalPower?.value,
+            metalGamma: u?.metalGamma?.value,
+            metalSaturation: u?.metalSaturation?.value,
+            metalSpotEnabled: u?.metalSpotEnabled?.value ?? 0,
+            metalSpotPower: u?.metalSpotPower?.value,
+            metalSpotGamma: u?.metalSpotGamma?.value,
+            metalSpotRot: u?.metalSpotRot?.value,
+            metalSpotScaleU: u?.metalSpotScale?.value?.x,
+            metalSpotScaleV: u?.metalSpotScale?.value?.y,
+            metalSpotTransU: u?.metalSpotTrans?.value?.x,
+            metalSpotTransV: u?.metalSpotTrans?.value?.y,
+            metalEnvView: u?.metalEnvView?.value,
+          };
+        },
+        getSceneLightsDebug() {
+          return {
+            keyLight: keyLightRef.current ? {
+              visible: keyLightRef.current.visible,
+              intensity: keyLightRef.current.intensity,
+              position: keyLightRef.current.position.toArray(),
+            } : null,
+            fillLight: fillLightRef.current ? {
+              visible: fillLightRef.current.visible,
+              intensity: fillLightRef.current.intensity,
+              position: fillLightRef.current.position.toArray(),
+            } : null,
           };
         },
         // Tight screen-space bounds of the ring in NDC (-1..1). Samples mesh vertices.
@@ -3305,6 +3651,9 @@ export default function RingHero({
 
     return () => {
       disposed = true;
+      if (dragStateRef.current.dragging) {
+        onDragStateChange?.(false);
+      }
       delete window.__ringDebug;
       delete window.__getCinegemRingBounds;
       // No cancelAnimationFrame needed — render is driven by gsap.ticker now.
@@ -3315,17 +3664,11 @@ export default function RingHero({
       }
       window.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerdown", onCanvasPointerDown);
-      canvas.removeEventListener("pointermove", onCanvasPointerMove);
-      canvas.removeEventListener("pointerup", onCanvasPointerUp);
-      canvas.removeEventListener("pointercancel", onCanvasPointerUp);
       window.removeEventListener("pointerup", onInteractiveUp);
       window.removeEventListener("pointercancel", onInteractiveUp);
       window.removeEventListener("pointermove", onWindowPointerMove);
       if (box) {
         box.removeEventListener("pointerdown", onBoxPointerDown);
-        box.removeEventListener("pointermove", onBoxPointerMove);
-        box.removeEventListener("pointerup", onBoxPointerUp);
-        box.removeEventListener("pointercancel", onBoxPointerUp);
       }
       if (debugPointerDown) {
         window.removeEventListener("pointerdown", debugPointerDown, {
@@ -3340,6 +3683,8 @@ export default function RingHero({
       scene?.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
       });
+      keyLightRef.current = null;
+      fillLightRef.current = null;
       metalMaterial?.dispose?.();
       (gemMaterialsRef.current?.length ? gemMaterialsRef.current : gemMaterials).forEach((mat) => mat?.dispose?.());
       metalEnvMap?.dispose?.();
@@ -3367,8 +3712,21 @@ export default function RingHero({
       if (gemEnvTexturesRef.current.prevMetalBlobUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(gemEnvTexturesRef.current.prevMetalBlobUrl);
       }
+      if (gemEnvTexturesRef.current.prevMetalSpotBlobUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(gemEnvTexturesRef.current.prevMetalSpotBlobUrl);
+      }
+      if (
+        gemEnvTexturesRef.current.metalSpotRaw &&
+        gemEnvTexturesRef.current.metalSpotRaw !== gemEnvTexturesRef.current.rawSpot
+      ) {
+        gemEnvTexturesRef.current.metalSpotRaw.dispose?.();
+        gemEnvTexturesRef.current.metalSpotRaw = null;
+        gemEnvTexturesRef.current.metalSpot = null;
+      }
       if (gemEnvTexturesRef.current.metalEnvMap) {
         gemEnvTexturesRef.current.metalEnvMap.dispose?.();
+        gemEnvTexturesRef.current.metalEnvMap = null;
+        gemEnvTexturesRef.current.metalRaw = null;
       }
       spotDilatorRef.current?.dispose?.();
       spotDilatorRef.current = null;

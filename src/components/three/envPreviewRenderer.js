@@ -47,13 +47,16 @@ export class EnvPreviewRenderer {
 
       uniform sampler2D envMapBase;
       uniform sampler2D envMapSpot;
+      uniform sampler2D envMapMetal;
       uniform float hasSpot;
+      uniform float hasMetal;
 
-      uniform float uMode;     // 0 = Base, 1 = Spot, 2 = Base + Spot
+      uniform float uMode;     // 0 = Base, 1 = Spot, 2 = Base + Spot, 3 = Metal
       uniform float uRaw;      // 0 = Transformed, 1 = Raw source
       uniform float uEV;       // Exposure in stops (-4 to +8)
       uniform float uTonemap;  // 0 = Linear clamp, 1 = 1 - exp(-c)
       uniform float uMarkThr;  // 0 = off, else bloom threshold
+      uniform float uSaturation;
 
       uniform float basePower;
       uniform float baseGamma;
@@ -73,10 +76,79 @@ export class EnvPreviewRenderer {
       uniform float spotLod;
       uniform float spotMono;
 
+      uniform float metalRot;
+      uniform vec2 metalScale;
+      uniform vec2 metalTrans;
+      uniform float metalScaleInvert;
+      uniform float metalFactorScale;
+      uniform float metalPower;
+      uniform float metalGamma;
+      uniform float metalSaturation;
+
+      uniform float metalSpotEnabled;
+      uniform float metalSpotPower;
+      uniform float metalSpotGamma;
+      uniform float metalSpotRot;
+      uniform vec2 metalSpotScale;
+      uniform vec2 metalSpotTrans;
+      uniform float metalSpotScaleInvert;
+      uniform float metalEnvView;
+
       varying vec2 vUv;
 
       void main() {
         vec2 uvOut = vUv;
+
+        if (uMode > 2.5) {
+          // Mode 3: Metal HDR Preview (using exact Diamond HDR 2D transformation logic + additive spotlight)
+          vec3 m = vec3(0.0);
+          if (hasMetal > 0.5) {
+            if (uRaw > 0.5) {
+              vec4 rawM = texture2D(envMapMetal, uvOut);
+              m = rawM.rgb;
+            } else {
+              vec2 uvM = octaneUv(uvOut, metalRot, metalScale, metalTrans, metalScaleInvert);
+              vec4 rawM = texture2D(envMapMetal, uvM);
+
+              float s = max(0.001, (metalFactorScale / 100.0) * (metalPower / 100.0));
+              float g = max(0.01, metalGamma / 100.0);
+              float factor = max(0.01, pow(s, 1.0 / g));
+              m = rawM.rgb * factor;
+            }
+          }
+
+          float effSat = max(0.0, (metalSaturation / 100.0) * uSaturation);
+          if (effSat != 1.0) {
+            float gray = dot(m, vec3(0.2126, 0.7152, 0.0722));
+            m = mix(vec3(gray), m, effSat);
+          }
+
+          float sSpot = 0.0;
+          if (hasSpot > 0.5 && metalSpotEnabled > 0.5) {
+            if (uRaw > 0.5) {
+              vec4 rawS = texture2D(envMapSpot, uvOut);
+              sSpot = rawS.r;
+            } else {
+              vec2 uvMS = octaneUv(uvOut, metalSpotRot, metalSpotScale, metalSpotTrans, metalSpotScaleInvert);
+              vec4 rawS = texture2D(envMapSpot, uvMS);
+              float sVal = rawS.r;
+              sSpot = shapeTexel(sVal, metalSpotPower, metalSpotGamma);
+            }
+          }
+
+          vec3 mFiltered = (metalEnvView > 1.5) ? vec3(0.0) : m;
+          vec3 sFiltered = (metalEnvView > 0.5 && metalEnvView < 1.5) ? vec3(0.0) : vec3(sSpot);
+          vec3 combined = mFiltered + sFiltered;
+
+          vec3 finalColor = combined * exp2(uEV);
+          vec3 c = (uTonemap > 0.5) ? (vec3(1.0) - exp(-finalColor)) : clamp(finalColor, 0.0, 1.0);
+          c = pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2));
+          if (uMarkThr > 0.0 && max(finalColor.r, max(finalColor.g, finalColor.b)) > uMarkThr) {
+            c = mix(c, vec3(0.0, 1.0, 1.0), 0.6);
+          }
+          gl_FragColor = vec4(c, 1.0);
+          return;
+        }
 
         float b = 0.0;
         if (uRaw > 0.5) {
@@ -105,6 +177,10 @@ export class EnvPreviewRenderer {
         float v = (uMode < 0.5) ? b : ((uMode < 1.5) ? s : (colorKeyBase(vec3(b)).r + s));
         float x = v * exp2(uEV);
         vec3 c = vec3(x);
+        if (uSaturation != 1.0) {
+          float gray = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          c = mix(vec3(gray), c, max(0.0, uSaturation));
+        }
         c = (uTonemap > 0.5) ? (vec3(1.0) - exp(-c)) : clamp(c, 0.0, 1.0);
         c = pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2));
         if (uMarkThr > 0.0 && v > uMarkThr) {
@@ -120,7 +196,9 @@ export class EnvPreviewRenderer {
       uniforms: {
         envMapBase: { value: null },
         envMapSpot: { value: null },
+        envMapMetal: { value: null },
         hasSpot: { value: 0 },
+        hasMetal: { value: 0 },
         gammaMode: { value: 0 },
 
         uMode: { value: 0 },
@@ -128,6 +206,7 @@ export class EnvPreviewRenderer {
         uEV: { value: 0 },
         uTonemap: { value: 1 },
         uMarkThr: { value: 0 },
+        uSaturation: { value: 1.0 },
 
         basePower: { value: 1.0 },
         baseGamma: { value: 1.2 },
@@ -146,6 +225,24 @@ export class EnvPreviewRenderer {
         spotScaleInvert: { value: 0.0 },
         spotLod: { value: 0.0 },
         spotMono: { value: 1.0 },
+
+        metalRot: { value: 0.0 },
+        metalScale: { value: new THREE.Vector2(1.0, 1.0) },
+        metalTrans: { value: new THREE.Vector2(0.0, 0.0) },
+        metalScaleInvert: { value: 0.0 },
+        metalFactorScale: { value: 45.0 },
+        metalPower: { value: 7.0 },
+        metalGamma: { value: 144.0 },
+        metalSaturation: { value: 100.0 },
+
+        metalSpotEnabled: { value: 1.0 },
+        metalSpotPower: { value: 2.0 },
+        metalSpotGamma: { value: 1.05 },
+        metalSpotRot: { value: 0.0 },
+        metalSpotScale: { value: new THREE.Vector2(1.0, 1.0) },
+        metalSpotTrans: { value: new THREE.Vector2(0.0, 0.0) },
+        metalSpotScaleInvert: { value: 0.0 },
+        metalEnvView: { value: 0.0 },
       },
       depthTest: false,
       depthWrite: false,
@@ -187,20 +284,37 @@ export class EnvPreviewRenderer {
     if (!ctx) return;
 
     const {
-      mode = 0, // 0 = Base, 1 = Spot, 2 = Base + Spot
+      mode = 0, // 0 = Base, 1 = Spot, 2 = Base + Spot, 3 = Metal
       raw = false,
       ev = 0,
       tonemap = true,
       markThreshold = 0,
+      saturation = 100,
       baseTexture = null,
       spotTexture = null,
+      metalTexture = null,
+      metalSpotTexture = null,
       baseEnv = {},
       spotEnv = {},
+      metalEnv = {},
+      metalSpotEnv = {},
+      metalEnvView = 0,
       gammaMode = 0,
     } = options;
 
-    const activeTexture = mode === 1 ? spotTexture : baseTexture;
-    if (mode !== 2 && !activeTexture) {
+    if (mode === 3 && !metalTexture) {
+      ctx.fillStyle = "#0c1017";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#ffd88e";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("No Metal HDR loaded", canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    const activeTexture = mode === 1 ? spotTexture : (mode === 3 ? metalTexture : baseTexture);
+    if (mode !== 2 && mode !== 3 && !activeTexture) {
       ctx.fillStyle = "#0c1017";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.font = "12px sans-serif";
@@ -222,10 +336,14 @@ export class EnvPreviewRenderer {
       return;
     }
 
+    const activeMetalSpot = metalSpotTexture || spotTexture;
+    const activeSpot = mode === 3 ? activeMetalSpot : spotTexture;
     const u = this.material.uniforms;
     u.envMapBase.value = baseTexture || this.dummyBlackTexture;
-    u.envMapSpot.value = spotTexture || this.dummyBlackTexture;
-    u.hasSpot.value = spotTexture ? 1.0 : 0.0;
+    u.envMapSpot.value = activeSpot || this.dummyBlackTexture;
+    u.envMapMetal.value = metalTexture || this.dummyBlackTexture;
+    u.hasSpot.value = activeSpot ? 1.0 : 0.0;
+    u.hasMetal.value = metalTexture ? 1.0 : 0.0;
     u.gammaMode.value = gammaMode ?? 0;
 
     u.uMode.value = mode;
@@ -233,8 +351,29 @@ export class EnvPreviewRenderer {
     u.uEV.value = ev ?? 0;
     u.uTonemap.value = tonemap ? 1.0 : 0.0;
     u.uMarkThr.value = markThreshold ?? 0;
+    u.uSaturation.value = (saturation ?? 100) / 100.0;
 
     const degToRad = (d) => ((d || 0) * Math.PI) / 180;
+
+    // Metal transformation & parameters (100% parity with Diamond Octane logic)
+    u.metalRot.value = degToRad(metalEnv.rot ?? metalEnv.rotation ?? 0);
+    u.metalScale.value.set(metalEnv.scaleU ?? 1.0, metalEnv.scaleV ?? 1.0);
+    u.metalTrans.value.set(metalEnv.transU ?? 0.0, metalEnv.transV ?? 0.0);
+    u.metalScaleInvert.value = metalEnv.scaleInvert ? 1.0 : 0.0;
+    u.metalFactorScale.value = metalEnv.scale ?? 45.0;
+    u.metalPower.value = metalEnv.power ?? 7.0;
+    u.metalGamma.value = metalEnv.gamma ?? 144.0;
+    u.metalSaturation.value = metalEnv.saturation ?? 100.0;
+
+    // Metal Spotlight transformation & parameters (Independent controls)
+    u.metalSpotEnabled.value = (metalSpotEnv.enabled !== false) ? 1.0 : 0.0;
+    u.metalSpotPower.value = typeof metalSpotEnv.power === "number" ? metalSpotEnv.power : 2.0;
+    u.metalSpotGamma.value = typeof metalSpotEnv.gamma === "number" ? metalSpotEnv.gamma : 1.05;
+    u.metalSpotRot.value = degToRad(metalSpotEnv.rot ?? 0);
+    u.metalSpotScale.value.set(metalSpotEnv.scaleU ?? 1.0, metalSpotEnv.scaleV ?? 1.0);
+    u.metalSpotTrans.value.set(metalSpotEnv.transU ?? 0.0, metalSpotEnv.transV ?? 0.0);
+    u.metalSpotScaleInvert.value = metalSpotEnv.scaleInvert ? 1.0 : 0.0;
+    u.metalEnvView.value = metalEnvView ?? 0;
 
     u.basePower.value = baseEnv.power ?? 1.0;
     u.baseGamma.value = baseEnv.gamma ?? 1.2;
@@ -290,5 +429,9 @@ export class EnvPreviewRenderer {
     if (this.material) {
       this.material.dispose();
     }
+    this.dummyBlackTexture?.dispose?.();
+    this.scene?.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+    });
   }
 }

@@ -30,7 +30,8 @@ import "./perspective-box.css";
 // Timing constants (Global frame scale matching HomePage.jsx)
 const BOX_START_FRAME = 205.5;
 const BOX_DRAW_COMPLETE_FRAME = 220; // Matches EXPLORE_LINK_GLOBAL_FRAME
-const BOX_PERSPECTIVE_COMPLETE_FRAME = 224;
+const BOX_PERSPECTIVE_START_FRAME = 216;
+const BOX_PERSPECTIVE_COMPLETE_FRAME = 220;
 const BOX_EXIT_START_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
 const BOX_EXIT_COMPLETE_FRAME = 249.5;
 
@@ -39,14 +40,15 @@ const BOX_EXIT_COMPLETE_FRAME = 249.5;
 // toggling to false cleanly restores the standard late-entry box animation.
 export const ENABLE_DESKTOP_DYNAMIC_GROWING_BOX = true;
 
-// Desktop Experimental Animation Timing:
+// Desktop Animation Timing:
 // Ring exits Beat 4 at frame 156-158 and flies forward into Beat 5 (frame 214).
-// On desktop, the showcase box draws around the small ring early, then dynamically
-// expands in scale and descends simultaneously in lockstep with the arriving ring.
+// On desktop, the showcase box draws around the small ring from frame 158 -> 176.
+// The moment the SVG line animation gets complete (frame 176), the gradient is fully applied
+// and remains active as the box expands and descends into Beat 5.
 const DESKTOP_BOX_START_FRAME = 158;
 const DESKTOP_BOX_DRAW_COMPLETE_FRAME = 176;
-const DESKTOP_BOX_PERSPECTIVE_START_FRAME = 210;
-const DESKTOP_BOX_PERSPECTIVE_COMPLETE_FRAME = 216;
+const DESKTOP_BOX_PERSPECTIVE_START_FRAME = 172;
+const DESKTOP_BOX_PERSPECTIVE_COMPLETE_FRAME = 176;
 const DESKTOP_BOX_LAND_FRAME = 214;
 
 const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
@@ -396,11 +398,11 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           rawDrawProgress * rawDrawProgress * (3 - 2 * rawDrawProgress);
 
         // 2. Perspective Assembly & Gradient Bloom:
-        // Desktop: blooms in as the expanding box settles into Beat 5 (frame 210 -> 216)
-        // Mobile/Tablet: blooms in frame 219 -> 224
+        // The moment the SVG line drawing completes, the gradient blooms in immediately
+        // and stays active as the box expands and descends into Beat 5.
         const perspStartFrame = isDesktopTier
           ? DESKTOP_BOX_PERSPECTIVE_START_FRAME
-          : (BOX_DRAW_COMPLETE_FRAME - 1);
+          : BOX_PERSPECTIVE_START_FRAME;
         const perspEndFrame = isDesktopTier
           ? DESKTOP_BOX_PERSPECTIVE_COMPLETE_FRAME
           : BOX_PERSPECTIVE_COMPLETE_FRAME;

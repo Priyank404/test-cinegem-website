@@ -128,11 +128,33 @@ function pickVideoSrc(v) {
     : v.src || v.full || v.srcLow || "";
 }
 const DEFAULT_METAL_HDR_CONFIG = {
+  rot: 0,
   rotation: -65,
   rotationY: -57,
   scale: 45,
+  scaleU: 1.0,
+  scaleV: 1.0,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  scaleInvert: false,
   power: 7,
   gamma: 144,
+  saturation: 100,
+};
+
+export const DEFAULT_METAL_SPOT_ENV = {
+  enabled: true,
+  power: 2.0,
+  gamma: 1.05,
+  size: 2,
+  rot: 0,
+  scaleU: 1.0,
+  scaleV: 1.0,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  scaleInvert: false,
 };
 
 // Octane Diamond Slot Defaults (Calibrated to env_metal_029 diamond lighting - New Default for Beats 0-4)
@@ -242,6 +264,7 @@ const DEFAULT_PREVIEW_CONFIG = {
   tonemap: true,
   raw: false,
   markThreshold: false,
+  saturation: 100,
 };
 
 // Decoupled post-processing effects config (Task D3)
@@ -251,6 +274,15 @@ const DEFAULT_POSTFX_CONFIG = {
 };
 
 const DEFAULT_DISPERSION = 0.02;
+
+// Three.js Scene Directional Lights config
+export const DEFAULT_SCENE_LIGHTS_CONFIG = {
+  enabled: true,
+  keyLightEnabled: true,
+  keyLightIntensity: 1.2,
+  fillLightEnabled: true,
+  fillLightIntensity: 0.4,
+};
 
 
 export default function HomePage() {
@@ -479,17 +511,18 @@ export default function HomePage() {
     // tried to catch up across many skipped frames, we clamp the single
     // tick fed to Lenis so it doesn't snap the scroll position forward
     // by a large amount all at once (the "jump on tab return" bug).
-    let lastLenisTime = null;
+    let virtualTime = null;
+    let lastRealTime = null;
     function lenisTick(time) {
       const ms = time * 1000;
-      if (lastLenisTime === null) {
-        lastLenisTime = ms;
+      if (lastRealTime === null) {
+        lastRealTime = ms;
+        virtualTime = ms;
       }
-      const delta = ms - lastLenisTime;
-      lastLenisTime = ms;
-      // Feed Lenis only the capped delta added to the last known time so
-      // it continues from where it left off rather than teleporting.
-      lenis.raf(lastLenisTime - Math.max(0, delta - 100));
+      const delta = Math.min(Math.max(0, ms - lastRealTime), 100);
+      lastRealTime = ms;
+      virtualTime += delta;
+      lenis.raf(virtualTime);
     }
     gsap.ticker.add(lenisTick);
     // Let Lenis solely own scroll-driven timing instead of GSAP silently
@@ -568,6 +601,12 @@ export default function HomePage() {
 
   // Studio lighting & Octane Diamond Dual-EXR Slot States
   const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_METAL_HDR_CONFIG);
+  const [metalSpotEnv, setMetalSpotEnv] = useState(DEFAULT_METAL_SPOT_ENV);
+  const [metalEnvView, setMetalEnvView] = useState(0); // 0 = Combined (Base+Spot), 1 = Base only, 2 = Spot only
+  const [metalSpotHdrUrl, setMetalSpotHdrUrl] = useState("/hdr/Diamond-Spotlight-HDRI.exr");
+  const [metalSpotFileNameHint, setMetalSpotFileNameHint] = useState("Diamond-Spotlight-HDRI.exr");
+  const [metalSpotFileMeta, setMetalSpotFileMeta] = useState(null);
+  const [sceneLightsConfig, setSceneLightsConfig] = useState(DEFAULT_SCENE_LIGHTS_CONFIG);
   const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
   const [gemSpotEnv, setGemSpotEnv] = useState(DEFAULT_GEM_SPOT_ENV);
   const [gemEnvView, setGemEnvView] = useState(0); // 0 = Base+Spot
@@ -613,38 +652,46 @@ export default function HomePage() {
   const envCanvasRef = useRef(null);
   const baseCanvasRef = useRef(null);
   const spotCanvasRef = useRef(null);
+  const metalCanvasRef = useRef(null);
 
   const updatePreviews = useCallback(() => {
     if (!renderEnvPreviewRef.current) return;
     const markThr = previewConfig.markThreshold ? (bloomConfig.threshold ?? 1.0) : 0;
+    const commonOpts = {
+      raw: previewConfig.raw,
+      ev: previewConfig.ev,
+      tonemap: previewConfig.tonemap,
+      markThreshold: markThr,
+      saturation: previewConfig.saturation ?? 100,
+    };
     if (envCanvasRef.current) {
       renderEnvPreviewRef.current(envCanvasRef.current, {
         mode: 2,
-        raw: previewConfig.raw,
-        ev: previewConfig.ev,
-        tonemap: previewConfig.tonemap,
-        markThreshold: markThr,
+        ...commonOpts,
       });
     }
     if (baseCanvasRef.current) {
       renderEnvPreviewRef.current(baseCanvasRef.current, {
         mode: 0,
-        raw: previewConfig.raw,
-        ev: previewConfig.ev,
-        tonemap: previewConfig.tonemap,
-        markThreshold: markThr,
+        ...commonOpts,
       });
     }
     if (spotCanvasRef.current) {
       renderEnvPreviewRef.current(spotCanvasRef.current, {
         mode: 1,
-        raw: previewConfig.raw,
-        ev: previewConfig.ev,
-        tonemap: previewConfig.tonemap,
-        markThreshold: markThr,
+        ...commonOpts,
       });
     }
-  }, [previewConfig, bloomConfig.threshold]);
+    if (metalCanvasRef.current) {
+      renderEnvPreviewRef.current(metalCanvasRef.current, {
+        mode: 3,
+        metalEnv: metalHdrConfig,
+        metalSpotEnv: metalSpotEnv,
+        metalEnvView: metalEnvView,
+        ...commonOpts,
+      });
+    }
+  }, [previewConfig, bloomConfig.threshold, metalHdrConfig, metalSpotEnv, metalEnvView]);
 
   const [postFxEnabled, setPostFxEnabled] = useState(true);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -658,6 +705,10 @@ export default function HomePage() {
     }
   }, [
     panelVisible,
+    metalHdrConfig,
+    metalSpotEnv,
+    metalEnvView,
+    metalHdrUrl,
     gemBaseEnv,
     gemSpotEnv,
     gemEnvView,
@@ -2219,9 +2270,22 @@ export default function HomePage() {
         activeTimelineMode={timelineTarget}
         metalHdrRotation={metalHdrConfig.rotation}
         metalHdrRotationY={metalHdrConfig.rotationY}
+        metalHdrRot={metalHdrConfig.rot ?? metalHdrConfig.rotation ?? 0}
         metalHdrScale={metalHdrConfig.scale}
+        metalHdrScaleU={metalHdrConfig.scaleU ?? 1.0}
+        metalHdrScaleV={metalHdrConfig.scaleV ?? 1.0}
+        metalHdrTransU={metalHdrConfig.transU ?? 0.0}
+        metalHdrTransV={metalHdrConfig.transV ?? 0.0}
+        metalHdrScaleInvert={metalHdrConfig.scaleInvert ?? false}
         metalHdrPower={metalHdrConfig.power}
         metalHdrGamma={metalHdrConfig.gamma}
+        metalHdrSaturation={metalHdrConfig.saturation ?? 100}
+        metalSpotEnv={metalSpotEnv}
+        metalEnvView={metalEnvView}
+        metalSpotHdrUrl={metalSpotHdrUrl}
+        metalSpotFileNameHint={metalSpotFileNameHint}
+        onMetalSpotMetaUpdate={setMetalSpotFileMeta}
+        sceneLightsConfig={sceneLightsConfig}
         gemBaseEnv={gemBaseEnv}
         interactiveGemBaseEnv={INTERACTIVE_GEM_BASE_ENV}
         gemSpotEnv={gemSpotEnv}
@@ -2249,6 +2313,13 @@ export default function HomePage() {
         autoRotateSpeed={0.35}
         interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME - 0.5}
         interactiveRotateEndFrame={FOOTER_REVEAL_GLOBAL_START_FRAME}
+        onDragStateChange={(isDragging) => {
+          if (isDragging) {
+            lenisRef.current?.stop();
+          } else {
+            lenisRef.current?.start();
+          }
+        }}
         onPoseOverrideReady={(api) => {
           poseApiRef.current = api;
           refreshSavedBeats(timelineTarget);
@@ -2460,7 +2531,6 @@ export default function HomePage() {
             >
               Fog Panel: {showFogPanel ? "On" : "Off"}
             </button>
-
           </div>
 
           {showDiamondPanel && (
@@ -2509,6 +2579,16 @@ export default function HomePage() {
               meshDebugList={meshDebugList}
               metalHdrConfig={metalHdrConfig}
               setMetalHdrConfig={setMetalHdrConfig}
+              metalSpotEnv={metalSpotEnv}
+              setMetalSpotEnv={setMetalSpotEnv}
+              metalEnvView={metalEnvView}
+              setMetalEnvView={setMetalEnvView}
+              metalSpotHdrUrl={metalSpotHdrUrl}
+              setMetalSpotHdrUrl={setMetalSpotHdrUrl}
+              metalSpotFileMeta={metalSpotFileMeta}
+              setMetalSpotFileNameHint={setMetalSpotFileNameHint}
+              sceneLightsConfig={sceneLightsConfig}
+              setSceneLightsConfig={setSceneLightsConfig}
               gemBaseEnv={gemBaseEnv}
               setGemBaseEnv={setGemBaseEnv}
               gemSpotEnv={gemSpotEnv}
@@ -2536,6 +2616,7 @@ export default function HomePage() {
               envCanvasRef={envCanvasRef}
               baseCanvasRef={baseCanvasRef}
               spotCanvasRef={spotCanvasRef}
+              metalCanvasRef={metalCanvasRef}
               onRefreshPreviews={updatePreviews}
               experimentalAtmosphere={experimentalAtmosphere}
               setExperimentalAtmosphere={setExperimentalAtmosphere}
@@ -2554,6 +2635,12 @@ export default function HomePage() {
                 setMetalPresetKey("yellowGold");
                 setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07-metal.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
+                setMetalSpotEnv(DEFAULT_METAL_SPOT_ENV);
+                setMetalEnvView(0);
+                setMetalSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
+                setMetalSpotFileNameHint("Diamond-Spotlight-HDRI.exr");
+                setMetalSpotFileMeta(null);
+                setSceneLightsConfig(DEFAULT_SCENE_LIGHTS_CONFIG);
                 setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setGemSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
                 setGemMode(null);
@@ -2572,6 +2659,12 @@ export default function HomePage() {
                 setMetalPresetKey("yellowGold");
                 setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
+                setMetalSpotEnv(DEFAULT_METAL_SPOT_ENV);
+                setMetalEnvView(0);
+                setMetalSpotHdrUrl("");
+                setMetalSpotFileNameHint("");
+                setMetalSpotFileMeta(null);
+                setSceneLightsConfig(DEFAULT_SCENE_LIGHTS_CONFIG);
                 setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setGemSpotHdrUrl("");
                 setGemMode("matte");
@@ -2731,6 +2824,16 @@ function MaterialDevPanel({
   meshDebugList = [],
   metalHdrConfig,
   setMetalHdrConfig,
+  metalSpotEnv,
+  setMetalSpotEnv,
+  metalEnvView,
+  setMetalEnvView,
+  metalSpotHdrUrl = "/hdr/Diamond-Spotlight-HDRI.exr",
+  setMetalSpotHdrUrl,
+  metalSpotFileMeta = null,
+  setMetalSpotFileNameHint = null,
+  sceneLightsConfig = DEFAULT_SCENE_LIGHTS_CONFIG,
+  setSceneLightsConfig,
   gemBaseEnv,
   setGemBaseEnv,
   gemSpotEnv,
@@ -2758,6 +2861,7 @@ function MaterialDevPanel({
   envCanvasRef,
   baseCanvasRef,
   spotCanvasRef,
+  metalCanvasRef,
   onRefreshPreviews,
   experimentalAtmosphere,
   setExperimentalAtmosphere,
@@ -2779,6 +2883,7 @@ function MaterialDevPanel({
   const metalCount = meshDebugList.filter((m) => m.type === "metal").length;
 
   const metalFileInputRef = useRef(null);
+  const metalSpotFileInputRef = useRef(null);
 
   const handleMetalFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2786,6 +2891,16 @@ function MaterialDevPanel({
     const isExr = file.name.toLowerCase().endsWith(".exr");
     const blobUrl = URL.createObjectURL(file) + (isExr ? "#file.exr" : "#file.hdr");
     setMetalHdrUrl(blobUrl);
+  };
+
+  const handleMetalSpotFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (setMetalSpotFileNameHint) setMetalSpotFileNameHint(file.name);
+    const isExr = file.name.toLowerCase().endsWith(".exr");
+    const blobUrl = URL.createObjectURL(file) + (isExr ? "#file.exr" : "#file.hdr");
+    setMetalSpotHdrUrl?.(blobUrl);
+    onRefreshPreviews?.();
   };
 
   return (
@@ -2870,9 +2985,65 @@ function MaterialDevPanel({
           borderRadius: 8,
         }}
       >
-        <div style={{ fontWeight: 700, color: "#ffd88e", marginBottom: 8, fontSize: 11 }}>
-          👑 METAL ENVIRONMENT
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontWeight: 700, color: "#ffd88e", fontSize: 11 }}>
+            👑 METAL ENVIRONMENT
+          </span>
+          <span style={{ fontSize: 9, background: "rgba(255, 216, 142, 0.15)", padding: "2px 5px", borderRadius: 4, color: "#ffe082" }}>
+            2:1 HDR Preview
+          </span>
         </div>
+
+        {/* Metal View Filter: Combined | Base Only | Spotlight Only */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          {[
+            { label: "Combined", val: 0 },
+            { label: "Base Only", val: 1 },
+            { label: "Spotlight Only", val: 2 },
+          ].map((mode) => (
+            <button
+              key={mode.label}
+              type="button"
+              onClick={() => {
+                setMetalEnvView(mode.val);
+                onRefreshPreviews?.();
+              }}
+              style={{
+                flex: 1,
+                padding: "4px 6px",
+                fontSize: 10,
+                borderRadius: 4,
+                border: metalEnvView === mode.val ? "1px solid #ffd88e" : "1px solid rgba(255,255,255,0.15)",
+                background: metalEnvView === mode.val ? "rgba(255, 216, 142, 0.2)" : "rgba(255,255,255,0.04)",
+                color: metalEnvView === mode.val ? "#ffd88e" : "#aaa",
+                cursor: "pointer",
+                fontWeight: metalEnvView === mode.val ? 700 : 400,
+              }}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 2:1 Equirect Preview Canvas for Metal HDR */}
+        {metalCanvasRef && (
+          <div style={{ marginBottom: 8 }}>
+            <canvas
+              ref={metalCanvasRef}
+              width={512}
+              height={256}
+              style={{
+                width: "100%",
+                height: "auto",
+                aspectRatio: "2/1",
+                display: "block",
+                borderRadius: 4,
+                border: "1px solid rgba(255, 216, 142, 0.25)",
+                background: "#0c1017",
+              }}
+            />
+          </div>
+        )}
 
         <label style={{ display: "block", marginBottom: 8 }}>
           Preset
@@ -2924,10 +3095,389 @@ function MaterialDevPanel({
         </label>
 
         <HdrConfigGroup
-          label="Metal HDR controls"
+          label="Metal Base HDR controls"
           config={metalHdrConfig}
           setConfig={setMetalHdrConfig}
         />
+
+        {/* Metal Spotlight Slot (Reusing Diamond Spotlight Asset with Independent Controls) */}
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 10px",
+            background: "rgba(255, 216, 142, 0.04)",
+            border: "1px solid rgba(255, 216, 142, 0.15)",
+            borderRadius: 6,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 6,
+            }}
+          >
+            <span style={{ fontWeight: 700, color: "#ffe082", fontSize: 10.5 }}>
+              💡 Metal Spotlight (Additive Sparkle)
+            </span>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 9.5,
+                color: metalSpotEnv.enabled ? "#ffe082" : "#888",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={metalSpotEnv.enabled ?? true}
+                onChange={(e) => {
+                  setMetalSpotEnv((prev) => ({ ...prev, enabled: e.target.checked }));
+                  onRefreshPreviews?.();
+                }}
+              />
+              Enable
+            </label>
+          </div>
+
+          <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 8, color: "#ffd88e", lineHeight: 1.3 }}>
+            Separate spotlight HDR/EXR asset on metal with independent power, gamma, rotation &amp; 2D transform.
+          </div>
+
+          {/* Separate Metal Spotlight HDR/EXR slot with Browse & Upload */}
+          <label style={{ display: "block", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, fontSize: 10 }}>
+              <span>Metal Spotlight HDR/EXR</span>
+              {metalSpotFileMeta?.name && (
+                <span style={{ color: "#ffe082", opacity: 0.85, fontSize: 9 }}>
+                  {metalSpotFileMeta.name}
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                type="text"
+                data-testid="metal-spot-url-input"
+                value={metalSpotHdrUrl}
+                onChange={(e) => {
+                  setMetalSpotHdrUrl?.(e.target.value);
+                  onRefreshPreviews?.();
+                }}
+                placeholder="/hdr/... or upload file"
+                style={{
+                  width: "100%",
+                  background: "rgba(0,0,0,0.5)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 4,
+                  padding: "4px 8px",
+                  color: "#fff",
+                  fontSize: 10,
+                }}
+              />
+              <button
+                type="button"
+                data-testid="metal-spot-browse-btn"
+                onClick={() => metalSpotFileInputRef.current?.click()}
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: 4,
+                  color: "#fff",
+                  padding: "4px 8px",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                title="Upload separate spotlight .hdr or .exr for metal"
+              >
+                📁 Browse
+              </button>
+              {metalSpotHdrUrl && metalSpotHdrUrl !== "/hdr/Diamond-Spotlight-HDRI.exr" && (
+                <button
+                  type="button"
+                  data-testid="metal-spot-reset-btn"
+                  onClick={() => {
+                    setMetalSpotHdrUrl?.("/hdr/Diamond-Spotlight-HDRI.exr");
+                    onRefreshPreviews?.();
+                  }}
+                  style={{
+                    background: "rgba(255,180,50,0.15)",
+                    border: "1px solid rgba(255,180,50,0.3)",
+                    borderRadius: 4,
+                    color: "#ffd280",
+                    padding: "4px 6px",
+                    fontSize: 9.5,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                  title="Revert to default diamond spotlight asset"
+                >
+                  Reset
+                </button>
+              )}
+              <input
+                ref={metalSpotFileInputRef}
+                data-testid="metal-spot-file-input"
+                type="file"
+                accept=".hdr,.exr"
+                onChange={handleMetalSpotFileUpload}
+                style={{ display: "none" }}
+              />
+            </div>
+          </label>
+
+          {metalSpotFileMeta && !metalSpotFileMeta.error && (
+            <div
+              style={{
+                fontSize: 9,
+                color: "#ffe082",
+                opacity: 0.8,
+                marginBottom: 6,
+                padding: "2px 6px",
+                background: "rgba(255, 216, 142, 0.08)",
+                borderRadius: 4,
+              }}
+            >
+              {metalSpotFileMeta.format?.toUpperCase()} · {metalSpotFileMeta.width}×{metalSpotFileMeta.height}
+              {metalSpotFileMeta.evRange ? ` · EV [${metalSpotFileMeta.evRange[0].toFixed(1)}, ${metalSpotFileMeta.evRange[1].toFixed(1)}]` : ""}
+            </div>
+          )}
+
+          <SliderRow
+            label="Power"
+            value={metalSpotEnv.power ?? 2.0}
+            min={0}
+            max={50.0}
+            step={0.5}
+            onChange={(e) => {
+              setMetalSpotEnv((prev) => ({ ...prev, power: Number(e.target.value) }));
+              onRefreshPreviews?.();
+            }}
+          />
+          <SliderRow
+            label="Gamma"
+            value={metalSpotEnv.gamma ?? 1.05}
+            min={0.2}
+            max={4.0}
+            step={0.01}
+            onChange={(e) => {
+              setMetalSpotEnv((prev) => ({ ...prev, gamma: Number(e.target.value) }));
+              onRefreshPreviews?.();
+            }}
+          />
+          <SliderRow
+            label="Rotation"
+            value={metalSpotEnv.rot ?? 0}
+            min={-180}
+            max={180}
+            step={1}
+            unit="°"
+            onChange={(e) => {
+              setMetalSpotEnv((prev) => ({ ...prev, rot: Number(e.target.value) }));
+              onRefreshPreviews?.();
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 6,
+              marginBottom: 2,
+            }}
+          >
+            <span style={{ fontSize: 10, opacity: 0.8 }}>Scale (2D Transform)</span>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 9,
+                cursor: "pointer",
+                opacity: 0.85,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={metalSpotEnv.lockScale ?? true}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setMetalSpotEnv((prev) => ({
+                    ...prev,
+                    lockScale: checked,
+                    scaleV: checked ? prev.scaleU : prev.scaleV,
+                  }));
+                  onRefreshPreviews?.();
+                }}
+              />
+              Lock U=V
+            </label>
+          </div>
+
+          <div style={{ fontSize: 9, opacity: 0.65, marginTop: 1, marginBottom: 4, color: "#ffd88e" }}>
+            * Octane scale &lt; 1 zooms in (verify against Octane)
+          </div>
+
+          <SliderRow
+            label="Scale U"
+            value={metalSpotEnv.scaleU ?? 1.0}
+            min={0.05}
+            max={4.0}
+            step={0.001}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setMetalSpotEnv((prev) => ({
+                ...prev,
+                scaleU: val,
+                ...(prev.lockScale ? { scaleV: val } : {}),
+              }));
+              onRefreshPreviews?.();
+            }}
+          />
+          <SliderRow
+            label="Scale V"
+            value={metalSpotEnv.scaleV ?? 1.0}
+            min={0.05}
+            max={4.0}
+            step={0.001}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setMetalSpotEnv((prev) => ({
+                ...prev,
+                scaleV: val,
+                ...(prev.lockScale ? { scaleU: val } : {}),
+              }));
+              onRefreshPreviews?.();
+            }}
+          />
+
+          <SliderRow
+            label="Translate U"
+            value={metalSpotEnv.transU ?? 0.0}
+            min={-1.0}
+            max={1.0}
+            step={0.001}
+            onChange={(e) => {
+              setMetalSpotEnv((prev) => ({ ...prev, transU: Number(e.target.value) }));
+              onRefreshPreviews?.();
+            }}
+          />
+          <SliderRow
+            label="Translate V"
+            value={metalSpotEnv.transV ?? 0.0}
+            min={-1.0}
+            max={1.0}
+            step={0.001}
+            onChange={(e) => {
+              setMetalSpotEnv((prev) => ({ ...prev, transV: Number(e.target.value) }));
+              onRefreshPreviews?.();
+            }}
+          />
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 6,
+              cursor: "pointer",
+              fontSize: 9.5,
+              opacity: 0.8,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={metalSpotEnv.scaleInvert ?? false}
+              onChange={(e) => {
+                setMetalSpotEnv((prev) => ({ ...prev, scaleInvert: e.target.checked }));
+                onRefreshPreviews?.();
+              }}
+            />
+            Invert scale convention (p / scale instead of p * scale)
+          </label>
+        </div>
+      </div>
+
+      {/* Three.js Scene Directional Lights Section */}
+      <div
+        style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          background: "rgba(255, 200, 100, 0.06)",
+          border: "1px solid rgba(255, 200, 100, 0.25)",
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontWeight: 700, color: "#ffd580", fontSize: 11 }}>
+            💡 THREE.JS SCENE LIGHTS
+          </span>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, cursor: "pointer", color: (sceneLightsConfig.enabled ?? true) ? "#ffd580" : "#888" }}>
+            <input
+              type="checkbox"
+              data-testid="scene-lights-master-toggle"
+              checked={sceneLightsConfig.enabled ?? true}
+              onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, enabled: e.target.checked }))}
+            />
+            {(sceneLightsConfig.enabled ?? true) ? "Enabled" : "Off"}
+          </label>
+        </div>
+
+        <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 8, lineHeight: 1.3 }}>
+          Controls the Three.js directional lights (Key & Fill) illuminating the ring geometry. Turn off to inspect pure HDR / EXR environment reflections.
+        </div>
+
+        <div style={{ opacity: (sceneLightsConfig.enabled ?? true) ? 1 : 0.35, pointerEvents: (sceneLightsConfig.enabled ?? true) ? "auto" : "none" }}>
+          {/* Key Light */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, marginBottom: 2 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#ffe6b3" }}>Key Light (pos: 3, 4, 5)</span>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                data-testid="scene-lights-key-toggle"
+                checked={sceneLightsConfig.keyLightEnabled ?? true}
+                onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, keyLightEnabled: e.target.checked }))}
+              />
+              On
+            </label>
+          </div>
+          <SliderRow
+            label="Key Intensity"
+            testId="scene-lights-key-slider"
+            value={sceneLightsConfig.keyLightIntensity ?? 1.2}
+            min={0}
+            max={3.0}
+            step={0.05}
+            onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, keyLightIntensity: Number(e.target.value) }))}
+          />
+
+          {/* Fill Light */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 2 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#ffe6b3" }}>Fill Light (pos: -4, -1, -3)</span>
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                data-testid="scene-lights-fill-toggle"
+                checked={sceneLightsConfig.fillLightEnabled ?? true}
+                onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, fillLightEnabled: e.target.checked }))}
+              />
+              On
+            </label>
+          </div>
+          <SliderRow
+            label="Fill Intensity"
+            testId="scene-lights-fill-slider"
+            value={sceneLightsConfig.fillLightIntensity ?? 0.4}
+            min={0}
+            max={3.0}
+            step={0.05}
+            onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, fillLightIntensity: Number(e.target.value) }))}
+          />
+        </div>
       </div>
 
       {/* Octane Diamond Dual-EXR Section */}
@@ -3139,6 +3689,20 @@ function MaterialDevPanel({
                 step={0.5}
                 value={previewConfig.ev}
                 onChange={(e) => setPreviewConfig((p) => ({ ...p, ev: Number(e.target.value) }))}
+                style={{ width: 100, height: 4 }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 9.5, opacity: 0.85 }}>
+                Saturation: {previewConfig.saturation ?? 100}%
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                step={1}
+                value={previewConfig.saturation ?? 100}
+                onChange={(e) => setPreviewConfig((p) => ({ ...p, saturation: Number(e.target.value) }))}
                 style={{ width: 100, height: 4 }}
               />
             </div>
@@ -3365,8 +3929,30 @@ function MaterialDevPanel({
  * -------------------------------------------------------------------------
  */
 function HdrConfigGroup({ label, config, setConfig }) {
-  const update = (key) => (e) =>
-    setConfig((prev) => ({ ...prev, [key]: Number(e.target.value) }));
+  const update = (key) => (e) => {
+    const val = Number(e.target.value);
+    setConfig((prev) => {
+      const next = { ...prev, [key]: val };
+      if (key === "rot") next.rotation = val;
+      if (key === "rotation") next.rot = val;
+      if (prev.lockScale) {
+        if (key === "scaleU") next.scaleV = val;
+        if (key === "scaleV") next.scaleU = val;
+      }
+      return next;
+    });
+  };
+
+  const updateBool = (key) => (e) => {
+    const checked = e.target.checked;
+    setConfig((prev) => {
+      const next = { ...prev, [key]: checked };
+      if (key === "lockScale" && checked) {
+        next.scaleV = prev.scaleU;
+      }
+      return next;
+    });
+  };
 
   return (
     <div
@@ -3381,12 +3967,12 @@ function HdrConfigGroup({ label, config, setConfig }) {
 
       <SliderRow
         label="Rotation"
-        value={config.rotation}
+        value={config.rot ?? config.rotation ?? 0}
         min={-180}
         max={180}
         step={1}
         unit="°"
-        onChange={update("rotation")}
+        onChange={update("rot")}
       />
       <SliderRow
         label="Rotation Y"
@@ -3397,8 +3983,76 @@ function HdrConfigGroup({ label, config, setConfig }) {
         unit="°"
         onChange={update("rotationY")}
       />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 6,
+          marginBottom: 2,
+        }}
+      >
+        <span style={{ fontSize: 10, opacity: 0.8 }}>Scale (2D Transform)</span>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 9,
+            cursor: "pointer",
+            opacity: 0.85,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={config.lockScale ?? true}
+            onChange={updateBool("lockScale")}
+          />
+          Lock U=V
+        </label>
+      </div>
+
+      <div style={{ fontSize: 9, opacity: 0.65, marginTop: 1, marginBottom: 4, color: "#8ecbff" }}>
+        * Octane scale &lt; 1 zooms in (verify against Octane)
+      </div>
+
       <SliderRow
-        label="Scale"
+        label="Scale U"
+        value={config.scaleU ?? 1.0}
+        min={0.05}
+        max={4.0}
+        step={0.001}
+        onChange={update("scaleU")}
+      />
+      <SliderRow
+        label="Scale V"
+        value={config.scaleV ?? 1.0}
+        min={0.05}
+        max={4.0}
+        step={0.001}
+        onChange={update("scaleV")}
+      />
+
+      <SliderRow
+        label="Translate U"
+        value={config.transU ?? 0.0}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transU")}
+      />
+      <SliderRow
+        label="Translate V"
+        value={config.transV ?? 0.0}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transV")}
+      />
+
+      <SliderRow
+        label="Scale (Intensity)"
         value={config.scale}
         min={0}
         max={300}
@@ -3421,11 +4075,20 @@ function HdrConfigGroup({ label, config, setConfig }) {
         step={1}
         onChange={update("gamma")}
       />
+      <SliderRow
+        label="Saturation"
+        value={config.saturation ?? 100}
+        min={0}
+        max={200}
+        step={1}
+        unit="%"
+        onChange={update("saturation")}
+      />
     </div>
   );
 }
 
-function SliderRow({ label, value, min, max, step, unit = "", onChange }) {
+function SliderRow({ label, value, min, max, step, unit = "", onChange, testId }) {
   return (
     <label style={{ display: "block", marginBottom: 6 }}>
       <div
@@ -3443,6 +4106,7 @@ function SliderRow({ label, value, min, max, step, unit = "", onChange }) {
       </div>
       <input
         type="range"
+        data-testid={testId}
         min={min}
         max={max}
         step={step}
@@ -3570,7 +4234,7 @@ function ExrSlotControls({
             style={selectStyle}
           >
             {presets.map((p) => (
-              <option key={p.value} value={p.value}>
+              <option key={p.key || p.value || p.label} value={p.value}>
                 {p.label}
               </option>
             ))}

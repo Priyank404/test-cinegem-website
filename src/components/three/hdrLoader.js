@@ -43,7 +43,26 @@ export function loadEnvironmentTexture(url, pmrem, onProgress, formatHint) {
         try {
           texture.mapping = THREE.EquirectangularReflectionMapping;
           const envRT = pmrem.fromEquirectangular(texture);
-          texture.dispose();
+
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.generateMipmaps = false;
+          texture.needsUpdate = true;
+
+          envRT.texture._rawTexture = texture;
+
+          const origDispose = envRT.texture.dispose.bind(envRT.texture);
+          envRT.texture.dispose = () => {
+            try {
+              texture.dispose();
+            } catch (_err) {
+              // Ignore disposal error if raw texture already released
+            }
+            origDispose();
+          };
+
           resolve(envRT.texture);
         } catch (err) {
           reject(new Error(`Failed to generate PMREM from "${url}": ${err?.message || err}`));
