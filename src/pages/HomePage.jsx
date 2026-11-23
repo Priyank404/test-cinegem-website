@@ -580,6 +580,20 @@ export default function HomePage() {
     initialTier?.tier === "low" ||
     initialTier?.tier === "minimal"
   );
+  const isMobileOrCpuDevice = Boolean(
+    isFallbackDevice ||
+    initialTier?.tier === "mobile" ||
+    initialTier?.isMobile ||
+    (typeof window !== "undefined" && (window.innerWidth < 768 || navigator.maxTouchPoints > 0))
+  );
+
+  // Default GLB Model Routing:
+  // Mobile and CPU/low-end devices load the optimized 420 KB model by default.
+  // Desktop and high-end devices load the 2.69 MB quality model by default.
+  const defaultGlbUrl = isMobileOrCpuDevice
+    ? "/models/ring-draco-mobile.glb?v=420k"
+    : "/models/ring-draco.glb?v=quality";
+  const [glbUrl, setGlbUrl] = useState(defaultGlbUrl);
 
   const [metalPresetKey, setMetalPresetKey] = useState("yellowGold");
   // Default HDRs tuned to studio calibration:
@@ -2249,8 +2263,8 @@ export default function HomePage() {
       {shouldStart3D && !perfFlags.noring && (
         <Hero3DErrorBoundary>
           <RingHero
-          glbUrl="/models/ring-draco.glb?v=420k"
-        metalHdrUrl={metalHdrUrl}
+          glbUrl={glbUrl}
+          metalHdrUrl={metalHdrUrl}
         gemBaseHdrUrl={gemBaseHdrUrl}
         gemSpotHdrUrl={gemSpotHdrUrl}
         onLoadingProgress={(p, status) => {
@@ -2564,6 +2578,8 @@ export default function HomePage() {
 
           {panelVisible && (
             <MaterialDevPanel
+              glbUrl={glbUrl}
+              setGlbUrl={setGlbUrl}
               diamondConfig={diamondConfig}
               setDiamondConfig={setDiamondConfig}
               metalPresetKey={metalPresetKey}
@@ -2632,6 +2648,7 @@ export default function HomePage() {
               defaultCardTimingConfig={DEFAULT_CARD_TIMING_CONFIG}
               onSaveCardTiming={saveCardTimingConfig}
               onResetHdrDefaults={() => {
+                setGlbUrl(defaultGlbUrl);
                 setMetalPresetKey("yellowGold");
                 setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07-metal.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
@@ -2656,6 +2673,7 @@ export default function HomePage() {
                 setExperimentalAtmosphere(true);
               }}
               onApplyFallbackProfile={() => {
+                setGlbUrl("/models/ring-draco-mobile.glb?v=420k");
                 setMetalPresetKey("yellowGold");
                 setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
@@ -2809,6 +2827,8 @@ ${contentPosCss}
 // BeatCoordPanel was replaced by the advanced TimelineEditor component at the bottom of the viewport.
 
 function MaterialDevPanel({
+  glbUrl,
+  setGlbUrl,
   diamondConfig,
   setDiamondConfig,
   metalPresetKey,
@@ -2975,7 +2995,81 @@ function MaterialDevPanel({
         )}
       </div>
 
-      {/* Metal Environment Section */}
+      {/* 3D Model Asset Selector (1-Click Quality vs Optimized) */}
+      <div
+        style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          background: "rgba(100, 210, 255, 0.06)",
+          border: "1px solid rgba(100, 210, 255, 0.25)",
+          borderRadius: 8,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontWeight: 700, color: "#64d2ff", fontSize: 11 }}>
+            📦 3D MODEL ASSET (GLB)
+          </span>
+          <span style={{ fontSize: 9.5, opacity: 0.8, color: (glbUrl?.includes("mobile") || glbUrl?.includes("420k")) ? "#40dca0" : "#ffd280" }}>
+            {(glbUrl?.includes("mobile") || glbUrl?.includes("420k")) ? "⚡ 420 KB (Mobile)" : "💎 2.69 MB (Quality)"}
+          </span>
+        </div>
+
+        <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 8, lineHeight: 1.3 }}>
+          Mobile & CPU devices load the 420 KB model by default. Desktop & high-tier devices load the 2.69 MB model by default. Switch with 1-click below:
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          <button
+            type="button"
+            data-testid="glb-optimized-btn"
+            onClick={() => setGlbUrl?.("/models/ring-draco-mobile.glb?v=420k")}
+            style={{
+              padding: "7px 8px",
+              background: (glbUrl?.includes("mobile") || glbUrl?.includes("420k"))
+                ? "rgba(64, 220, 160, 0.22)"
+                : "rgba(255, 255, 255, 0.05)",
+              border: (glbUrl?.includes("mobile") || glbUrl?.includes("420k"))
+                ? "1px solid #40dca0"
+                : "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: 6,
+              color: (glbUrl?.includes("mobile") || glbUrl?.includes("420k")) ? "#40dca0" : "#aaa",
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "center",
+              transition: "all 0.2s ease",
+            }}
+          >
+            ⚡ Optimized (420 KB)
+            <div style={{ fontSize: 8.5, opacity: 0.8, marginTop: 2 }}>90K Polys • Fast</div>
+          </button>
+
+          <button
+            type="button"
+            data-testid="glb-quality-btn"
+            onClick={() => setGlbUrl?.("/models/ring-draco.glb?v=quality")}
+            style={{
+              padding: "7px 8px",
+              background: !(glbUrl?.includes("mobile") || glbUrl?.includes("420k"))
+                ? "rgba(255, 210, 128, 0.22)"
+                : "rgba(255, 255, 255, 0.05)",
+              border: !(glbUrl?.includes("mobile") || glbUrl?.includes("420k"))
+                ? "1px solid #ffd280"
+                : "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: 6,
+              color: !(glbUrl?.includes("mobile") || glbUrl?.includes("420k")) ? "#ffd280" : "#aaa",
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: "pointer",
+              textAlign: "center",
+              transition: "all 0.2s ease",
+            }}
+          >
+            💎 Quality (2.69 MB)
+            <div style={{ fontSize: 8.5, opacity: 0.8, marginTop: 2 }}>1.4M Polys • Ultra</div>
+          </button>
+        </div>
+      </div>
       <div
         style={{
           marginBottom: 12,

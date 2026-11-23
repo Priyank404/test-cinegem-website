@@ -410,7 +410,8 @@ function wrapAngle(rad) {
 }
 
 export default function RingHero({
-  glbUrl = "/models/ring-draco.glb?v=420k",
+  // 3D Model GLB URL (null = auto-routes based on device tier: mobile/cpu -> 420KB, desktop/gpu -> 2.69MB)
+  glbUrl = null,
   metalHdrUrl = "/hdr/env_metal_029_1798f1cf07-metal.hdr",
   gemHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
   gemBaseHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
@@ -573,6 +574,13 @@ export default function RingHero({
   const [sceneEpoch, setSceneEpoch] = useState(0);
   const rebuildCountRef = useRef(0);
   const deviceTier = getDeviceTier();
+  const isFallbackDevice = deviceTier.isFallbackDevice;
+  const isMobileTier = Boolean(deviceTier.tier === "mobile" || deviceTier.isMobile);
+  const isLowOrCpu = Boolean(deviceTier.isLowOrMinimal || deviceTier.tier === "minimal" || deviceTier.tier === "low");
+  const defaultGlbUrl = (isMobileTier || isLowOrCpu)
+    ? "/models/ring-draco-mobile.glb?v=420k"
+    : "/models/ring-draco.glb?v=quality";
+  const effectiveGlbUrl = glbUrl || defaultGlbUrl;
   // ── Debug-only diagnostics for the interactive drag window ────────────
   // Keeps the last computed localFrame / range values around so the
   // window-level diagnostic listener below (RINGHERO_DEBUG_INTERACTION)
@@ -2032,8 +2040,9 @@ export default function RingHero({
     gltfLoader.setDRACOLoader(dracoLoader);
 
     // Progress tracking for GLB & HDRs/EXRs
+    const isMobileModel = effectiveGlbUrl.includes("mobile") || effectiveGlbUrl.includes("420k");
     const progressMap = {
-      glb: { loaded: 0, total: 420028 },
+      glb: { loaded: 0, total: isMobileModel ? 420028 : 2695680 },
       metalHdr: { loaded: 0, total: 661971 },
       gemBaseHdr: { loaded: 0, total: 7533766 },
       gemSpotHdr: { loaded: 0, total: 844667 },
@@ -2087,7 +2096,7 @@ export default function RingHero({
           gLoader.setDRACOLoader(dLoader);
 
           gLoader.load(
-            glbUrl,
+            effectiveGlbUrl,
             (gltf) => {
               progressMap.glb.loaded = progressMap.glb.total;
               updateOverallProgress("Ring geometry downloaded");
@@ -2672,7 +2681,7 @@ export default function RingHero({
             }
 
             gltfLoader.load(
-              glbUrl,
+              effectiveGlbUrl,
               (gltf) => {
                 if (disposed) return;
                 ring = gltf.scene;
@@ -3754,7 +3763,7 @@ export default function RingHero({
       renderer?.dispose();
     };
   }, [
-    glbUrl,
+    effectiveGlbUrl,
     dracoDecoderPath,
     scrollContainerSelector,
     postFxEnabled,
