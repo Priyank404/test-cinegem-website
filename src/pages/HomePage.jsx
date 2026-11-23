@@ -145,12 +145,12 @@ const DEFAULT_METAL_HDR_CONFIG = {
 
 export const DEFAULT_METAL_SPOT_ENV = {
   enabled: true,
-  power: 2.0,
-  gamma: 1.05,
+  power: 16.5,
+  gamma: 2.05,
   size: 2,
   rot: 0,
-  scaleU: 1.0,
-  scaleV: 1.0,
+  scaleU: 1.01,
+  scaleV: 1.01,
   lockScale: true,
   transU: 0.0,
   transV: 0.0,
@@ -603,8 +603,8 @@ export default function HomePage() {
   const [metalHdrConfig, setMetalHdrConfig] = useState(DEFAULT_METAL_HDR_CONFIG);
   const [metalSpotEnv, setMetalSpotEnv] = useState(DEFAULT_METAL_SPOT_ENV);
   const [metalEnvView, setMetalEnvView] = useState(0); // 0 = Combined (Base+Spot), 1 = Base only, 2 = Spot only
-  const [metalSpotHdrUrl, setMetalSpotHdrUrl] = useState("/hdr/Diamond-Spotlight-HDRI.exr");
-  const [metalSpotFileNameHint, setMetalSpotFileNameHint] = useState("Diamond-Spotlight-HDRI.exr");
+  const [metalSpotHdrUrl, setMetalSpotHdrUrl] = useState("/hdr/Metal-Spotlight-HDRI.hdr");
+  const [metalSpotFileNameHint, setMetalSpotFileNameHint] = useState("Metal-Spotlight-HDRI.hdr");
   const [metalSpotFileMeta, setMetalSpotFileMeta] = useState(null);
   const [sceneLightsConfig, setSceneLightsConfig] = useState(DEFAULT_SCENE_LIGHTS_CONFIG);
   const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
@@ -2637,8 +2637,8 @@ export default function HomePage() {
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
                 setMetalSpotEnv(DEFAULT_METAL_SPOT_ENV);
                 setMetalEnvView(0);
-                setMetalSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
-                setMetalSpotFileNameHint("Diamond-Spotlight-HDRI.exr");
+                setMetalSpotHdrUrl("/hdr/Metal-Spotlight-HDRI.hdr");
+                setMetalSpotFileNameHint("Metal-Spotlight-HDRI.hdr");
                 setMetalSpotFileMeta(null);
                 setSceneLightsConfig(DEFAULT_SCENE_LIGHTS_CONFIG);
                 setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
@@ -2828,7 +2828,7 @@ function MaterialDevPanel({
   setMetalSpotEnv,
   metalEnvView,
   setMetalEnvView,
-  metalSpotHdrUrl = "/hdr/Diamond-Spotlight-HDRI.exr",
+  metalSpotHdrUrl = "/hdr/Metal-Spotlight-HDRI.hdr",
   setMetalSpotHdrUrl,
   metalSpotFileMeta = null,
   setMetalSpotFileNameHint = null,
@@ -3195,12 +3195,13 @@ function MaterialDevPanel({
               >
                 📁 Browse
               </button>
-              {metalSpotHdrUrl && metalSpotHdrUrl !== "/hdr/Diamond-Spotlight-HDRI.exr" && (
+              {metalSpotHdrUrl && metalSpotHdrUrl !== "/hdr/Metal-Spotlight-HDRI.hdr" && (
                 <button
                   type="button"
                   data-testid="metal-spot-reset-btn"
                   onClick={() => {
-                    setMetalSpotHdrUrl?.("/hdr/Diamond-Spotlight-HDRI.exr");
+                    setMetalSpotHdrUrl?.("/hdr/Metal-Spotlight-HDRI.hdr");
+                    if (setMetalSpotFileNameHint) setMetalSpotFileNameHint("Metal-Spotlight-HDRI.hdr");
                     onRefreshPreviews?.();
                   }}
                   style={{
@@ -3213,7 +3214,7 @@ function MaterialDevPanel({
                     cursor: "pointer",
                     whiteSpace: "nowrap",
                   }}
-                  title="Revert to default diamond spotlight asset"
+                  title="Revert to default metal spotlight asset"
                 >
                   Reset
                 </button>

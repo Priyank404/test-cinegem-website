@@ -106,10 +106,10 @@ export function buildMetalMaterial(preset, envMap, roughnessOverride = null, glo
 
   mat.userData.envMapMetalSpot = { value: _dummyBlackTex };
   mat.userData.hasMetalSpot = { value: 0.0 };
-  mat.userData.metalSpotPower = { value: 2.0 };
-  mat.userData.metalSpotGamma = { value: 1.05 };
+  mat.userData.metalSpotPower = { value: 16.5 };
+  mat.userData.metalSpotGamma = { value: 2.05 };
   mat.userData.metalSpotRot = { value: 0.0 };
-  mat.userData.metalSpotScale = { value: new THREE.Vector2(1.0, 1.0) };
+  mat.userData.metalSpotScale = { value: new THREE.Vector2(1.01, 1.01) };
   mat.userData.metalSpotTrans = { value: new THREE.Vector2(0.0, 0.0) };
   mat.userData.metalSpotScaleInvert = { value: 0.0 };
   mat.userData.metalEnvView = { value: 0.0 };

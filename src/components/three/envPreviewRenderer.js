@@ -236,10 +236,10 @@ export class EnvPreviewRenderer {
         metalSaturation: { value: 100.0 },
 
         metalSpotEnabled: { value: 1.0 },
-        metalSpotPower: { value: 2.0 },
-        metalSpotGamma: { value: 1.05 },
+        metalSpotPower: { value: 16.5 },
+        metalSpotGamma: { value: 2.05 },
         metalSpotRot: { value: 0.0 },
-        metalSpotScale: { value: new THREE.Vector2(1.0, 1.0) },
+        metalSpotScale: { value: new THREE.Vector2(1.01, 1.01) },
         metalSpotTrans: { value: new THREE.Vector2(0.0, 0.0) },
         metalSpotScaleInvert: { value: 0.0 },
         metalEnvView: { value: 0.0 },
@@ -367,10 +367,10 @@ export class EnvPreviewRenderer {
 
     // Metal Spotlight transformation & parameters (Independent controls)
     u.metalSpotEnabled.value = (metalSpotEnv.enabled !== false) ? 1.0 : 0.0;
-    u.metalSpotPower.value = typeof metalSpotEnv.power === "number" ? metalSpotEnv.power : 2.0;
-    u.metalSpotGamma.value = typeof metalSpotEnv.gamma === "number" ? metalSpotEnv.gamma : 1.05;
+    u.metalSpotPower.value = typeof metalSpotEnv.power === "number" ? metalSpotEnv.power : 16.5;
+    u.metalSpotGamma.value = typeof metalSpotEnv.gamma === "number" ? metalSpotEnv.gamma : 2.05;
     u.metalSpotRot.value = degToRad(metalSpotEnv.rot ?? 0);
-    u.metalSpotScale.value.set(metalSpotEnv.scaleU ?? 1.0, metalSpotEnv.scaleV ?? 1.0);
+    u.metalSpotScale.value.set(metalSpotEnv.scaleU ?? 1.01, metalSpotEnv.scaleV ?? 1.01);
     u.metalSpotTrans.value.set(metalSpotEnv.transU ?? 0.0, metalSpotEnv.transV ?? 0.0);
     u.metalSpotScaleInvert.value = metalSpotEnv.scaleInvert ? 1.0 : 0.0;
     u.metalEnvView.value = metalEnvView ?? 0;

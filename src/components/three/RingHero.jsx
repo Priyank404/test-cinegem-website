@@ -442,8 +442,8 @@ export default function RingHero({
   // Metal Spotlight HDR controls (Independent controls, reusing diamond spotlight asset)
   metalSpotEnv = null,
   metalEnvView = 0,
-  metalSpotHdrUrl = "/hdr/Diamond-Spotlight-HDRI.exr",
-  metalSpotFileNameHint = "Diamond-Spotlight-HDRI.exr",
+  metalSpotHdrUrl = "/hdr/Metal-Spotlight-HDRI.hdr",
+  metalSpotFileNameHint = "Metal-Spotlight-HDRI.hdr",
   onMetalSpotMetaUpdate = null,
 
   // Three.js Scene Directional Lights
@@ -823,16 +823,16 @@ export default function RingHero({
         metalMat.userData.hasMetalSpot.value = spotEnabled ? 1.0 : 0.0;
       }
       if (metalMat.userData?.metalSpotPower) {
-        metalMat.userData.metalSpotPower.value = typeof mSpot.power === "number" ? mSpot.power : 2.0;
+        metalMat.userData.metalSpotPower.value = typeof mSpot.power === "number" ? mSpot.power : 16.5;
       }
       if (metalMat.userData?.metalSpotGamma) {
-        metalMat.userData.metalSpotGamma.value = typeof mSpot.gamma === "number" ? mSpot.gamma : 1.05;
+        metalMat.userData.metalSpotGamma.value = typeof mSpot.gamma === "number" ? mSpot.gamma : 2.05;
       }
       if (metalMat.userData?.metalSpotRot) {
         metalMat.userData.metalSpotRot.value = degToRad(mSpot.rot ?? 0);
       }
       if (metalMat.userData?.metalSpotScale) {
-        metalMat.userData.metalSpotScale.value.set(mSpot.scaleU ?? 1.0, mSpot.scaleV ?? 1.0);
+        metalMat.userData.metalSpotScale.value.set(mSpot.scaleU ?? 1.01, mSpot.scaleV ?? 1.01);
       }
       if (metalMat.userData?.metalSpotTrans) {
         metalMat.userData.metalSpotTrans.value.set(mSpot.transU ?? 0.0, mSpot.transV ?? 0.0);
@@ -2143,8 +2143,19 @@ export default function RingHero({
         console.warn("RingHero: Diamond spot HDRI failed to load, continuing with fallback:", err);
         return { texture: null, meta: null };
       }),
+      (isFallbackDevice || !metalSpotHdrUrl)
+        ? Promise.resolve({ texture: null, meta: null })
+        : (metalSpotHdrUrl === gemSpotHdrUrl
+            ? Promise.resolve(null)
+            : loadRawEquirect(metalSpotHdrUrl, {
+                mono: false,
+                fileName: metalSpotFileNameHint || "Metal-Spotlight-HDRI.hdr",
+              }).catch((err) => {
+                console.warn("RingHero: Metal spot HDRI failed to load, continuing with fallback:", err);
+                return { texture: null, meta: null };
+              })),
     ])
-      .then(([gltf, loadedMetalEnv, loadedBaseResult, loadedSpotResult]) => {
+      .then(([gltf, loadedMetalEnv, loadedBaseResult, loadedSpotResult, loadedMetalSpotResult]) => {
         clearTimeout(safetyTimeout);
         if (disposed) return;
 
@@ -2154,8 +2165,12 @@ export default function RingHero({
         gemEnvTexturesRef.current.base = loadedBaseResult?.texture || null;
         gemEnvTexturesRef.current.baseMeta = loadedBaseResult?.meta || null;
         gemEnvTexturesRef.current.rawSpot = loadedSpotResult?.texture || null;
-        gemEnvTexturesRef.current.metalSpotRaw = loadedSpotResult?.texture || null;
-        gemEnvTexturesRef.current.metalSpot = loadedSpotResult?.texture || null;
+
+        const effectiveMetalSpotResult = loadedMetalSpotResult || loadedSpotResult;
+        gemEnvTexturesRef.current.metalSpotRaw = effectiveMetalSpotResult?.texture || null;
+        gemEnvTexturesRef.current.metalSpot = effectiveMetalSpotResult?.texture || null;
+        gemEnvTexturesRef.current.metalSpotMeta = effectiveMetalSpotResult?.meta || null;
+        onMetalSpotMetaUpdate?.(effectiveMetalSpotResult?.meta || null);
 
         if (deviceTier.tier === "mobile" && !loadedMetalEnv) {
           try {
