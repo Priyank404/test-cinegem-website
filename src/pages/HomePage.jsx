@@ -277,7 +277,7 @@ const DEFAULT_DISPERSION = 0.02;
 
 // Three.js Scene Directional Lights config
 export const DEFAULT_SCENE_LIGHTS_CONFIG = {
-  enabled: true,
+  enabled: false,
   keyLightEnabled: true,
   keyLightIntensity: 1.2,
   fillLightEnabled: true,
@@ -3417,14 +3417,14 @@ function MaterialDevPanel({
           <span style={{ fontWeight: 700, color: "#ffd580", fontSize: 11 }}>
             💡 THREE.JS SCENE LIGHTS
           </span>
-          <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, cursor: "pointer", color: (sceneLightsConfig.enabled ?? true) ? "#ffd580" : "#888" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, cursor: "pointer", color: (sceneLightsConfig.enabled ?? false) ? "#ffd580" : "#888" }}>
             <input
               type="checkbox"
               data-testid="scene-lights-master-toggle"
-              checked={sceneLightsConfig.enabled ?? true}
+              checked={sceneLightsConfig.enabled ?? false}
               onChange={(e) => setSceneLightsConfig?.((prev) => ({ ...prev, enabled: e.target.checked }))}
             />
-            {(sceneLightsConfig.enabled ?? true) ? "Enabled" : "Off"}
+            {(sceneLightsConfig.enabled ?? false) ? "Enabled" : "Off"}
           </label>
         </div>
 
@@ -3432,7 +3432,7 @@ function MaterialDevPanel({
           Controls the Three.js directional lights (Key & Fill) illuminating the ring geometry. Turn off to inspect pure HDR / EXR environment reflections.
         </div>
 
-        <div style={{ opacity: (sceneLightsConfig.enabled ?? true) ? 1 : 0.35, pointerEvents: (sceneLightsConfig.enabled ?? true) ? "auto" : "none" }}>
+        <div style={{ opacity: (sceneLightsConfig.enabled ?? false) ? 1 : 0.35, pointerEvents: (sceneLightsConfig.enabled ?? false) ? "auto" : "none" }}>
           {/* Key Light */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, marginBottom: 2 }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: "#ffe6b3" }}>Key Light (pos: 3, 4, 5)</span>

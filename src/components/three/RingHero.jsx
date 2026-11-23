@@ -940,7 +940,7 @@ export default function RingHero({
 
     // Three.js Scene Directional Lights
     const lCfg = cfg.sceneLightsConfig || {};
-    const lightsOn = lCfg.enabled !== false;
+    const lightsOn = Boolean(lCfg.enabled);
     if (keyLightRef.current) {
       keyLightRef.current.visible = lightsOn && lCfg.keyLightEnabled !== false;
       keyLightRef.current.intensity = typeof lCfg.keyLightIntensity === "number" ? lCfg.keyLightIntensity : 1.2;
@@ -2004,22 +2004,22 @@ export default function RingHero({
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(3, 4, 5);
+    keyLight.visible = false;
     scene.add(keyLight);
     keyLightRef.current = keyLight;
 
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
     fillLight.position.set(-4, -1, -3);
+    fillLight.visible = false;
     scene.add(fillLight);
     fillLightRef.current = fillLight;
 
-    if (hdrConfigRef.current?.sceneLightsConfig) {
-      const lCfg = hdrConfigRef.current.sceneLightsConfig;
-      const lightsOn = lCfg.enabled !== false;
-      keyLight.visible = lightsOn && lCfg.keyLightEnabled !== false;
-      keyLight.intensity = typeof lCfg.keyLightIntensity === "number" ? lCfg.keyLightIntensity : 1.2;
-      fillLight.visible = lightsOn && lCfg.fillLightEnabled !== false;
-      fillLight.intensity = typeof lCfg.fillLightIntensity === "number" ? lCfg.fillLightIntensity : 0.4;
-    }
+    const lCfg = hdrConfigRef.current?.sceneLightsConfig || {};
+    const lightsOn = Boolean(lCfg.enabled);
+    keyLight.visible = lightsOn && lCfg.keyLightEnabled !== false;
+    keyLight.intensity = typeof lCfg.keyLightIntensity === "number" ? lCfg.keyLightIntensity : 1.2;
+    fillLight.visible = lightsOn && lCfg.fillLightEnabled !== false;
+    fillLight.intensity = typeof lCfg.fillLightIntensity === "number" ? lCfg.fillLightIntensity : 0.4;
 
     const pmrem = new PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
