@@ -7,6 +7,9 @@
   --pbox-bottom-offset: 66px;
   --pbox-btn-pad: 22px;
   --pbox-translate-y: 0px;
+  --pbox-outer-right: calc(50% + 340px);
+  --pbox-outer-left: calc(50% - 340px);
+  --pbox-outer-top: 15.5%;
 }
 
 @media (max-width: 640px) {
@@ -27,6 +30,8 @@
   :root {
     --pbox-bottom-offset: 104px;
     --pbox-btn-pad: 20px;
+    --pbox-outer-right: calc(50% + 325px);
+    --pbox-outer-left: calc(50% - 325px);
   }
 }
 

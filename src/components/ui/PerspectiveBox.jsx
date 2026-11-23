@@ -341,6 +341,26 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         "--pbox-btn-pad",
         `${btnPad}px`
       );
+      document.documentElement.style.setProperty(
+        "--pbox-outer-right",
+        `${outerRight}px`
+      );
+      document.documentElement.style.setProperty(
+        "--pbox-outer-left",
+        `${outerLeft}px`
+      );
+      document.documentElement.style.setProperty(
+        "--pbox-outer-top",
+        `${outerTop}px`
+      );
+      document.documentElement.style.setProperty(
+        "--pbox-outer-width",
+        `${outerW}px`
+      );
+      document.documentElement.style.setProperty(
+        "--pbox-outer-height",
+        `${outerH}px`
+      );
     }
 
     updateGeometryDOM();
