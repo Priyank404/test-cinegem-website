@@ -110,7 +110,7 @@ export default function LoadingScreen({
         {/* Cinegem Studio Proper Logo */}
         <div className="relative flex items-center justify-center -mt-4 sm:-mt-6 md:-mt-8 -mb-6 sm:-mb-8 md:-mb-10">
           <img
-            src="/Logo.png"
+            src="/Logo.svg"
             alt="Cinegem Studio"
             loading="eager"
             onError={(e) => { e.currentTarget.style.opacity = "0"; }}
