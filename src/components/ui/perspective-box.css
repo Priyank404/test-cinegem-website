@@ -11,7 +11,7 @@
 
 @media (max-width: 640px) {
   :root {
-    --pbox-bottom-offset: 112px;
+    --pbox-bottom-offset: 70px;
     --pbox-btn-pad: 14px;
   }
 }

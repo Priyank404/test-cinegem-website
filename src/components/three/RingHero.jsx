@@ -3816,10 +3816,10 @@ export default function RingHero({
         style={{
           position: "fixed",
           left: "50%",
-          top: "52%",
+          top: "63.8%",
           transform: "translate(-50%, -50%)",
-          width: "min(86vw, 380px)",
-          height: "min(40vh, 340px)",
+          width: "min(92vw, 390px)",
+          height: "min(56vh, 484px)",
           zIndex: 4,
           touchAction: "none",
           userSelect: "none",

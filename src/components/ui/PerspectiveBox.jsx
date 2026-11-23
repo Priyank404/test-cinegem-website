@@ -211,9 +211,13 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
     let outerLeft, outerRight, outerTop, outerBottom;
 
     if (isMobile) {
-      // Mobile (e.g. iPhone 12 390x844):
-      halfOuterW = Math.min(Math.round((winW - 32) / 2), 175);
-      halfOuterH = Math.min(Math.round(winH * 0.23), 195);
+      // Mobile (e.g. iPhone 12/14/15/16 390x844, Android 412x915):
+      // Generously scaled showcase box framing the 360° ring with comfortable clearance above the bottom interaction button
+      halfOuterW = Math.min(Math.round((winW - 24) / 2), 190);
+      // Increased height so the bottom edge of the box extends down, moving the button away from the ring shank
+      const maxBottomAllowance = Math.round((winH - ringCy) - 48); // keep at least 48px clearance from viewport bottom
+      const desiredHalfH = Math.min(Math.round(winH * 0.28), 242);
+      halfOuterH = Math.max(200, Math.min(desiredHalfH, maxBottomAllowance));
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
@@ -277,7 +281,7 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
     const cy = outerCy;
 
     // Dedicated border radius per device tier for sleek, curved corners across all views
-    const radiusOut = isMobile ? 20 : isPortrait ? 24 : isMac ? 28 : 34;
+    const radiusOut = isMobile ? 22 : isPortrait ? 24 : isMac ? 28 : 34;
     const radiusIn = Math.max(8, Math.round(radiusOut * (innerW / outerW)));
 
     // Half perimeter of rounded rect with 2 quarter-circle corners:
