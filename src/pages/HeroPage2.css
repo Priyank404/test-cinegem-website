@@ -124,8 +124,8 @@ body::-webkit-scrollbar,
   left: calc(var(--pbox-outer-right, calc(50% + 340px)) + max(40px, 2vw));
   right: auto;
   top: 50%;
-  width: max(200px, 18.75vw);
-  max-width: min(360px, calc(100vw - var(--pbox-outer-right, calc(50% + 340px)) - max(40px, 2vw) - 44px));
+  width: min(410px, max(360px, 21.5vw));
+  max-width: min(410px, calc(100vw - var(--pbox-outer-right, calc(50% + 340px)) - max(40px, 2vw) - 44px));
   z-index: 8;
   transform: translateY(calc(-50% + 20px));
   opacity: 0;
