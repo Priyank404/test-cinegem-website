@@ -2249,7 +2249,7 @@ export default function HomePage() {
       {shouldStart3D && !perfFlags.noring && (
         <Hero3DErrorBoundary>
           <RingHero
-          glbUrl="/models/ring-draco.glb"
+          glbUrl="/models/ring-draco.glb?v=420k"
         metalHdrUrl={metalHdrUrl}
         gemBaseHdrUrl={gemBaseHdrUrl}
         gemSpotHdrUrl={gemSpotHdrUrl}

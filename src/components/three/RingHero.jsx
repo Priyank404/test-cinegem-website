@@ -410,7 +410,7 @@ function wrapAngle(rad) {
 }
 
 export default function RingHero({
-  glbUrl = "/models/ring-draco.glb",
+  glbUrl = "/models/ring-draco.glb?v=420k",
   metalHdrUrl = "/hdr/env_metal_029_1798f1cf07-metal.hdr",
   gemHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
   gemBaseHdrUrl = "/hdr/env_metal_029_1798f1cf07.hdr",
