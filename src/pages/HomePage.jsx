@@ -127,7 +127,7 @@ function pickVideoSrc(v) {
     ? v.srcLow || v.src || v.full || ""
     : v.src || v.full || v.srcLow || "";
 }
-const DEFAULT_METAL_HDR_CONFIG = {
+export const DEFAULT_METAL_HDR_CONFIG = {
   rot: 0,
   rotation: -65,
   rotationY: -57,
@@ -143,6 +143,23 @@ const DEFAULT_METAL_HDR_CONFIG = {
   saturation: 100,
 };
 
+// 3D Interactive Viewer Section Metal Base HDR Defaults (Beat 5 - Studio Spec from User Upload)
+export const INTERACTIVE_METAL_HDR_CONFIG = {
+  rotation: 0,
+  rotationY: 0,
+  rot: 0,
+  scale: 27,
+  scaleU: 0.876,
+  scaleV: 0.194,
+  lockScale: false,
+  transU: -0.045,
+  transV: 0.0,
+  scaleInvert: false,
+  power: 300,
+  gamma: 15,
+  saturation: 21,
+};
+
 export const DEFAULT_METAL_SPOT_ENV = {
   enabled: true,
   power: 16.5,
@@ -154,6 +171,21 @@ export const DEFAULT_METAL_SPOT_ENV = {
   lockScale: true,
   transU: 0.0,
   transV: 0.0,
+  scaleInvert: false,
+};
+
+// 3D Interactive Viewer Section Metal Spotlight Defaults (Beat 5 - Studio Spec from User Upload)
+export const INTERACTIVE_METAL_SPOT_ENV = {
+  enabled: true,
+  power: 16.5,
+  gamma: 2.05,
+  size: 2,
+  rot: 0,
+  scaleU: 1.01,
+  scaleV: 1.01,
+  lockScale: true,
+  transU: -0.083,
+  transV: -0.248,
   scaleInvert: false,
 };
 
@@ -2294,7 +2326,9 @@ export default function HomePage() {
         metalHdrPower={metalHdrConfig.power}
         metalHdrGamma={metalHdrConfig.gamma}
         metalHdrSaturation={metalHdrConfig.saturation ?? 100}
+        interactiveMetalHdrConfig={INTERACTIVE_METAL_HDR_CONFIG}
         metalSpotEnv={metalSpotEnv}
+        interactiveMetalSpotEnv={INTERACTIVE_METAL_SPOT_ENV}
         metalEnvView={metalEnvView}
         metalSpotHdrUrl={metalSpotHdrUrl}
         metalSpotFileNameHint={metalSpotFileNameHint}
@@ -3188,6 +3222,52 @@ function MaterialDevPanel({
           </div>
         </label>
 
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          <button
+            type="button"
+            data-testid="metal-preset-default-btn"
+            onClick={() => {
+              setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
+              onRefreshPreviews?.();
+            }}
+            style={{
+              flex: 1,
+              padding: "4px 8px",
+              fontSize: 10,
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: 4,
+              color: "#fff",
+              cursor: "pointer",
+            }}
+            title="Load Normal Default Metal Settings (Beats 0-4)"
+          >
+            🏛️ Default Metal (Normal)
+          </button>
+          <button
+            type="button"
+            data-testid="metal-preset-interactive-btn"
+            onClick={() => {
+              setMetalHdrConfig(INTERACTIVE_METAL_HDR_CONFIG);
+              onRefreshPreviews?.();
+            }}
+            style={{
+              flex: 1,
+              padding: "4px 8px",
+              fontSize: 10,
+              background: "rgba(255, 216, 142, 0.15)",
+              border: "1px solid rgba(255, 216, 142, 0.4)",
+              borderRadius: 4,
+              color: "#ffe082",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+            title="Load 3D Interactive Metal Settings (Beat 5 - Studio Spec)"
+          >
+            ✨ 3D Interactive (Studio Spec)
+          </button>
+        </div>
+
         <HdrConfigGroup
           label="Metal Base HDR controls"
           config={metalHdrConfig}
@@ -3235,6 +3315,52 @@ function MaterialDevPanel({
               />
               Enable
             </label>
+          </div>
+
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            <button
+              type="button"
+              data-testid="metal-spot-preset-default-btn"
+              onClick={() => {
+                setMetalSpotEnv(DEFAULT_METAL_SPOT_ENV);
+                onRefreshPreviews?.();
+              }}
+              style={{
+                flex: 1,
+                padding: "4px 8px",
+                fontSize: 10,
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: 4,
+                color: "#fff",
+                cursor: "pointer",
+              }}
+              title="Load Normal Default Metal Spotlight (Translate 0, 0)"
+            >
+              💡 Default Spot (0, 0)
+            </button>
+            <button
+              type="button"
+              data-testid="metal-spot-preset-interactive-btn"
+              onClick={() => {
+                setMetalSpotEnv(INTERACTIVE_METAL_SPOT_ENV);
+                onRefreshPreviews?.();
+              }}
+              style={{
+                flex: 1,
+                padding: "4px 8px",
+                fontSize: 10,
+                background: "rgba(255, 216, 142, 0.15)",
+                border: "1px solid rgba(255, 216, 142, 0.4)",
+                borderRadius: 4,
+                color: "#ffe082",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+              title="Load 3D Interactive Spotlight (Translate -0.083, -0.248)"
+            >
+              ✨ 3D Interactive Spot
+            </button>
           </div>
 
           <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 8, color: "#ffd88e", lineHeight: 1.3 }}>

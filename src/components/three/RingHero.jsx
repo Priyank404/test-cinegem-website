@@ -397,6 +397,200 @@ export function applyGemBaseEnvToMaterial(mat, blended) {
   }
 }
 
+// Fallback metal HDR base slot calibrations
+export const FALLBACK_DEFAULT_METAL_BASE_ENV = {
+  rot: 0,
+  rotation: -65,
+  rotationY: -57,
+  scale: 45,
+  scaleU: 1.0,
+  scaleV: 1.0,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  scaleInvert: false,
+  power: 7,
+  gamma: 144,
+  saturation: 100,
+};
+
+export const FALLBACK_INTERACTIVE_METAL_BASE_ENV = {
+  rotation: 0,
+  rotationY: 0,
+  rot: 0,
+  scale: 27,
+  scaleU: 0.876,
+  scaleV: 0.194,
+  lockScale: false,
+  transU: -0.045,
+  transV: 0.0,
+  scaleInvert: false,
+  power: 300,
+  gamma: 15,
+  saturation: 21,
+};
+
+// Fallback metal spotlight calibrations
+export const FALLBACK_DEFAULT_METAL_SPOT_ENV = {
+  enabled: true,
+  power: 16.5,
+  gamma: 2.05,
+  size: 2,
+  rot: 0,
+  scaleU: 1.01,
+  scaleV: 1.01,
+  lockScale: true,
+  transU: 0.0,
+  transV: 0.0,
+  scaleInvert: false,
+};
+
+export const FALLBACK_INTERACTIVE_METAL_SPOT_ENV = {
+  enabled: true,
+  power: 16.5,
+  gamma: 2.05,
+  size: 2,
+  rot: 0,
+  scaleU: 1.01,
+  scaleV: 1.01,
+  lockScale: true,
+  transU: -0.083,
+  transV: -0.248,
+  scaleInvert: false,
+};
+
+export function computeBlendedMetalEnv(
+  baseEnv = FALLBACK_DEFAULT_METAL_BASE_ENV,
+  targetEnv = FALLBACK_INTERACTIVE_METAL_BASE_ENV,
+  localFrame = 0
+) {
+  let blendT = 0;
+  if (localFrame <= 156) {
+    blendT = 0;
+  } else if (localFrame >= 214) {
+    blendT = 1;
+  } else {
+    const rawT = (localFrame - 156) / (214 - 156);
+    blendT = rawT * rawT * (3 - 2 * rawT); // smoothstep
+  }
+
+  const b = baseEnv || FALLBACK_DEFAULT_METAL_BASE_ENV;
+  const t = targetEnv || FALLBACK_INTERACTIVE_METAL_BASE_ENV;
+
+  const blendedScale = THREE.MathUtils.lerp(b.scale ?? 45, t.scale ?? 27, blendT);
+  const blendedPower = THREE.MathUtils.lerp(b.power ?? 7, t.power ?? 300, blendT);
+  const blendedGamma = THREE.MathUtils.lerp(b.gamma ?? 144, t.gamma ?? 15, blendT);
+
+  const trim = computeMetalHdrFactor({
+    scale: blendedScale,
+    power: blendedPower,
+    gamma: blendedGamma,
+  });
+
+  return {
+    blendT,
+    rotation: THREE.MathUtils.lerp(b.rotation ?? -65, t.rotation ?? 0, blendT),
+    rotationY: THREE.MathUtils.lerp(b.rotationY ?? -57, t.rotationY ?? 0, blendT),
+    rot: THREE.MathUtils.lerp(b.rot ?? 0, t.rot ?? 0, blendT),
+    scale: blendedScale,
+    scaleU: THREE.MathUtils.lerp(b.scaleU ?? 1.0, t.scaleU ?? 0.876, blendT),
+    scaleV: THREE.MathUtils.lerp(b.scaleV ?? 1.0, t.scaleV ?? 0.194, blendT),
+    transU: THREE.MathUtils.lerp(b.transU ?? 0.0, t.transU ?? -0.045, blendT),
+    transV: THREE.MathUtils.lerp(b.transV ?? 0.0, t.transV ?? 0.0, blendT),
+    scaleInvert: blendT > 0.5 ? (t.scaleInvert ? 1.0 : 0.0) : (b.scaleInvert ? 1.0 : 0.0),
+    power: blendedPower,
+    gamma: blendedGamma,
+    saturation: THREE.MathUtils.lerp(b.saturation ?? 100, t.saturation ?? 21, blendT),
+    trim,
+  };
+}
+
+export function computeBlendedMetalSpotEnv(
+  baseSpot = FALLBACK_DEFAULT_METAL_SPOT_ENV,
+  targetSpot = FALLBACK_INTERACTIVE_METAL_SPOT_ENV,
+  localFrame = 0
+) {
+  let blendT = 0;
+  if (localFrame <= 156) {
+    blendT = 0;
+  } else if (localFrame >= 214) {
+    blendT = 1;
+  } else {
+    const rawT = (localFrame - 156) / (214 - 156);
+    blendT = rawT * rawT * (3 - 2 * rawT); // smoothstep
+  }
+
+  const b = baseSpot || FALLBACK_DEFAULT_METAL_SPOT_ENV;
+  const t = targetSpot || FALLBACK_INTERACTIVE_METAL_SPOT_ENV;
+
+  return {
+    blendT,
+    enabled: blendT > 0.5 ? (t.enabled !== false) : (b.enabled !== false),
+    power: THREE.MathUtils.lerp(b.power ?? 16.5, t.power ?? 16.5, blendT),
+    gamma: THREE.MathUtils.lerp(b.gamma ?? 2.05, t.gamma ?? 2.05, blendT),
+    rot: THREE.MathUtils.lerp(b.rot ?? 0, t.rot ?? 0, blendT),
+    scaleU: THREE.MathUtils.lerp(b.scaleU ?? 1.01, t.scaleU ?? 1.01, blendT),
+    scaleV: THREE.MathUtils.lerp(b.scaleV ?? 1.01, t.scaleV ?? 1.01, blendT),
+    transU: THREE.MathUtils.lerp(b.transU ?? 0.0, t.transU ?? -0.083, blendT),
+    transV: THREE.MathUtils.lerp(b.transV ?? 0.0, t.transV ?? -0.248, blendT),
+    scaleInvert: blendT > 0.5 ? (t.scaleInvert ? 1.0 : 0.0) : (b.scaleInvert ? 1.0 : 0.0),
+  };
+}
+
+export function applyMetalEnvToMaterial(metalMat, blendedMetal, blendedSpot, curBeatIntensity) {
+  if (!metalMat) return;
+
+  if (blendedMetal) {
+    metalMat.userData._hdrTrim = blendedMetal.trim;
+    if (metalMat.userData?.envSaturation) {
+      metalMat.userData.envSaturation.value = blendedMetal.saturation / 100;
+    }
+    if (metalMat.userData?.metalScale) {
+      metalMat.userData.metalScale.value.set(blendedMetal.scaleU, blendedMetal.scaleV);
+    }
+    if (metalMat.userData?.metalTrans) {
+      metalMat.userData.metalTrans.value.set(blendedMetal.transU, blendedMetal.transV);
+    }
+    if (metalMat.userData?.metalRot) {
+      metalMat.userData.metalRot.value = degToRad(blendedMetal.rot ?? blendedMetal.rotation ?? 0);
+    }
+    if (metalMat.userData?.metalScaleInvert) {
+      metalMat.userData.metalScaleInvert.value = blendedMetal.scaleInvert;
+    }
+    if (metalMat.envMapRotation) {
+      metalMat.envMapRotation.y = degToRad(blendedMetal.rotation);
+      metalMat.envMapRotation.x = degToRad(blendedMetal.rotationY);
+    }
+    if (typeof curBeatIntensity === "number") {
+      metalMat.envMapIntensity = curBeatIntensity * blendedMetal.trim;
+    }
+  }
+
+  if (blendedSpot) {
+    if (metalMat.userData?.hasMetalSpot && metalMat.userData?.envMapMetalSpot?.value) {
+      metalMat.userData.hasMetalSpot.value = (blendedSpot.enabled !== false) ? 1.0 : 0.0;
+    }
+    if (metalMat.userData?.metalSpotPower) {
+      metalMat.userData.metalSpotPower.value = blendedSpot.power;
+    }
+    if (metalMat.userData?.metalSpotGamma) {
+      metalMat.userData.metalSpotGamma.value = blendedSpot.gamma;
+    }
+    if (metalMat.userData?.metalSpotRot) {
+      metalMat.userData.metalSpotRot.value = degToRad(blendedSpot.rot ?? 0);
+    }
+    if (metalMat.userData?.metalSpotScale) {
+      metalMat.userData.metalSpotScale.value.set(blendedSpot.scaleU, blendedSpot.scaleV);
+    }
+    if (metalMat.userData?.metalSpotTrans) {
+      metalMat.userData.metalSpotTrans.value.set(blendedSpot.transU, blendedSpot.transV);
+    }
+    if (metalMat.userData?.metalSpotScaleInvert) {
+      metalMat.userData.metalSpotScaleInvert.value = blendedSpot.scaleInvert;
+    }
+  }
+}
+
 /**
  * Wraps an angle in radians to the shortest angular path [-π, +π].
  * Guarantees that rotational unwinding never executes multi-turn helicopter spins.
@@ -442,6 +636,8 @@ export default function RingHero({
 
   // Metal Spotlight HDR controls (Independent controls, reusing diamond spotlight asset)
   metalSpotEnv = null,
+  interactiveMetalSpotEnv = null,
+  interactiveMetalHdrConfig = null,
   metalEnvView = 0,
   metalSpotHdrUrl = "/hdr/Metal-Spotlight-HDRI.hdr",
   metalSpotFileNameHint = "Metal-Spotlight-HDRI.hdr",
@@ -623,6 +819,8 @@ export default function RingHero({
   const bloomEffectRef = useRef(null);
   const pmremRef = useRef(null);
   const lastAppliedGemBlendRef = useRef(-1);
+  const lastAppliedMetalBlendRef = useRef(-1);
+  const lastAppliedMetalSpotBlendRef = useRef(-1);
   const metalEnvStateRef = useRef({ value: BEATS[0].metalEnvIntensity });
 
   const effectiveBaseHdrUrl = gemBaseHdrUrl || gemHdrUrl;
@@ -640,8 +838,10 @@ export default function RingHero({
     metalHdrPower,
     metalHdrGamma,
     metalHdrSaturation,
+    interactiveMetalHdrConfig,
 
     metalSpotEnv,
+    interactiveMetalSpotEnv,
     metalEnvView,
 
     gemBaseEnv,
@@ -729,6 +929,8 @@ export default function RingHero({
       metalHdrSaturation,
 
       metalSpotEnv,
+      interactiveMetalSpotEnv,
+      interactiveMetalHdrConfig,
       metalEnvView,
 
       gemBaseEnv,
@@ -762,6 +964,8 @@ export default function RingHero({
     metalHdrGamma,
     metalHdrSaturation,
     metalSpotEnv,
+    interactiveMetalSpotEnv,
+    interactiveMetalHdrConfig,
     metalEnvView,
     sceneLightsConfig,
     gemBaseEnv,
@@ -781,48 +985,52 @@ export default function RingHero({
   function applyHdrConfigToLiveMaterials(customCfg) {
     const cfg = customCfg || hdrConfigRef.current;
     lastAppliedGemBlendRef.current = -1;
+    lastAppliedMetalBlendRef.current = -1;
+    lastAppliedMetalSpotBlendRef.current = -1;
 
-    // Metal HDR
-    const metalFactor = computeMetalHdrFactor({
+    // Diamond Octane Dual-EXR & Optical Physics Settings
+    const localFrame = debugFrameStateRef.current?.localFrame ?? 0;
+
+    // Metal HDR & Spotlight
+    const baseMetalEnv = {
+      rotation: cfg.metalHdrRotation,
+      rotationY: cfg.metalHdrRotationY,
+      rot: cfg.metalHdrRot,
       scale: cfg.metalHdrScale,
+      scaleU: cfg.metalHdrScaleU,
+      scaleV: cfg.metalHdrScaleV,
+      transU: cfg.metalHdrTransU,
+      transV: cfg.metalHdrTransV,
+      scaleInvert: cfg.metalHdrScaleInvert,
       power: cfg.metalHdrPower,
       gamma: cfg.metalHdrGamma,
-    });
+      saturation: cfg.metalHdrSaturation,
+    };
+    const blendedMetal = computeBlendedMetalEnv(
+      baseMetalEnv,
+      cfg.interactiveMetalHdrConfig,
+      localFrame
+    );
+    const blendedMetalSpot = computeBlendedMetalSpotEnv(
+      cfg.metalSpotEnv,
+      cfg.interactiveMetalSpotEnv,
+      localFrame
+    );
+
     const metalMat = metalMaterialRef.current;
     if (metalMat) {
-      metalMat.userData._hdrTrim = metalFactor;
-      if (metalMat.userData?.envSaturation) {
-        metalMat.userData.envSaturation.value = (cfg.metalHdrSaturation ?? 100) / 100;
-      }
-      if (metalMat.userData?.metalScale) {
-        metalMat.userData.metalScale.value.set(
-          cfg.metalHdrScaleU ?? 1.0,
-          cfg.metalHdrScaleV ?? 1.0
-        );
-      }
-      if (metalMat.userData?.metalTrans) {
-        metalMat.userData.metalTrans.value.set(
-          cfg.metalHdrTransU ?? 0.0,
-          cfg.metalHdrTransV ?? 0.0
-        );
-      }
-      if (metalMat.userData?.metalRot) {
-        metalMat.userData.metalRot.value = degToRad(cfg.metalHdrRot ?? cfg.metalHdrRotation ?? 0);
-      }
-      if (metalMat.userData?.metalScaleInvert) {
-        metalMat.userData.metalScaleInvert.value = cfg.metalHdrScaleInvert ? 1.0 : 0.0;
-      }
-      if (metalMat.envMapRotation) {
-        metalMat.envMapRotation.y = degToRad(cfg.metalHdrRotation);
-        metalMat.envMapRotation.x = degToRad(cfg.metalHdrRotationY);
-      }
       const curBeatIntensity = metalEnvStateRef.current?.value ?? BEATS[0].metalEnvIntensity;
-      metalMat.envMapIntensity = curBeatIntensity * metalFactor;
+      applyMetalEnvToMaterial(
+        metalMat,
+        blendedMetal,
+        blendedMetalSpot,
+        curBeatIntensity
+      );
 
-      // Metal Spotlight configuration (Independent controls & separate HDR/EXR asset)
+      // Metal Spotlight texture configuration (Independent controls & separate HDR/EXR asset)
       const spotTex = gemEnvTexturesRef.current.metalSpot || gemEnvTexturesRef.current.metalSpotRaw || gemEnvTexturesRef.current.spot || gemEnvTexturesRef.current.rawSpot;
       const mSpot = cfg.metalSpotEnv || {};
-      const spotEnabled = mSpot.enabled !== false && Boolean(spotTex);
+      const spotEnabled = (blendedMetalSpot.enabled !== false && mSpot.enabled !== false) && Boolean(spotTex);
 
       if (metalMat.userData?.envMapMetalSpot && spotTex) {
         metalMat.userData.envMapMetalSpot.value = spotTex;
@@ -830,31 +1038,12 @@ export default function RingHero({
       if (metalMat.userData?.hasMetalSpot) {
         metalMat.userData.hasMetalSpot.value = spotEnabled ? 1.0 : 0.0;
       }
-      if (metalMat.userData?.metalSpotPower) {
-        metalMat.userData.metalSpotPower.value = typeof mSpot.power === "number" ? mSpot.power : 16.5;
-      }
-      if (metalMat.userData?.metalSpotGamma) {
-        metalMat.userData.metalSpotGamma.value = typeof mSpot.gamma === "number" ? mSpot.gamma : 2.05;
-      }
-      if (metalMat.userData?.metalSpotRot) {
-        metalMat.userData.metalSpotRot.value = degToRad(mSpot.rot ?? 0);
-      }
-      if (metalMat.userData?.metalSpotScale) {
-        metalMat.userData.metalSpotScale.value.set(mSpot.scaleU ?? 1.01, mSpot.scaleV ?? 1.01);
-      }
-      if (metalMat.userData?.metalSpotTrans) {
-        metalMat.userData.metalSpotTrans.value.set(mSpot.transU ?? 0.0, mSpot.transV ?? 0.0);
-      }
-      if (metalMat.userData?.metalSpotScaleInvert) {
-        metalMat.userData.metalSpotScaleInvert.value = mSpot.scaleInvert ? 1.0 : 0.0;
-      }
       if (metalMat.userData?.metalEnvView) {
         metalMat.userData.metalEnvView.value = cfg.metalEnvView ?? 0;
       }
     }
 
     // Diamond Octane Dual-EXR & Optical Physics Settings
-    const localFrame = debugFrameStateRef.current?.localFrame ?? 0;
     const blendedBase = computeBlendedGemBaseEnv(
       cfg.gemBaseEnv,
       cfg.interactiveGemBaseEnv,
@@ -3153,6 +3342,50 @@ export default function RingHero({
           (gemMaterialsRef.current?.length ? gemMaterialsRef.current : gemMaterials).forEach((mat) => {
             applyGemBaseEnvToMaterial(mat, curBlend);
           });
+        }
+
+        // Smooth continuous transition of metal base environment and metal spotlight exiting Beat 4 (frame 156) -> Beat 5 (frame 214)
+        const isMetalBlending = localFrame > 156 && localFrame < 214;
+        const needsMetalLatch = (localFrame <= 156 && lastAppliedMetalBlendRef.current !== 0) ||
+                                (localFrame >= 214 && lastAppliedMetalBlendRef.current !== 1);
+        if (isMetalBlending || needsMetalLatch) {
+          const baseMetalEnv = {
+            rotation: hdrConfigRef.current.metalHdrRotation,
+            rotationY: hdrConfigRef.current.metalHdrRotationY,
+            rot: hdrConfigRef.current.metalHdrRot,
+            scale: hdrConfigRef.current.metalHdrScale,
+            scaleU: hdrConfigRef.current.metalHdrScaleU,
+            scaleV: hdrConfigRef.current.metalHdrScaleV,
+            transU: hdrConfigRef.current.metalHdrTransU,
+            transV: hdrConfigRef.current.metalHdrTransV,
+            scaleInvert: hdrConfigRef.current.metalHdrScaleInvert,
+            power: hdrConfigRef.current.metalHdrPower,
+            gamma: hdrConfigRef.current.metalHdrGamma,
+            saturation: hdrConfigRef.current.metalHdrSaturation,
+          };
+          const curMetalBlend = computeBlendedMetalEnv(
+            baseMetalEnv,
+            hdrConfigRef.current.interactiveMetalHdrConfig,
+            localFrame
+          );
+          const curMetalSpotBlend = computeBlendedMetalSpotEnv(
+            hdrConfigRef.current.metalSpotEnv,
+            hdrConfigRef.current.interactiveMetalSpotEnv,
+            localFrame
+          );
+          if (
+            Math.abs(curMetalBlend.blendT - lastAppliedMetalBlendRef.current) > 1e-4 ||
+            Math.abs(curMetalSpotBlend.blendT - lastAppliedMetalSpotBlendRef.current) > 1e-4
+          ) {
+            lastAppliedMetalBlendRef.current = curMetalBlend.blendT;
+            lastAppliedMetalSpotBlendRef.current = curMetalSpotBlend.blendT;
+            applyMetalEnvToMaterial(
+              metalMaterialRef.current || metalMaterial,
+              curMetalBlend,
+              curMetalSpotBlend,
+              metalEnvState.value
+            );
+          }
         }
 
         /* [EXPERIMENTAL_ATMOSPHERE] Subtle idle float, micro-tilt shimmer & mouse parallax whenever ring is still (Beats 1–4) */
