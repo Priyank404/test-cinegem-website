@@ -2033,7 +2033,7 @@ export default function RingHero({
 
     // Progress tracking for GLB & HDRs/EXRs
     const progressMap = {
-      glb: { loaded: 0, total: 2695680 },
+      glb: { loaded: 0, total: 420028 },
       metalHdr: { loaded: 0, total: 661971 },
       gemBaseHdr: { loaded: 0, total: 7533766 },
       gemSpotHdr: { loaded: 0, total: 844667 },
