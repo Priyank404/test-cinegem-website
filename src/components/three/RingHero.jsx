@@ -4232,7 +4232,7 @@ export default function RingHero({
             <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
             <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
           </svg>
-          Drag to rotate
+          3D Interaction
         </div>
       )}
       <style>{`
