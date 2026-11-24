@@ -9,7 +9,7 @@
   --pbox-translate-y: 0px;
   --pbox-outer-right: calc(50% + 340px);
   --pbox-outer-left: calc(50% - 340px);
-  --pbox-outer-top: 15.5%;
+  --pbox-outer-top: 140px;
 }
 
 @media (max-width: 640px) {
@@ -32,6 +32,7 @@
     --pbox-btn-pad: 20px;
     --pbox-outer-right: calc(50% + 325px);
     --pbox-outer-left: calc(50% - 325px);
+    --pbox-outer-top: 175px;
   }
 }
 

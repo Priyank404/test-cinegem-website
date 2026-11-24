@@ -4179,7 +4179,7 @@ export default function RingHero({
         </button>
       )}
 
-      {/* Desktop "Drag to explore" hint — purely visual, positioned inside the bottom of the showcase box.
+      {/* Desktop "Drag to explore" hint — purely visual, positioned inside the top of the showcase box.
           pointerEvents:"none" so it never intercepts the drag itself. Fades in when the interactive
           window opens, fades out on first drag (see dismissedOnceRef). */}
       {!isMobileMode && (
@@ -4188,7 +4188,8 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "calc(var(--pbox-bottom-offset, 66px) + var(--pbox-btn-pad, 22px))",
+            top: "calc(var(--pbox-outer-top, 140px) + var(--pbox-btn-pad, 22px))",
+            bottom: "auto",
             transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
             zIndex: 10,
             pointerEvents: "none",
