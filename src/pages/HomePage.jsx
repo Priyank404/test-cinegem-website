@@ -1129,9 +1129,9 @@ export default function HomePage() {
     beat4EntryEnd: 145,
     beat4ExitStart: 155,
     beat4ExitEnd: 170,
-    // Beat 5 (Interactive 3D Viewer) title card slides up from below on Desktop & Mac
-    beat5EntryStart: 212,
-    beat5EntryEnd: 222,
+    // Beat 5 (Interactive 3D Viewer) title card slides up smoothly from below on Desktop & Mac
+    beat5EntryStart: 180,
+    beat5EntryEnd: 216,
     beat5ExitStart: 245,
     beat5ExitEnd: 255,
   };
@@ -1147,6 +1147,8 @@ export default function HomePage() {
         parsed.beat4EntryEnd = 145;
         parsed.beat4ExitStart = 155;
         parsed.beat4ExitEnd = 170;
+        parsed.beat5EntryStart = 180;
+        parsed.beat5EntryEnd = 216;
         return { ...DEFAULT_CARD_TIMING_CONFIG, ...parsed };
       }
     } catch (err) {
@@ -1756,8 +1758,8 @@ export default function HomePage() {
         // Desktop & Mac viewports: title card enters from the bottom of the viewport
         // and glides up into its vertically centered resting position (top: 50%; translateY(-50%))
         // beside the 3D Perspective Box, exactly like Beat 2 and Beat 3 title card animations.
-        const b5es = config.beat5EntryStart ?? 212;
-        const b5ee = config.beat5EntryEnd ?? 222;
+        const b5es = config.beat5EntryStart ?? 180;
+        const b5ee = config.beat5EntryEnd ?? 216;
         const b5xs = config.beat5ExitStart ?? FOOTER_REVEAL_GLOBAL_START_FRAME;
         const b5xe = config.beat5ExitEnd ?? 255;
 
@@ -1774,7 +1776,7 @@ export default function HomePage() {
           const t = (frame - b5es) / Math.max(0.001, b5ee - b5es);
           const easeT = t * t * (3 - 2 * t);
           yOffset = Math.round(slideDist * (1 - easeT));
-          opacity = easeT;
+          opacity = Math.min(1, easeT * 1.25);
         } else if (frame >= b5ee && frame < b5xs) {
           yOffset = 0;
           opacity = 1;
