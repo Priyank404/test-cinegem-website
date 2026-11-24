@@ -115,17 +115,16 @@ body::-webkit-scrollbar,
   margin-top: 24px;
 }
 
-/* "Explore 3D Viewer" text link — appears during the tail of Beat 5 once
-   the ring's auto-rotate kicks in, fixed centered near the bottom of the
-   viewport. A plain underlined text link (not a button), toggled visible
-   only within its own frame range by HeroPage2. */
+/* "Explore 3D Viewer" text link — appears during Beat 5 once
+   the ring's auto-rotate kicks in, fixed inside the right side of the showcase box.
+   Desktop position stays exactly anchored at 50% + 460px with equal proportion to left controls. */
 .hero2-explore-link {
   position: fixed;
-  left: calc(var(--pbox-outer-right, calc(50% + 340px)) + max(40px, 2vw));
+  left: calc(50% + 460px);
   right: auto;
   top: 50%;
-  width: min(410px, max(360px, 21.5vw));
-  max-width: min(410px, calc(100vw - var(--pbox-outer-right, calc(50% + 340px)) - max(40px, 2vw) - 44px));
+  width: 360px;
+  max-width: min(380px, calc(100vw - (50% + 460px) - 24px));
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -133,14 +132,14 @@ body::-webkit-scrollbar,
   visibility: hidden;
 }
 
-/* MacBook / Laptop viewports: title card maintains identical max(40px, 2vw) gap from the 3D box, with width scaled to comfortably clear VerticalDotNav */
+/* MacBook / Laptop viewports: title card maintains clean right-bay proportion inside the showcase box */
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    left: calc(var(--pbox-outer-right, calc(50% + 325px)) + max(40px, 2vw)) !important;
+    left: calc(50% + 320px) !important;
     right: auto !important;
-    width: min(300px, calc(100vw - var(--pbox-outer-right, calc(50% + 325px)) - max(40px, 2vw) - 44px)) !important;
-    max-width: 300px !important;
+    width: 290px !important;
+    max-width: min(300px, calc(100vw - (50% + 320px) - 24px)) !important;
   }
   .hero2-explore-link .glassy-title-card {
     padding: 20px 24px !important;
@@ -175,6 +174,214 @@ body::-webkit-scrollbar,
 
 .hero2-explore-link.is-visible * {
   pointer-events: auto;
+}
+
+/* ==========================================================================
+   Beat 5 Desktop Showcase: Left Controls (Rotate 360 Toggle & Metal Swatches)
+   ========================================================================== */
+.hero2-left-controls {
+  position: fixed;
+  left: calc(var(--pbox-outer-left, calc(50% - 870px)) + 50px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: fit-content;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+@media (min-width: 1025px) and (max-width: 1536px),
+       (min-width: 1025px) and (max-height: 940px) {
+  .hero2-left-controls {
+    left: calc(var(--pbox-outer-left, calc(50% - 650px)) + 36px) !important;
+    gap: 12px !important;
+  }
+}
+
+.hero2-left-controls:not(.is-visible) {
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.hero2-left-controls.is-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+.hero2-left-controls.is-visible * {
+  pointer-events: auto;
+}
+
+/* Rotate 360 Toggle Pill Button */
+.hero2-rotate-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  background: rgba(22, 20, 24, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #FCFBFA;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  user-select: none;
+  width: fit-content;
+}
+
+.hero2-rotate-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.hero2-rotate-toggle-btn.is-active {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.16), 0 4px 18px rgba(0, 0, 0, 0.4);
+}
+
+.hero2-rotate-toggle-btn .rotate-icon {
+  transition: transform 0.6s ease;
+}
+
+.hero2-rotate-toggle-btn.is-active .rotate-icon {
+  animation: hero2RotateSpin 10s linear infinite;
+}
+
+@keyframes hero2RotateSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Metal Swatch Glass Card */
+.hero2-metal-swatch-card {
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: rgba(20, 18, 22, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  width: fit-content;
+  user-select: none;
+}
+
+.swatch-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch-card-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFE2D8 0%, #D4AF37 60%, #8C6A18 100%);
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.5);
+  display: inline-block;
+}
+
+.swatch-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.swatch-card-options {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.metal-swatch-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+}
+
+.metal-swatch-btn--yellowGold {
+  background: radial-gradient(circle at 35% 35%, #FFF0B2 0%, #D4AF37 55%, #8C6A18 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.metal-swatch-btn--whiteGold {
+  background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #D8D8DC 55%, #888892 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.metal-swatch-btn--roseGold {
+  background: radial-gradient(circle at 35% 35%, #FFE2D8 0%, #E0A899 55%, #945B4D 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.metal-swatch-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px rgba(20, 18, 22, 0.9), 0 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+.metal-swatch-btn.is-selected {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(20, 18, 22, 0.95), 0 0 0 4px #D4AF37, 0 4px 14px rgba(212, 175, 55, 0.45);
+}
+
+/* Precision Orbit & Compass Guideline */
+.ring-orbit-compass {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 540px;
+  height: 540px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease;
+}
+
+@media (min-width: 1025px) and (max-width: 1536px),
+       (min-width: 1025px) and (max-height: 940px) {
+  .ring-orbit-compass {
+    width: 440px;
+    height: 440px;
+  }
+}
+
+/* Tablet & Mobile exclusion: Left controls & compass are strictly Desktop & Mac */
+@media (max-width: 1024px) and (max-aspect-ratio: 1.25/1),
+       (max-width: 640px) {
+  .hero2-left-controls,
+  .ring-orbit-compass {
+    display: none !important;
+  }
 }
 
 /* Tablet portrait: explore link floats at the top matching other section title cards */

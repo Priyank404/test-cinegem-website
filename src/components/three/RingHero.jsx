@@ -705,6 +705,8 @@ export default function RingHero({
   autoRotateEndFrame = null,
   // Radians/second of the auto-rotate spin while active.
   autoRotateSpeed = 0.35,
+  // External control to pause/resume auto-rotation
+  autoRotateEnabled = true,
 
   // Interactive drag-to-rotate — active only while the scroll-tweened
   // local frame is within [interactiveRotateStartFrame,
@@ -1428,22 +1430,48 @@ export default function RingHero({
   useEffect(() => {
     const metalMat = metalMaterialRef.current;
     if (metalMat && metalPreset) {
-      if (metalPreset.color !== undefined) {
-        metalMat.color.set(metalPreset.color);
-      }
-      metalMat.metalness = metalPreset.metalness ?? 1.0;
-      metalMat.roughness = Math.max(
+      const targetColor = new THREE.Color(metalPreset.color);
+      const targetSpecular =
+        metalPreset.specularColor !== undefined
+          ? new THREE.Color(metalPreset.specularColor)
+          : null;
+      const targetRoughness = Math.max(
         metalPreset.roughness ?? 0.08,
         metalPreset.minRoughness ?? 0.045
       );
-      metalMat.clearcoat = metalPreset.clearcoat ?? 0.25;
-      metalMat.clearcoatRoughness = metalPreset.clearcoatRoughness ?? 0.14;
-      if (metalMat.specularColor && metalPreset.specularColor !== undefined) {
-        metalMat.specularColor.set(metalPreset.specularColor);
+
+      // Smooth color and material tween over 0.55s
+      gsap.to(metalMat.color, {
+        r: targetColor.r,
+        g: targetColor.g,
+        b: targetColor.b,
+        duration: 0.55,
+        ease: "power2.out",
+        onUpdate: () => {
+          metalMat.needsUpdate = true;
+        },
+      });
+
+      if (metalMat.specularColor && targetSpecular) {
+        gsap.to(metalMat.specularColor, {
+          r: targetSpecular.r,
+          g: targetSpecular.g,
+          b: targetSpecular.b,
+          duration: 0.55,
+          ease: "power2.out",
+        });
       }
-      metalMat.specularIntensity = metalPreset.specularIntensity ?? 1.0;
-      metalMat.needsUpdate = true;
-      applyHdrConfigToLiveMaterials();
+
+      gsap.to(metalMat, {
+        roughness: targetRoughness,
+        clearcoat: metalPreset.clearcoat ?? 0.25,
+        clearcoatRoughness: metalPreset.clearcoatRoughness ?? 0.14,
+        duration: 0.55,
+        ease: "power2.out",
+        onComplete: () => {
+          applyHdrConfigToLiveMaterials();
+        },
+      });
     }
   }, [metalPreset]);
 
@@ -3489,7 +3517,7 @@ export default function RingHero({
             // Inside the 360 spin & interactive section:
             // Continuous unified turntable rotation around Y.
             // When NOT dragging (and not in freeze debug), continuously advance currentSpinYRef
-            if (!dragStateRef.current.dragging && !isRingDebug) {
+            if (!dragStateRef.current.dragging && !isRingDebug && autoRotateEnabled) {
               currentSpinYRef.current = wrapAngle(
                 currentSpinYRef.current + autoRotateSpeed * dt,
               );
@@ -4212,27 +4240,18 @@ export default function RingHero({
             whiteSpace: "nowrap",
           }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <span
             style={{
-              animation: showDragHint
-                ? "ringHeroDragHintSway 1.6s ease-in-out infinite"
-                : "none",
+              display: "inline-block",
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "#4ade80",
+              boxShadow: "0 0 8px rgba(74, 222, 128, 0.95)",
+              marginRight: "4px",
             }}
-          >
-            <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
-            <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
-            <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
-            <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
-          </svg>
-          3D Interaction
+          />
+          3D Interactive
         </div>
       )}
       <style>{`

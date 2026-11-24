@@ -629,6 +629,7 @@ export default function HomePage() {
   const [glbUrl, setGlbUrl] = useState(defaultGlbUrl);
 
   const [metalPresetKey, setMetalPresetKey] = useState("yellowGold");
+  const [isAutoRotateActive, setIsAutoRotateActive] = useState(true);
   // Default HDRs tuned to studio calibration:
   // Metal: env_metal_029_1798f1cf07-metal.hdr
   // Diamond: env_metal_029_1798f1cf07.hdr
@@ -1031,6 +1032,8 @@ export default function HomePage() {
   // scroll callback as everything else, rather than React state, to
   // avoid re-rendering on every scroll tick.
   const exploreLinkRef = useRef(null);
+  const leftControlsRef = useRef(null);
+  const compassRef = useRef(null);
   const perspectiveBoxRef = useRef(null);
 
   // Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
@@ -1796,6 +1799,21 @@ export default function HomePage() {
         el.style.visibility = opacity > 0 ? "visible" : "hidden";
         el.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
         el.classList.toggle("is-visible", opacity > 0.01);
+
+        if (leftControlsRef.current) {
+          const lEl = leftControlsRef.current;
+          lEl.style.transform = `translateY(calc(-50% + ${yOffset}px))`;
+          lEl.style.opacity = opacity.toFixed(3);
+          lEl.style.visibility = opacity > 0 ? "visible" : "hidden";
+          lEl.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
+          lEl.classList.toggle("is-visible", opacity > 0.01);
+        }
+
+        if (compassRef.current) {
+          const cEl = compassRef.current;
+          cEl.style.opacity = opacity.toFixed(3);
+          cEl.style.visibility = opacity > 0 ? "visible" : "hidden";
+        }
       } else {
         // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility at EXPLORE_LINK_GLOBAL_FRAME (220)
         // after the ring lands and the perspective box completes drawing
@@ -1808,6 +1826,13 @@ export default function HomePage() {
         el.style.visibility = "";
         el.style.pointerEvents = showExploreLink ? "auto" : "none";
         el.classList.toggle("is-visible", showExploreLink);
+
+        if (leftControlsRef.current) {
+          leftControlsRef.current.style.display = "none";
+        }
+        if (compassRef.current) {
+          compassRef.current.style.display = "none";
+        }
       }
     }
   }
@@ -2372,6 +2397,7 @@ export default function HomePage() {
           setIsLoading(false);
         }}
         metalPreset={metalPresets[metalPresetKey]}
+        autoRotateEnabled={isAutoRotateActive}
         gemMaterialTypeOverride={gemMode}
         dracoDecoderPath="/draco/"
         scrollContainerSelector="#scroll-content"
@@ -2490,6 +2516,187 @@ export default function HomePage() {
           />
         </Hero3DErrorBoundary>
       )}
+
+      {/* 360 Precision Orbit & Compass Guideline (Beat 5) */}
+      <div
+        ref={compassRef}
+        className="ring-orbit-compass"
+        aria-hidden="true"
+      >
+        <svg
+          viewBox="0 0 560 560"
+          width="100%"
+          height="100%"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Subtle Dotted Latitude Circle */}
+          <circle
+            cx="280"
+            cy="280"
+            r="200"
+            stroke="rgba(255, 255, 255, 0.08)"
+            strokeWidth="1"
+            strokeDasharray="2 6"
+          />
+          {/* Subtle Vertical Center Axis with tick markers */}
+          <line
+            x1="280"
+            y1="60"
+            x2="280"
+            y2="500"
+            stroke="rgba(255, 255, 255, 0.12)"
+            strokeWidth="1"
+            strokeDasharray="2 4"
+          />
+          <line
+            x1="274"
+            y1="280"
+            x2="286"
+            y2="280"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth="1.2"
+          />
+          {/* Primary 360 Orbit Ellipse with Rotation Arrow */}
+          <ellipse
+            cx="280"
+            cy="280"
+            rx="230"
+            ry="50"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth="1.2"
+            strokeDasharray="4 5"
+          />
+          {/* Rotation Arrowhead along orbit ellipse on the right */}
+          <path
+            d="M500 274 L512 280 L500 286"
+            stroke="rgba(255, 255, 255, 0.55)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Compass Orientation Points: N, S, W, O */}
+          <text
+            x="280"
+            y="50"
+            textAnchor="middle"
+            fill="rgba(255, 255, 255, 0.5)"
+            fontSize="12"
+            fontFamily="inherit"
+            fontWeight="500"
+            letterSpacing="0.1em"
+          >
+            N
+          </text>
+          <text
+            x="280"
+            y="525"
+            textAnchor="middle"
+            fill="rgba(255, 255, 255, 0.5)"
+            fontSize="12"
+            fontFamily="inherit"
+            fontWeight="500"
+            letterSpacing="0.1em"
+          >
+            S
+          </text>
+          <text
+            x="35"
+            y="284"
+            textAnchor="middle"
+            fill="rgba(255, 255, 255, 0.5)"
+            fontSize="12"
+            fontFamily="inherit"
+            fontWeight="500"
+            letterSpacing="0.1em"
+          >
+            W
+          </text>
+          <text
+            x="525"
+            y="284"
+            textAnchor="middle"
+            fill="rgba(255, 255, 255, 0.5)"
+            fontSize="12"
+            fontFamily="inherit"
+            fontWeight="500"
+            letterSpacing="0.1em"
+          >
+            O
+          </text>
+        </svg>
+      </div>
+
+      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3-Metal Swatch Card */}
+      <div
+        ref={leftControlsRef}
+        className="hero2-left-controls"
+        style={{ pointerEvents: "none" }}
+      >
+        <button
+          type="button"
+          className={`hero2-rotate-toggle-btn ${isAutoRotateActive ? "is-active" : ""}`}
+          onClick={() => setIsAutoRotateActive((prev) => !prev)}
+          title={isAutoRotateActive ? "Click to pause 360° rotation" : "Click to resume 360° rotation"}
+          aria-label={isAutoRotateActive ? "Pause 360° rotation" : "Resume 360° rotation"}
+        >
+          <svg
+            className="rotate-icon"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span>Rotate 360°</span>
+          <span
+            className="status-dot"
+            style={{
+              display: "inline-block",
+              width: "5px",
+              height: "5px",
+              borderRadius: "50%",
+              background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.3)",
+              boxShadow: isAutoRotateActive ? "0 0 6px rgba(74, 222, 128, 0.9)" : "none",
+              marginLeft: "4px",
+              transition: "background 0.3s ease, box-shadow 0.3s ease",
+            }}
+          />
+        </button>
+
+        <div className="hero2-metal-swatch-card">
+          <div className="swatch-card-header">
+            <span className="swatch-card-icon" />
+            <span className="swatch-card-title">Metal Swatch</span>
+          </div>
+          <div className="swatch-card-options" role="radiogroup" aria-label="Precious Metal Selection">
+            {[
+              { key: "yellowGold", label: "Yellow Gold" },
+              { key: "whiteGold", label: "White Gold" },
+              { key: "roseGold", label: "Rose Gold" },
+            ].map((metal) => {
+              const isSelected = metalPresetKey === metal.key;
+              return (
+                <button
+                  key={metal.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={`metal-swatch-btn metal-swatch-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
+                  onClick={() => setMetalPresetKey(metal.key)}
+                  title={metal.label}
+                  aria-label={metal.label}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
       <div
