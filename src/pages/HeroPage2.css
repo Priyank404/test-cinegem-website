@@ -168,8 +168,9 @@ body::-webkit-scrollbar,
 }
 
 .hero2-explore-link.is-visible {
+  opacity: 1 !important;
   pointer-events: auto !important;
-  visibility: visible;
+  visibility: visible !important;
 }
 
 .hero2-explore-link.is-visible * {
@@ -191,6 +192,7 @@ body::-webkit-scrollbar,
     box-sizing: border-box !important;
   }
   .hero2-explore-link.is-visible {
+    opacity: 1 !important;
     transform: translate(-50%, 0) !important;
   }
 

@@ -1798,8 +1798,9 @@ export default function HomePage() {
         el.classList.toggle("is-visible", opacity > 0.01);
       } else {
         // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility
+        const b5Start = config.beat5EntryStart ?? 180;
         const showExploreLink =
-          frame >= EXPLORE_LINK_GLOBAL_FRAME &&
+          frame >= b5Start &&
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
         const el = exploreLinkRef.current;
         el.style.transform = "";
