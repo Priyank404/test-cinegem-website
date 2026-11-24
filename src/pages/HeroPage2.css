@@ -212,59 +212,9 @@ body::-webkit-scrollbar,
   }
 }
 
-/* Mobile phone: compact explore card at the top, perfectly matching title card spacing in Beats 2 & 3 */
-@media (max-width: 640px) {
-  .hero2-explore-link {
-    right: auto !important;
-    left: 50% !important;
-    top: clamp(72px, 9.5vh, 88px) !important;
-    transform: translate(-50%, 14px) !important;
-    width: min(calc(100% - 28px), 360px) !important;
-    max-width: 360px !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    box-sizing: border-box !important;
-  }
-  .hero2-explore-link.is-visible {
-    transform: translate(-50%, 0) !important;
-  }
-  .hero2-explore-link .glassy-title-card {
-    padding: 12px 16px !important;
-    border-radius: 16px !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
-    gap: 4px !important;
-    width: 100% !important;
-  }
-  .hero2-explore-link .glassy-title-card h2 {
-    font-size: 16px !important;
-    line-height: 1.25 !important;
-    margin: 0 !important;
-    font-weight: 600 !important;
-  }
-  .hero2-explore-link .glassy-title-card p {
-    font-size: 11px !important;
-    line-height: 1.38 !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    margin: 2px 0 4px !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .hero2-explore-link .glassy-title-card a {
-    padding: 6px 16px !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
-    border-radius: 7px !important;
-    margin-top: 2px !important;
-    width: fit-content !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    text-decoration: none !important;
-  }
-}
+/* Note: On mobile phone (<= 640px), .hero2-explore-link is fully synchronized with
+   .beat-title-right inside the main @media (max-width: 640px) block below to guarantee
+   all 3 title glassy cards (Beat 2, Beat 3, Beat 5) share identical dimensions, typography, and padding. */
 
 /* Ensure buttons across all cards move in 1:1 lockstep with scroll without lingering animation lag */
 .btn-primary {
@@ -602,8 +552,9 @@ body::-webkit-scrollbar,
     padding: 0 16px !important;
   }
 
-  /* Spacious, elegant top title card centered on mobile with reduced gap to grid card */
-  .beat-title-right {
+  /* Synchronized Title Cards for all 3 Beats (Beat 2, Beat 3, Beat 5) on Mobile */
+  .beat-title-right,
+  .hero2-explore-link {
     top: clamp(104px, 12.5vh, 114px) !important;
     left: 50% !important;
     right: auto !important;
@@ -611,41 +562,66 @@ body::-webkit-scrollbar,
     width: min(calc(100% - 24px), 390px) !important;
     max-width: 390px !important;
     margin: 0 auto !important;
+    box-sizing: border-box !important;
   }
 
-  .glassy-title-card {
+  .hero2-explore-link {
+    position: fixed;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    transform: translate(-50%, 12px) !important;
+  }
+
+  .hero2-explore-link.is-visible {
+    opacity: 1 !important;
+    transform: translate(-50%, 0) !important;
+  }
+
+  .glassy-title-card,
+  .hero2-explore-link .glassy-title-card {
     padding: 16px 18px !important;
     border-radius: 16px !important;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45) !important;
     gap: 5px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .glassy-title-card h3,
-  .glassy-title-card span {
+  .glassy-title-card span,
+  .hero2-explore-link .glassy-title-card h3,
+  .hero2-explore-link .glassy-title-card span {
     font-size: 9.5px !important;
     letter-spacing: 0.18em !important;
     margin-bottom: 0px !important;
   }
 
-  .glassy-title-card h2 {
+  .glassy-title-card h2,
+  .hero2-explore-link .glassy-title-card h2 {
     font-size: 18px !important;
     line-height: 1.25 !important;
     margin: 2px 0 3px !important;
     font-weight: 600 !important;
   }
 
-  .glassy-title-card p {
+  .glassy-title-card p,
+  .hero2-explore-link .glassy-title-card p {
     font-size: 11.5px !important;
     line-height: 1.42 !important;
     color: rgba(255, 255, 255, 0.85) !important;
     margin-bottom: 6px !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
 
-  .glassy-title-card a {
+  .glassy-title-card a,
+  .hero2-explore-link .glassy-title-card a,
+  .hero2-explore-link a {
     padding: 8px 18px !important;
     font-size: 11px !important;
     font-weight: 600 !important;
@@ -665,7 +641,11 @@ body::-webkit-scrollbar,
   }
 
   .glassy-title-card a:hover,
-  .glassy-title-card a:active {
+  .glassy-title-card a:active,
+  .hero2-explore-link .glassy-title-card a:hover,
+  .hero2-explore-link .glassy-title-card a:active,
+  .hero2-explore-link a:hover,
+  .hero2-explore-link a:active {
     background: rgba(255, 255, 255, 0.22) !important;
     border-color: rgba(255, 255, 255, 0.45) !important;
   }

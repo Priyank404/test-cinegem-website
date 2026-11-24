@@ -1780,7 +1780,6 @@ export default function HomePage() {
           frame >= EXPLORE_LINK_GLOBAL_FRAME &&
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
         exploreLinkRef.current.classList.toggle("is-visible", showExploreLink);
-        exploreLinkRef.current.style.display = showExploreLink ? "flex" : "none";
         exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
       }
 
@@ -2433,7 +2432,7 @@ export default function HomePage() {
       <div
         ref={exploreLinkRef}
         className="hero2-explore-link"
-        style={{ display: "none", pointerEvents: "none" }}
+        style={{ pointerEvents: "none" }}
       >
         <TitleGlassyCard
           title="Interactive 3D Viewer"

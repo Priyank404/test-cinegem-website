@@ -222,8 +222,8 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         }
       }
       if (!cardBottom || cardBottom < 100) {
-        const estCardTop = Math.max(72, Math.min(Math.round(winH * 0.095), 88));
-        cardBottom = estCardTop + (winH < 720 ? 116 : 126);
+        const estCardTop = Math.max(104, Math.min(Math.round(winH * 0.125), 114));
+        cardBottom = estCardTop + 160;
       }
 
       const minClearanceGap = 16; // luxury breathing clearance below top explore card
@@ -426,9 +426,7 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         if (!lastStateRef.current.visible) {
           container.style.display = "block";
           lastStateRef.current.visible = true;
-          if (!geomRef.current.winW) {
-            calculateGeometry();
-          }
+          calculateGeometry();
         }
 
         // 1. Line Drawing Progress:
