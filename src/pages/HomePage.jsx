@@ -1129,6 +1129,11 @@ export default function HomePage() {
     beat4EntryEnd: 145,
     beat4ExitStart: 155,
     beat4ExitEnd: 170,
+    // Beat 5 (Interactive 3D Viewer) title card slides up from below on Desktop & Mac
+    beat5EntryStart: 212,
+    beat5EntryEnd: 222,
+    beat5ExitStart: 245,
+    beat5ExitEnd: 255,
   };
   const [cardTimingConfig, setCardTimingConfig] = useState(() => {
     try {
@@ -1738,6 +1743,70 @@ export default function HomePage() {
           beat4Opacity > 0.05 ? "auto" : "none";
       }
     }
+
+    // ---- BEAT 5 (Interactive 3D Viewer Title Card) ----
+    if (exploreLinkRef.current) {
+      const isMobileOrPortrait =
+        typeof window !== "undefined" &&
+        (window.innerWidth <= 640 ||
+          (window.innerWidth <= 1024 &&
+            window.innerWidth / Math.max(1, window.innerHeight) <= 1.25));
+
+      if (!isMobileOrPortrait) {
+        // Desktop & Mac viewports: title card enters from the bottom of the viewport
+        // and glides up into its vertically centered resting position (top: 50%; translateY(-50%))
+        // beside the 3D Perspective Box, exactly like Beat 2 and Beat 3 title card animations.
+        const b5es = config.beat5EntryStart ?? 212;
+        const b5ee = config.beat5EntryEnd ?? 222;
+        const b5xs = config.beat5ExitStart ?? FOOTER_REVEAL_GLOBAL_START_FRAME;
+        const b5xe = config.beat5ExitEnd ?? 255;
+
+        const winH = typeof window !== "undefined" ? window.innerHeight : 900;
+        const slideDist = Math.max(700, Math.round(winH * 0.7));
+
+        let yOffset = slideDist;
+        let opacity = 0;
+
+        if (frame < b5es) {
+          yOffset = slideDist;
+          opacity = 0;
+        } else if (frame >= b5es && frame < b5ee) {
+          const t = (frame - b5es) / Math.max(0.001, b5ee - b5es);
+          const easeT = t * t * (3 - 2 * t);
+          yOffset = Math.round(slideDist * (1 - easeT));
+          opacity = easeT;
+        } else if (frame >= b5ee && frame < b5xs) {
+          yOffset = 0;
+          opacity = 1;
+        } else if (frame >= b5xs && frame <= b5xe) {
+          const t = (frame - b5xs) / Math.max(0.001, b5xe - b5xs);
+          const easeT = t * t * (3 - 2 * t);
+          yOffset = Math.round(-slideDist * easeT);
+          opacity = Math.max(0, 1 - easeT);
+        } else {
+          yOffset = -slideDist;
+          opacity = 0;
+        }
+
+        const el = exploreLinkRef.current;
+        el.style.transform = `translateY(calc(-50% + ${yOffset}px))`;
+        el.style.opacity = opacity.toFixed(3);
+        el.style.visibility = opacity > 0 ? "visible" : "hidden";
+        el.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
+        el.classList.toggle("is-visible", opacity > 0.01);
+      } else {
+        // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility
+        const showExploreLink =
+          frame >= EXPLORE_LINK_GLOBAL_FRAME &&
+          frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
+        const el = exploreLinkRef.current;
+        el.style.transform = "";
+        el.style.opacity = "";
+        el.style.visibility = "";
+        el.style.pointerEvents = showExploreLink ? "auto" : "none";
+        el.classList.toggle("is-visible", showExploreLink);
+      }
+    }
   }
 
   // Live preview: any time a card-timing slider changes, immediately
@@ -1773,15 +1842,6 @@ export default function HomePage() {
       }
 
       applyCardOverlayFrame(frame, cardTimingConfig);
-
-      // "Explore 3D Viewer" link
-      if (exploreLinkRef.current) {
-        const showExploreLink =
-          frame >= EXPLORE_LINK_GLOBAL_FRAME &&
-          frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
-        exploreLinkRef.current.classList.toggle("is-visible", showExploreLink);
-        exploreLinkRef.current.style.pointerEvents = showExploreLink ? "auto" : "none";
-      }
 
       // 3D Perspective Box Showcase for Beat 5 Ring
       if (perspectiveBoxRef.current) {
