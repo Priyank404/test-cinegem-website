@@ -217,10 +217,10 @@ body::-webkit-scrollbar,
   .hero2-explore-link {
     right: auto !important;
     left: 50% !important;
-    top: clamp(104px, 12.5vh, 114px) !important;
-    transform: translate(-50%, 16px) !important;
-    width: min(calc(100% - 24px), 390px) !important;
-    max-width: 390px !important;
+    top: clamp(72px, 9.5vh, 88px) !important;
+    transform: translate(-50%, 14px) !important;
+    width: min(calc(100% - 28px), 360px) !important;
+    max-width: 360px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -228,6 +228,41 @@ body::-webkit-scrollbar,
   }
   .hero2-explore-link.is-visible {
     transform: translate(-50%, 0) !important;
+  }
+  .hero2-explore-link .glassy-title-card {
+    padding: 12px 16px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .hero2-explore-link .glassy-title-card h2 {
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+  }
+  .hero2-explore-link .glassy-title-card p {
+    font-size: 11px !important;
+    line-height: 1.38 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    margin: 2px 0 4px !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .hero2-explore-link .glassy-title-card a {
+    padding: 6px 16px !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    border-radius: 7px !important;
+    margin-top: 2px !important;
+    width: fit-content !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    text-decoration: none !important;
   }
 }
 

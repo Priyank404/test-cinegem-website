@@ -211,13 +211,38 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
     let outerLeft, outerRight, outerTop, outerBottom;
 
     if (isMobile) {
-      // Mobile (e.g. iPhone 12/14/15/16 390x844, Android 412x915):
-      // Generously scaled showcase box framing the 360° ring with comfortable clearance above the bottom interaction button
+      // Mobile (e.g. iPhone 375x667, 390x844, Android 412x915):
+      // Calculate dynamic safe clearance below the top explore card:
+      let cardBottom = 0;
+      if (typeof document !== "undefined") {
+        const cardEl = document.querySelector(".hero2-explore-link .glassy-title-card");
+        if (cardEl) {
+          const rect = cardEl.getBoundingClientRect();
+          if (rect.bottom > 0) cardBottom = Math.round(rect.bottom);
+        }
+      }
+      if (!cardBottom || cardBottom < 100) {
+        const estCardTop = Math.max(72, Math.min(Math.round(winH * 0.095), 88));
+        cardBottom = estCardTop + (winH < 720 ? 116 : 126);
+      }
+
+      const minClearanceGap = 16; // luxury breathing clearance below top explore card
+      const minSafeBoxTop = Math.round(cardBottom + minClearanceGap);
+
       halfOuterW = Math.min(Math.round((winW - 24) / 2), 190);
-      // Increased height so the bottom edge of the box extends down, moving the button away from the ring shank
+
       const maxBottomAllowance = Math.round((winH - ringCy) - 48); // keep at least 48px clearance from viewport bottom
-      const desiredHalfH = Math.min(Math.round(winH * 0.28), 242);
-      halfOuterH = Math.max(200, Math.min(desiredHalfH, maxBottomAllowance));
+      const maxTopAllowance = Math.round(ringCy - minSafeBoxTop);
+      const maxSafeHalfH = Math.min(maxTopAllowance, maxBottomAllowance);
+
+      const desiredHalfH = Math.min(Math.round(winH * 0.26), 230);
+      halfOuterH = Math.max(145, Math.min(desiredHalfH, maxSafeHalfH));
+
+      // Guarantee outerTop is strictly >= minSafeBoxTop on all screens (prevents card intersection)
+      if (ringCy - halfOuterH < minSafeBoxTop) {
+        ringCy = minSafeBoxTop + halfOuterH;
+      }
+
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
