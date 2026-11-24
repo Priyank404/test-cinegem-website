@@ -79,7 +79,7 @@ export const metalPresets = {
  * envMap here is the METAL's own environment texture, never shared
  * with the gem material.
  */
-export function buildMetalMaterial(preset, envMap, roughnessOverride = null, globalEnvIntensity = 6.0) {
+export function buildMetalMaterial(preset, envMap, roughnessOverride = null, globalEnvIntensity = 6.0, isMobile = false) {
   const roughness = roughnessOverride ?? preset.roughness ?? 0.08;
   const minRoughness = preset.minRoughness ?? 0.045;
 
@@ -96,6 +96,11 @@ export function buildMetalMaterial(preset, envMap, roughnessOverride = null, glo
     specularColor: new THREE.Color(preset.specularColor ?? 0xffffff),
     side: THREE.FrontSide,
   });
+
+  if (isMobile) {
+    mat.defines = mat.defines || {};
+    mat.defines.FAST_SPOT = "";
+  }
 
   mat.userData = mat.userData || {};
   mat.userData.envSaturation = { value: 1.0 };
@@ -164,6 +169,10 @@ vec2 octaneUvMetal(vec2 uv, float rot, vec2 scale, vec2 trans, float scaleInvert
 float sampleMetalSpotAchro(vec3 dir) {
   if (uHasMetalSpot < 0.5 || uMetalSpotPower <= 0.0) return 0.0;
   vec2 uvS = octaneUvMetal(equirectUvMetal(dir), uMetalSpotRot, uMetalSpotScale, uMetalSpotTrans, uMetalSpotScaleInvert);
+#ifdef FAST_SPOT
+  // 1 single texture2D tap on mobile: saves ~88% texture lookups while keeping glints crisp
+  float m = texture2D(uMetalEnvMapSpot, uvS).r;
+#else
   vec2 d = vec2(0.006, 0.012);
   float m = texture2D(uMetalEnvMapSpot, uvS).r;
   m = max(m, texture2D(uMetalEnvMapSpot, uvS + vec2( d.x, 0.0)).r);
@@ -174,6 +183,7 @@ float sampleMetalSpotAchro(vec3 dir) {
   m = max(m, texture2D(uMetalEnvMapSpot, uvS + vec2(-d.x * 0.707, d.y * 0.707)).r);
   m = max(m, texture2D(uMetalEnvMapSpot, uvS + vec2( d.x * 0.707, -d.y * 0.707)).r);
   m = max(m, texture2D(uMetalEnvMapSpot, uvS - vec2( d.x * 0.707, -d.y * 0.707)).r);
+#endif
   float shaped = pow(max(m, 1e-8), uMetalSpotGamma) * uMetalSpotPower;
   return min(shaped, 30.0);
 }

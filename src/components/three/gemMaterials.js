@@ -364,7 +364,9 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       float sampleSpotAchro(vec3 dir) {
         if (hasSpotMap < 0.5) return 0.0;
         vec2 uvS = octaneUv(equirectUv(dir), spotRot, spotScale, spotTrans, spotScaleInvert);
-
+#ifdef FAST_SPOT
+        float m = textureLod(envMapSpot, uvS, spotLod).r;
+#else
         vec2 d = vec2(0.006, 0.012);
         float m = textureLod(envMapSpot, uvS, spotLod).r;
         m = max(m, textureLod(envMapSpot, uvS + vec2( d.x,  0.0), spotLod).r);
@@ -375,7 +377,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
         m = max(m, textureLod(envMapSpot, uvS + vec2(-d.x * 0.707,  d.y * 0.707), spotLod).r);
         m = max(m, textureLod(envMapSpot, uvS + vec2( d.x * 0.707, -d.y * 0.707), spotLod).r);
         m = max(m, textureLod(envMapSpot, uvS - vec2( d.x * 0.707, -d.y * 0.707), spotLod).r);
-
+#endif
         float shaped = shapeTexel(m, spotPower, spotGamma);
         return min(shaped, 30.0);
       }
@@ -579,6 +581,9 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
     if (parameters.envMapSpot) {
       this.envMapSpot = parameters.envMapSpot;
     }
+    if (parameters.fastSpot || parameters.tier === "mobile") {
+      this.defines.FAST_SPOT = "";
+    }
 
     this.updateDefines(this.aberrationStrength ?? 0.006);
   }
@@ -778,6 +783,8 @@ export function buildGemMaterial(
           aberrationStrength: preset.aberrationStrength ?? 0.006,
           color: new THREE.Color(preset.transmissionColor ?? preset.color ?? "#ffffff"),
           isMatte: isMatte ? 1.0 : 0.0,
+          fastSpot: true,
+          tier: "mobile",
         });
       } catch (err) {
         console.warn("RoughRefractionMaterial on mobile failed, trying mobile fallback:", err);

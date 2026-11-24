@@ -2407,6 +2407,7 @@ export default function RingHero({
           metalEnvMap,
           null,
           BEATS[0].metalEnvIntensity,
+          deviceTier.isMobile || deviceTier.tier === "mobile" || Boolean(deviceTier.weakMobileBudget)
         );
         metalMaterial.fog = false;
         metalMaterialRef.current = metalMaterial;
