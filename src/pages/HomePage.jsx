@@ -1033,7 +1033,6 @@ export default function HomePage() {
   // avoid re-rendering on every scroll tick.
   const exploreLinkRef = useRef(null);
   const leftControlsRef = useRef(null);
-  const compassRef = useRef(null);
   const perspectiveBoxRef = useRef(null);
 
   // Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
@@ -1808,12 +1807,6 @@ export default function HomePage() {
           lEl.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
           lEl.classList.toggle("is-visible", opacity > 0.01);
         }
-
-        if (compassRef.current) {
-          const cEl = compassRef.current;
-          cEl.style.opacity = opacity.toFixed(3);
-          cEl.style.visibility = opacity > 0 ? "visible" : "hidden";
-        }
       } else {
         // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility at EXPLORE_LINK_GLOBAL_FRAME (220)
         // after the ring lands and the perspective box completes drawing
@@ -1829,9 +1822,6 @@ export default function HomePage() {
 
         if (leftControlsRef.current) {
           leftControlsRef.current.style.display = "none";
-        }
-        if (compassRef.current) {
-          compassRef.current.style.display = "none";
         }
       }
     }
@@ -2517,116 +2507,6 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* 360 Precision Orbit & Compass Guideline (Beat 5) */}
-      <div
-        ref={compassRef}
-        className="ring-orbit-compass"
-        aria-hidden="true"
-      >
-        <svg
-          viewBox="0 0 560 560"
-          width="100%"
-          height="100%"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Subtle Dotted Latitude Circle */}
-          <circle
-            cx="280"
-            cy="280"
-            r="200"
-            stroke="rgba(255, 255, 255, 0.08)"
-            strokeWidth="1"
-            strokeDasharray="2 6"
-          />
-          {/* Subtle Vertical Center Axis with tick markers */}
-          <line
-            x1="280"
-            y1="60"
-            x2="280"
-            y2="500"
-            stroke="rgba(255, 255, 255, 0.12)"
-            strokeWidth="1"
-            strokeDasharray="2 4"
-          />
-          <line
-            x1="274"
-            y1="280"
-            x2="286"
-            y2="280"
-            stroke="rgba(255, 255, 255, 0.25)"
-            strokeWidth="1.2"
-          />
-          {/* Primary 360 Orbit Ellipse with Rotation Arrow */}
-          <ellipse
-            cx="280"
-            cy="280"
-            rx="230"
-            ry="50"
-            stroke="rgba(255, 255, 255, 0.25)"
-            strokeWidth="1.2"
-            strokeDasharray="4 5"
-          />
-          {/* Rotation Arrowhead along orbit ellipse on the right */}
-          <path
-            d="M500 274 L512 280 L500 286"
-            stroke="rgba(255, 255, 255, 0.55)"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Compass Orientation Points: N, S, W, O */}
-          <text
-            x="280"
-            y="50"
-            textAnchor="middle"
-            fill="rgba(255, 255, 255, 0.5)"
-            fontSize="12"
-            fontFamily="inherit"
-            fontWeight="500"
-            letterSpacing="0.1em"
-          >
-            N
-          </text>
-          <text
-            x="280"
-            y="525"
-            textAnchor="middle"
-            fill="rgba(255, 255, 255, 0.5)"
-            fontSize="12"
-            fontFamily="inherit"
-            fontWeight="500"
-            letterSpacing="0.1em"
-          >
-            S
-          </text>
-          <text
-            x="35"
-            y="284"
-            textAnchor="middle"
-            fill="rgba(255, 255, 255, 0.5)"
-            fontSize="12"
-            fontFamily="inherit"
-            fontWeight="500"
-            letterSpacing="0.1em"
-          >
-            W
-          </text>
-          <text
-            x="525"
-            y="284"
-            textAnchor="middle"
-            fill="rgba(255, 255, 255, 0.5)"
-            fontSize="12"
-            fontFamily="inherit"
-            fontWeight="500"
-            letterSpacing="0.1em"
-          >
-            O
-          </text>
-        </svg>
-      </div>
-
       {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3-Metal Swatch Card */}
       <div
         ref={leftControlsRef}
@@ -2658,11 +2538,11 @@ export default function HomePage() {
             className="status-dot"
             style={{
               display: "inline-block",
-              width: "5px",
-              height: "5px",
+              width: "6px",
+              height: "6px",
               borderRadius: "50%",
-              background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.3)",
-              boxShadow: isAutoRotateActive ? "0 0 6px rgba(74, 222, 128, 0.9)" : "none",
+              background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.35)",
+              boxShadow: isAutoRotateActive ? "0 0 8px rgba(74, 222, 128, 0.95)" : "none",
               marginLeft: "4px",
               transition: "background 0.3s ease, box-shadow 0.3s ease",
             }}
@@ -2671,8 +2551,17 @@ export default function HomePage() {
 
         <div className="hero2-metal-swatch-card">
           <div className="swatch-card-header">
-            <span className="swatch-card-icon" />
-            <span className="swatch-card-title">Metal Swatch</span>
+            <div className="swatch-card-header-left">
+              <span className="swatch-card-icon" />
+              <span className="swatch-card-title">Metal Swatch</span>
+            </div>
+            <span className="swatch-card-active-label">
+              {metalPresetKey === "yellowGold"
+                ? "Yellow Gold"
+                : metalPresetKey === "whiteGold"
+                ? "White Gold"
+                : "Rose Gold"}
+            </span>
           </div>
           <div className="swatch-card-options" role="radiogroup" aria-label="Precious Metal Selection">
             {[

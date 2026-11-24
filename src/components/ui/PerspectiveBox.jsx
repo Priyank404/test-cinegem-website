@@ -259,22 +259,22 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
       outerBottom = Math.round(ringCy + halfOuterH);
     } else if (isMac) {
       // Dedicated Mac / Laptop tier (1440x900, 1280x800):
-      // Symmetrical widescreen showcase box enclosing left controls and right title card in equal proportions
-      const maxTopClearance = ringCy - 130;
-      const maxBottomClearance = (winH - 65) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.36, 335));
-      halfOuterW = Math.min(Math.round((winW - 120) / 2), 650);
+      // Expanded symmetrical widescreen showcase box enclosing left controls and right title card
+      const maxTopClearance = ringCy - 80;
+      const maxBottomClearance = (winH - 42) - ringCy;
+      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.42, 385));
+      halfOuterW = Math.min(Math.round((winW - 80) / 2), 700);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
       outerBottom = Math.round(ringCy + halfOuterH);
     } else {
       // Dedicated Big Desktop tier (1920x1080, 2560x1440):
-      // Symmetrical widescreen showcase box enclosing left controls and right title card in equal proportions
-      const maxTopClearance = ringCy - 134;
-      const maxBottomClearance = (winH - 70) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.39, 420));
-      halfOuterW = Math.min(Math.round((winW - 160) / 2), 870);
+      // Expanded symmetrical widescreen showcase box enclosing left controls and right title card
+      const maxTopClearance = ringCy - 90;
+      const maxBottomClearance = (winH - 48) - ringCy;
+      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.44, 465));
+      halfOuterW = Math.min(Math.round((winW - 90) / 2), 920);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
