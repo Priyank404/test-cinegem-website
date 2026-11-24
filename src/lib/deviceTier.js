@@ -215,8 +215,19 @@ export function getDeviceTier() {
 
   // Determine initial tier
   let tier = "high";
+  let weakMobileBudget = false;
 
-  if (!hasHalfFloatTarget || isWeakGpu || saveData || reducedMotion) {
+  if (saveData || reducedMotion) {
+    tier = "low";
+  } else if (!hasHalfFloatTarget) {
+    tier = "low";
+  } else if (isWeakGpu && isMobile) {
+    // If WebGL 2 is supported and not in data-saver mode, weak mobile GPUs (Mali-G57, G72, Adreno 610)
+    // are promoted to the mobile tier with a capped render budget to run sparkling baked diamonds!
+    reasons.push(`Weak mobile GPU (${glCaps.renderer}) promoted to mobile tier with capped baked budget`);
+    tier = "mobile";
+    weakMobileBudget = true;
+  } else if (isWeakGpu) {
     tier = "low";
   } else if (isMobile) {
     // All WebGL2 mobile phones get the optimized "mobile" tier (viewer-style single-env BVH)
@@ -269,6 +280,7 @@ export function getDeviceTier() {
     isMobile,
     isLowOrMinimal: tier === "low" || tier === "minimal",
     isMobileTier: tier === "mobile",
+    weakMobileBudget: Boolean(weakMobileBudget),
     reasons,
     capabilities: glCaps,
   };

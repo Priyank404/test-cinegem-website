@@ -43,6 +43,7 @@ import {
   attachBvhToGemMaterial,
   buildGemProceduralEnv,
 } from "./gemMaterials";
+import { getMeshGemMaterial } from "./baked/bakedGemMaterialBridge";
 import { classifyRingMeshes } from "./classifyMesh";
 import {
   computeMetalHdrFactor,
@@ -1481,13 +1482,14 @@ export default function RingHero({
     const pmremEnv = gemEnvTexturesRef.current.metalEnvMap || null;
 
     const newMaterials = gemMeshesRef.current.map((child) => {
-      let mat = buildGemMaterial(
-        effectiveGemPreset,
-        gemEnvTexturesRef.current.base,
-        gemEnvTexturesRef.current.spot,
-        deviceTier.tier,
-        pmremEnv
-      );
+      let mat = getMeshGemMaterial({
+        mesh: child,
+        preset: effectiveGemPreset,
+        envMapBase: gemEnvTexturesRef.current.base,
+        envMapSpot: gemEnvTexturesRef.current.spot,
+        deviceTier,
+        pmremEnv,
+      });
       if ("envMapIntensity" in mat) {
         const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
         mat.envMapIntensity = BEATS[0].gemEnvIntensity * intensityScale;
@@ -1500,7 +1502,7 @@ export default function RingHero({
 
       child.material = mat;
 
-      if (mat.isRoughRefractionMaterial) {
+      if (mat.isRoughRefractionMaterial && !mat.isBaked) {
         try {
           attachBvhToGemMaterial(child, mat);
         } catch (bvhErr) {
@@ -1910,6 +1912,8 @@ export default function RingHero({
         window.devicePixelRatio,
         deviceTier.tier === "high"
           ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 1.5 : 2)
+          : deviceTier.weakMobileBudget
+          ? 1.25
           : (deviceTier.tier === "mid" || deviceTier.tier === "mobile" ? 1.5 : 1.0)
       )
     );
@@ -1979,7 +1983,11 @@ export default function RingHero({
         const hasHalfFloatTarget = Boolean(glCaps?.extensions?.EXT_color_buffer_half_float || glCaps?.extensions?.EXT_color_buffer_float);
         const isLowTier = deviceTier.tier === "low" || deviceTier.tier === "minimal" || !hasHalfFloatTarget;
         const isMobileTier = deviceTier.tier === "mobile";
-        const msaa = deviceTier.tier === "high" ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4) : (deviceTier.tier === "mid" || deviceTier.tier === "mobile" ? 2 : 0);
+        const msaa = deviceTier.tier === "high"
+          ? (RESPONSIVE_V2 && viewport.profile === "portrait" ? 2 : 4)
+          : deviceTier.weakMobileBudget
+          ? 0
+          : (deviceTier.tier === "mid" || deviceTier.tier === "mobile" ? 2 : 0);
         const targetType = (!hasHalfFloatTarget || deviceTier.tier === "low" || deviceTier.tier === "minimal") ? THREE.UnsignedByteType : THREE.HalfFloatType;
         const stencil = !isLowTier && !isMobileTier;
 
@@ -2416,20 +2424,21 @@ export default function RingHero({
 
         const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
         gemMaterials = gemMeshes.map((child) => {
-          let mat = buildGemMaterial(
-            effectiveGemPreset,
-            isFallbackDevice ? null : gemEnvTexturesRef.current.base,
-            isFallbackDevice ? null : effectiveSpot,
-            deviceTier.tier,
-            effectiveGemEnv // passes metalEnvMap (/hdr/env_metal_029_1798f1cf07.hdr) to buildMatteGemMaterial!
-          );
+          let mat = getMeshGemMaterial({
+            mesh: child,
+            preset: effectiveGemPreset,
+            envMapBase: isFallbackDevice ? null : gemEnvTexturesRef.current.base,
+            envMapSpot: isFallbackDevice ? null : effectiveSpot,
+            deviceTier,
+            pmremEnv: effectiveGemEnv,
+          });
           if ("envMapIntensity" in mat) {
             const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
             mat.envMapIntensity = BEATS[0].gemEnvIntensity * intensityScale;
           }
           mat.fog = false;
           child.material = mat;
-          if (mat.isRoughRefractionMaterial) {
+          if (mat.isRoughRefractionMaterial && !mat.isBaked) {
             try {
               attachBvhToGemMaterial(child, mat);
             } catch (bvhErr) {
@@ -2887,13 +2896,14 @@ export default function RingHero({
 
                 const effectiveGemEnv = metalEnvMap || proceduralGemEnv;
                 gemMaterials = gemMeshes.map((child) => {
-                  let mat = buildGemMaterial(
-                    effectiveGemPreset,
-                    gemEnvTexturesRef.current.base,
-                    gemEnvTexturesRef.current.spot,
-                    deviceTier.tier,
-                    effectiveGemEnv
-                  );
+                  let mat = getMeshGemMaterial({
+                    mesh: child,
+                    preset: effectiveGemPreset,
+                    envMapBase: gemEnvTexturesRef.current.base,
+                    envMapSpot: gemEnvTexturesRef.current.spot,
+                    deviceTier,
+                    pmremEnv: effectiveGemEnv,
+                  });
                   if ("envMapIntensity" in mat) {
                     const intensityScale = mat.isMobileGemMaterial ? 2.0 : 1.0;
                     mat.envMapIntensity =
@@ -2902,7 +2912,7 @@ export default function RingHero({
                       5.0) * intensityScale;
                   }
                   child.material = mat;
-                  if (mat.isRoughRefractionMaterial) {
+                  if (mat.isRoughRefractionMaterial && !mat.isBaked) {
                     try {
                       attachBvhToGemMaterial(child, mat);
                     } catch (bvhErr) {
