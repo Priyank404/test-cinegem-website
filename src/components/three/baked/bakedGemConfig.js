@@ -27,9 +27,9 @@ export const BAKE_CONFIG = {
   // With baking they are promoted to tier "mobile" and get this render budget instead.
   weakMobile: { pixelRatioCap: 1.25, msaa: 0 },
   // Desktop GPUs treated as "low end" (small stones baked, big stone exact).
-  // GT 7xx/6xx/10xx, old GeForce 8/9, Radeon R2-R7 APUs, Radeon HD, small Vega APUs, Intel HD/UHD.
+  // GT 7xx/6xx/10xx, old GeForce 8/9, Radeon R2-R7 APUs, Radeon HD, small Vega APUs, Intel HD/UHD, A-series APUs.
   weakDesktopGpuRegex:
-    /geforce\s+(gt|gts)\s*\d{3,4}|geforce\s+[89]\d{3}|radeon(\(tm\))?\s+r[2-7]\b|radeon\s+hd|radeon.*vega\s*(3|6|8|10|11)\b|intel.*(hd|uhd)\s*graphics|\bgma\b/i,
+    /geforce\s+(gt|gts)\s*\d{3,4}|geforce\s+[89]\d{3}|radeon(\(tm\))?\s*(r[2-7]|hd\s*\d{4}|vega\s*(3|6|8|10|11))\b|amd.*(a[4-9]|a1[02])\b|intel.*(hd|uhd)\s*graphics|intel.*iris\b|\bgma\b|microsoft\s+basic\s+render/i,
 };
 
 const LS_KEY = "cinegem:bake";          // "off" | "small" | "all"  (persisted)
@@ -117,8 +117,8 @@ export function resolveBakeProfile(deviceTier) {
   if (tier === "minimal" || (tier === "low" && !deviceTier?.weakMobileBudget)) {
     return off("low/minimal tier keeps the existing matte path");
   }
-  if (deviceTier?.isMobile || deviceTier?.weakMobileBudget) {
-    return { ...mobile, reason: "mobile/tablet" };
+  if (deviceTier?.isMobile || deviceTier?.weakMobileBudget || deviceTier?.isWeakDesktop) {
+    return { ...mobile, reason: "mobile/tablet/weak desktop" };
   }
   if (tier === "mid" && isWeakDesktopGpu(caps.renderer)) {
     return {

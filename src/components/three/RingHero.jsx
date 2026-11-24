@@ -772,7 +772,8 @@ export default function RingHero({
   const rebuildCountRef = useRef(0);
   const deviceTier = getDeviceTier();
   const isFallbackDevice = deviceTier.isFallbackDevice;
-  const isMobileTier = Boolean(deviceTier.tier === "mobile" || deviceTier.isMobile);
+  const isWeakDesktop = Boolean(deviceTier.isWeakDesktop);
+  const isMobileTier = Boolean(deviceTier.tier === "mobile" || deviceTier.isMobile || isWeakDesktop);
   const isLowOrCpu = Boolean(deviceTier.isLowOrMinimal || deviceTier.tier === "minimal" || deviceTier.tier === "low");
   const defaultGlbUrl = (isMobileTier || isLowOrCpu)
     ? "/models/ring-draco-mobile.glb?v=420k"

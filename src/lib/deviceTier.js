@@ -235,7 +235,23 @@ export function getDeviceTier() {
     tier = "mobile";
   } else {
     // Desktop
-    if (cores >= 6 && memory >= 6 && glCaps.maxTextureSize >= 8192) {
+    // Check for weak / integrated desktop GPU families:
+    // AMD Radeon R2-R7 APUs/GPUs (e.g. AMD PRO A10-9700 R7, R5, R7 240/250), AMD A-series APUs,
+    // Radeon HD series, Vega 3/6/8/10/11 APUs, Intel HD/UHD Graphics, Intel Iris (non-Xe),
+    // NVIDIA GeForce GT/GTS series (GT 710, GT 730, GT 1030), and basic/software renderers.
+    const isWeakDesktopGpu =
+      /geforce\s+(gt|gts)\s*\d{3,4}|geforce\s+[89]\d{3}|radeon(\(tm\))?\s*(r[2-7]|hd\s*\d{4}|vega\s*(3|6|8|10|11))\b|amd.*(a[4-9]|a1[02])\b|intel.*(hd|uhd)\s*graphics|intel.*iris\b|\bgma\b|microsoft\s+basic\s+render/i.test(renderer);
+
+    const hasDedicatedPerformanceGpu =
+      /rtx\s*\d{4}|gtx\s*(10[5-8]\d|16[56]\d|20\d\d|9[78]\d)|radeon\s*rx\s*(4[78]\d|5[789]\d|[5-7]\d{3})|apple\s*m\d/i.test(renderer);
+
+    const isWeakDesktop = isWeakDesktopGpu || (cores <= 4 && !hasDedicatedPerformanceGpu);
+
+    if (isWeakDesktop) {
+      reasons.push(`Weak or integrated desktop GPU/APU (${glCaps.renderer}, cores: ${cores}) -> promoted to mobile tier with optimized lightweight assets and shaders`);
+      tier = "mobile";
+      weakMobileBudget = true;
+    } else if (cores >= 6 && memory >= 6 && glCaps.maxTextureSize >= 8192) {
       reasons.push(`High-performance desktop GPU (${glCaps.renderer})`);
       tier = "high";
     } else {
@@ -278,6 +294,7 @@ export function getDeviceTier() {
   const result = {
     tier,
     isMobile,
+    isWeakDesktop: Boolean(weakMobileBudget && !isMobile),
     isLowOrMinimal: tier === "low" || tier === "minimal",
     isMobileTier: tier === "mobile",
     weakMobileBudget: Boolean(weakMobileBudget),

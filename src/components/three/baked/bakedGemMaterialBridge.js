@@ -39,7 +39,8 @@ export function getMeshGemMaterial({
 
   // 2. Classify stone as "small" or "big"
   const name = (mesh.name || "").toLowerCase().trim();
-  let role = BAKE_CONFIG.roleByName[name];
+  const matName = (mesh.material?.name || "").toLowerCase().trim();
+  let role = BAKE_CONFIG.roleByName[name] || BAKE_CONFIG.roleByName[matName];
   if (!role) {
     const pos = mesh.geometry?.attributes?.position?.array;
     const idx = mesh.geometry?.index?.array;

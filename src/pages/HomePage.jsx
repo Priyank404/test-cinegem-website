@@ -616,6 +616,7 @@ export default function HomePage() {
     isFallbackDevice ||
     initialTier?.tier === "mobile" ||
     initialTier?.isMobile ||
+    initialTier?.isWeakDesktop ||
     (typeof window !== "undefined" && (window.innerWidth < 768 || navigator.maxTouchPoints > 0))
   );
 

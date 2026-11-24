@@ -134,9 +134,9 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
         vec4 s = textureLod(envMapBase, uv, lod);
         vec3 col = (baseMono > 0.5) ? vec3(s.r) : s.rgb;
-        if (dot(col, col) < 1e-4) {
-          float studioSky = clamp(d.y * 0.5 + 0.5, 0.2, 1.0);
-          col = vec3(studioSky * 0.85, studioSky * 0.88, studioSky * 0.95);
+        if (dot(col, col) < 0.04) {
+          float studioSky = clamp(d.y * 0.5 + 0.5, 0.45, 1.0);
+          col = max(col, vec3(studioSky * 0.70, studioSky * 0.75, studioSky * 0.90));
         }
         return col;
       }
@@ -199,20 +199,17 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         vec3 r1 = refract(viewDirection, normal, 1.0 / max(ior, 1.0));
         if (dot(r1, r1) == 0.0) r1 = reflect(viewDirection, normal);
 
-        // 2. Facet-normal driven double-reflection in local diamond space
-        mat3 modelInv = inverse(mat3(modelMatrix));
-        vec3 nLoc = normalize(modelInv * normal);
-        vec3 r1Loc = normalize(modelInv * r1);
-
-        // Pavilion double-reflection approximation (exact for diamond geometry)
-        vec3 p1 = normalize(vec3(-nLoc.x, -0.85, -nLoc.z));
-        vec3 r2Loc = reflect(r1Loc, p1);
-        vec3 p2 = normalize(vec3(nLoc.x * 0.6, -0.85, nLoc.z * 0.6));
-        vec3 r3Loc = reflect(r2Loc, p2);
-
-        vec3 exitWorld = normalize(mat3(modelMatrix) * r3Loc);
+        // 2. Facet-normal driven double-reflection (physically robust for any stone angle/shank position)
+        vec3 inward = -normal;
+        vec3 internalNorm1 = normalize(inward + reflect(r1, normal) * 0.45);
+        vec3 r2 = reflect(r1, internalNorm1);
+        vec3 internalNorm2 = normalize(inward - r2 * 0.35);
+        vec3 r3 = reflect(r2, internalNorm2);
+        vec3 exitWorld = normalize(r3);
 
         // Blend with atlas if present
+        mat3 modelInv = inverse(mat3(modelMatrix));
+        vec3 r1Loc = normalize(modelInv * r1);
         vec3 atlasDir = sampleAtlasDir(r1Loc);
         if (length(atlasDir) > 0.1) {
           exitWorld = normalize(mix(exitWorld, normalize(mat3(modelMatrix) * atlasDir), 0.35));
