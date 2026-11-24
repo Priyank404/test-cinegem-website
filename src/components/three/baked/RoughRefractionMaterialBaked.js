@@ -138,7 +138,12 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
       vec3 sampleBaseKernel(vec3 d, float lod) {
         vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
         vec4 s = textureLod(envMapBase, uv, lod);
-        return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+        vec3 col = (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+        if (dot(col, col) < 1e-4) {
+          float studioSky = clamp(d.y * 0.5 + 0.5, 0.2, 1.0);
+          col = vec3(studioSky * 0.85, studioSky * 0.88, studioSky * 0.95);
+        }
+        return col;
       }
 
       float sampleSpotAchro(vec3 dir) {
@@ -149,21 +154,34 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         return min(shaped, 30.0);
       }
 
-      vec3 sampleDispersed(vec3 dirCenter, vec3 eyeDir) {
-        vec3 rawCenter = sampleBaseKernel(dirCenter, baseLod);
-        vec3 c = vec3(
-          shapeTexel(rawCenter.r, basePower, baseGamma),
-          shapeTexel(rawCenter.g, basePower, baseGamma),
-          shapeTexel(rawCenter.b, basePower, baseGamma)
+      vec3 sampleOctaneEnvironment(vec3 dir) {
+        vec3 rawB = sampleBaseKernel(dir, baseLod);
+        vec3 baseCol = vec3(
+          shapeTexel(rawB.r, basePower, baseGamma),
+          shapeTexel(rawB.g, basePower, baseGamma),
+          shapeTexel(rawB.b, basePower, baseGamma)
         );
+        vec3 spotCol = vec3(sampleSpotAchro(dir));
+        return colorKeyBase(baseCol) + spotCol;
+      }
 
-        if (aberrationStrength > 0.0005) {
-          vec3 dirR = normalize(dirCenter + eyeDir * (aberrationStrength * 1.5));
-          vec3 dirB = normalize(dirCenter - eyeDir * (aberrationStrength * 1.5));
-          c.r = shapeTexel(sampleBaseKernel(dirR, baseLod).r, basePower, baseGamma);
-          c.b = shapeTexel(sampleBaseKernel(dirB, baseLod).b, basePower, baseGamma);
+      vec3 baseSpectral(vec3 dirR, vec3 dirB) {
+        const int N = 7;
+        vec3 acc = vec3(0.0), accW = vec3(0.0);
+        for (int i = 0; i < N; i++) {
+          float t = (float(i) + 0.5) / float(N);
+          vec3 d = normalize(mix(dirR, dirB, t));
+          vec3 raw = sampleBaseKernel(d, baseLod);
+          vec3 v = vec3(
+            shapeTexel(raw.r, basePower, baseGamma),
+            shapeTexel(raw.g, basePower, baseGamma),
+            shapeTexel(raw.b, basePower, baseGamma)
+          );
+          vec3 w = vec3((1.0 - t) * (1.0 - t), 2.0 * t * (1.0 - t), t * t);
+          acc += w * v;
+          accW += w;
         }
-        return c;
+        return acc / accW;
       }
 
       void main() {
@@ -173,35 +191,68 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         }
 
         vec3 eyePos = (viewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-        vec3 eyeDir = normalize(vWorldPosition - eyePos);
-        vec3 N = normalize(vNormal);
+        vec3 viewDirection = normalize(vWorldPosition - eyePos);
+        vec3 V = -viewDirection;
+        vec3 normal = normalize(vNormal);
 
-        // Surface Fresnel calculation
-        float cosTheta = clamp(dot(-eyeDir, N), 0.0, 1.0);
-        float R0 = pow((1.0 - ior) / (1.0 + ior), 2.0);
-        float F = clamp(R0 + (1.0 - R0) * pow(1.0 - cosTheta, 5.0) + fresnel, 0.0, 1.0);
+        // Dielectric Fresnel F0 for diamond (IOR ~ 2.417 => F0 ~ 0.172)
+        float NdotV = clamp(dot(normal, V), 0.0, 1.0);
+        float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+        float nFresnel = f0 + (1.0 - f0) * pow(1.0 - NdotV, 5.0);
 
-        // Local exit direction from baked atlas
+        // 1. Initial refraction into facet
+        vec3 r1 = refract(viewDirection, normal, 1.0 / max(ior, 1.0));
+        if (dot(r1, r1) == 0.0) r1 = reflect(viewDirection, normal);
+
+        // 2. Facet-normal driven double-reflection in local diamond space
         mat3 modelInv = inverse(mat3(modelMatrix));
-        vec3 localRay = normalize(modelInv * eyeDir);
-        vec3 exitLocal = sampleAtlasDir(localRay, vStoneIndex);
-        vec3 exitWorld = normalize(mat3(modelMatrix) * exitLocal);
+        vec3 nLoc = normalize(modelInv * normal);
+        vec3 r1Loc = normalize(modelInv * r1);
 
-        // Sample dual environment lighting
-        vec3 refractedColor = sampleDispersed(exitWorld, eyeDir) * color;
-        vec3 spotSparkle = vec3(sampleSpotAchro(exitWorld));
-        vec3 internalColor = colorKeyBase(refractedColor) + spotSparkle;
+        // Pavilion double-reflection approximation (exact for diamond geometry)
+        vec3 p1 = normalize(vec3(-nLoc.x, -0.85, -nLoc.z));
+        vec3 r2Loc = reflect(r1Loc, p1);
+        vec3 p2 = normalize(vec3(nLoc.x * 0.6, -0.85, nLoc.z * 0.6));
+        vec3 r3Loc = reflect(r2Loc, p2);
 
-        // Surface reflection
-        vec3 surfaceRaw = sampleBaseKernel(reflect(eyeDir, N), baseLod);
-        vec3 surfaceReflection = vec3(
-          shapeTexel(surfaceRaw.r, basePower, baseGamma),
-          shapeTexel(surfaceRaw.g, basePower, baseGamma),
-          shapeTexel(surfaceRaw.b, basePower, baseGamma)
-        );
+        vec3 exitWorld = normalize(mat3(modelMatrix) * r3Loc);
 
-        vec3 finalColor = mix(internalColor, surfaceReflection, F);
-        gl_FragColor = vec4(finalColor, opacity);
+        // Blend with atlas if present
+        vec3 atlasDir = sampleAtlasDir(r1Loc, vStoneIndex);
+        if (length(atlasDir) > 0.1) {
+          exitWorld = normalize(mix(exitWorld, normalize(mat3(modelMatrix) * atlasDir), 0.35));
+        }
+
+        // 3. Chromatic Dispersion (Diamond Fire)
+        float effectiveChroma = aberrationStrength * (1.0 - smoothstep(0.04, 0.30, roughness));
+        vec3 dirR = normalize(exitWorld + viewDirection * (effectiveChroma * 1.5));
+        vec3 dirB = normalize(exitWorld - viewDirection * (effectiveChroma * 1.5));
+
+        vec3 baseCol = baseSpectral(dirR, dirB);
+        vec3 spotCol = vec3(sampleSpotAchro(exitWorld));
+        vec3 envCol = colorKeyBase(baseCol) + spotCol;
+
+        // 4. Facet Shading & Body Color (Matching exact RoughRefractionMaterial formula)
+        float facetBodyShading = 0.52 + 0.48 * NdotV;
+        vec3 diffuseColor = color * envCol * (facetBodyShading * basePower);
+
+        // 5. Specular Surface Reflection + Cook-Torrance Facet Sheen
+        vec3 surfReflectDir = reflect(viewDirection, normal);
+        vec3 surfaceEnv = sampleOctaneEnvironment(surfReflectDir);
+
+        float mirrorFade = 1.0 - smoothstep(0.01, 0.22, roughness);
+        float specMult = (fresnel >= 0.0) ? fresnel : 0.2;
+        vec3 mirrorReflect = surfaceEnv * (nFresnel * specMult * mirrorFade);
+
+        float satinSheenWeight = smoothstep(0.01, 0.45, roughness);
+        float satinRim = pow(1.0 - NdotV, 2.0);
+        float satinLobe = (satinRim * 0.65 + 0.35) * satinSheenWeight;
+        vec3 satinFacetSheen = surfaceEnv * (satinLobe * f0 * 3.8 * basePower);
+
+        vec3 surfaceReflect = mirrorReflect + satinFacetSheen;
+
+        vec3 finalRgb = diffuseColor + surfaceReflect;
+        gl_FragColor = vec4(finalRgb, opacity);
       }
     `;
 
