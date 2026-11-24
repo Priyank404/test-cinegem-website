@@ -105,10 +105,10 @@ export function resolveBakeProfile(deviceTier) {
   if (!canBake) return off("capability check failed (needs WebGL2)");
 
   const mobile = {
-    small: "baked",
-    big: "baked", // Both big and small diamonds are baked on mobile
+    small: "baked", // Pavé side stones get the speedup
+    big: "exact",   // Center diamond stays 100% exact BVH ground truth!
     faceSmall: BAKE_CONFIG.faceSizeSmall.mobile,
-    faceBig: BAKE_CONFIG.faceSizeBig.mobile,
+    faceBig: 0,
   };
   if (ov === "all") return { ...mobile, reason: "user override: all" };
   if (ov === "small") return { ...mobile, big: "exact", reason: "user override: small" };

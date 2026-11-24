@@ -28,21 +28,13 @@ export function getMeshGemMaterial({
 
   // 1. If profile says exact for everything, use untouched original path
   if (profile.small === "exact" && profile.big === "exact") {
-    const mat = buildGemMaterial(
+    return buildGemMaterial(
       preset,
       envMapBase,
       envMapSpot,
       deviceTier.tier,
       pmremEnv
     );
-    if (mat && mat.isRoughRefractionMaterial) {
-      try {
-        attachBvhToGemMaterial(mesh, mat);
-      } catch (err) {
-        console.warn("[gemBake] BVH attach fallback:", err);
-      }
-    }
-    return mat;
   }
 
   // 2. Classify stone as "small" or "big"
@@ -67,21 +59,13 @@ export function getMeshGemMaterial({
 
   // 3. Exact path for this specific stone
   if (mode === "exact" || !mesh.geometry) {
-    const mat = buildGemMaterial(
+    return buildGemMaterial(
       preset,
       envMapBase,
       envMapSpot,
       deviceTier.tier,
       pmremEnv
     );
-    if (mat && mat.isRoughRefractionMaterial) {
-      try {
-        attachBvhToGemMaterial(mesh, mat);
-      } catch (err) {
-        console.warn("[gemBake] BVH attach fallback:", err);
-      }
-    }
-    return mat;
   }
 
   // 4. Baked path

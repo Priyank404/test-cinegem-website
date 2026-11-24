@@ -54,15 +54,14 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
     };
 
     const vertexShader = /* glsl */ `
-      attribute float aStoneIndex;
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
       varying vec3 vLocalPosition;
-      varying float vStoneIndex;
+      varying mat4 vModelMatrixInverse;
 
       void main() {
-        vStoneIndex = aStoneIndex;
         vLocalPosition = position;
+        vModelMatrixInverse = inverse(modelMatrix);
         vec4 worldPos = modelMatrix * vec4(position, 1.0);
         vWorldPosition = worldPos.xyz;
         vNormal = normalize(mat3(transpose(inverse(modelMatrix))) * normal);
@@ -73,8 +72,6 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
     const fragmentShader = /* glsl */ `
       precision highp float;
       precision highp int;
-
-      ${OCTANE_ENV_GLSL}
 
       uniform sampler2D envMapBase;
       uniform sampler2D envMapSpot;
@@ -108,6 +105,7 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
       uniform float ior;
       uniform float aberrationStrength;
       uniform float fresnel;
+      uniform float roughness;
       uniform vec3 color;
       uniform float opacity;
 
@@ -117,21 +115,18 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
       varying vec3 vWorldPosition;
       varying vec3 vNormal;
       varying vec3 vLocalPosition;
-      varying float vStoneIndex;
+      varying mat4 vModelMatrixInverse;
 
-      vec3 sampleAtlasDir(vec3 localDir, float stoneIdx) {
+      ${OCTANE_ENV_GLSL}
+
+      vec3 sampleAtlasDir(vec3 localDir) {
         if (atlasGrid.x <= 0.0) {
           return reflect(localDir, vec3(0.0, 1.0, 0.0));
         }
         vec3 d = normalize(localDir);
         float u = atan(d.z, d.x) / (2.0 * PI) + 0.5;
         float v = asin(clamp(d.y, -1.0, 1.0)) / PI + 0.5;
-
-        float col = mod(stoneIdx, atlasGrid.x);
-        float row = floor(stoneIdx / atlasGrid.x);
-        vec2 tileUv = (vec2(col, row) + vec2(u, v)) / atlasGrid;
-
-        vec4 enc = texture(bakedAtlas, tileUv);
+        vec4 enc = texture(bakedAtlas, vec2(u, v));
         return normalize(enc.xyz * 2.0 - 1.0);
       }
 
@@ -218,7 +213,7 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         vec3 exitWorld = normalize(mat3(modelMatrix) * r3Loc);
 
         // Blend with atlas if present
-        vec3 atlasDir = sampleAtlasDir(r1Loc, vStoneIndex);
+        vec3 atlasDir = sampleAtlasDir(r1Loc);
         if (length(atlasDir) > 0.1) {
           exitWorld = normalize(mix(exitWorld, normalize(mat3(modelMatrix) * atlasDir), 0.35));
         }
