@@ -1031,6 +1031,7 @@ export default function HomePage() {
   // scroll callback as everything else, rather than React state, to
   // avoid re-rendering on every scroll tick.
   const exploreLinkRef = useRef(null);
+  const rotateIndicatorRef = useRef(null);
   const perspectiveBoxRef = useRef(null);
 
   // Footer reveal panel — see FOOTER_REVEAL_GLOBAL_START_FRAME/_END_FRAME
@@ -1796,6 +1797,14 @@ export default function HomePage() {
         el.style.visibility = opacity > 0 ? "visible" : "hidden";
         el.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
         el.classList.toggle("is-visible", opacity > 0.01);
+
+        if (rotateIndicatorRef.current) {
+          const rEl = rotateIndicatorRef.current;
+          rEl.style.transform = `translateY(calc(-50% + ${yOffset}px))`;
+          rEl.style.opacity = opacity.toFixed(3);
+          rEl.style.visibility = opacity > 0 ? "visible" : "hidden";
+          rEl.classList.toggle("is-visible", opacity > 0.01);
+        }
       } else {
         // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility
         const showExploreLink =
@@ -1807,6 +1816,10 @@ export default function HomePage() {
         el.style.visibility = "";
         el.style.pointerEvents = showExploreLink ? "auto" : "none";
         el.classList.toggle("is-visible", showExploreLink);
+
+        if (rotateIndicatorRef.current) {
+          rotateIndicatorRef.current.style.display = "none";
+        }
       }
     }
   }
@@ -2426,8 +2439,10 @@ export default function HomePage() {
         onDragStateChange={(isDragging) => {
           if (isDragging) {
             lenisRef.current?.stop();
+            rotateIndicatorRef.current?.classList.add("is-active");
           } else {
             lenisRef.current?.start();
+            rotateIndicatorRef.current?.classList.remove("is-active");
           }
         }}
         onPoseOverrideReady={(api) => {
@@ -2502,6 +2517,38 @@ export default function HomePage() {
           href="/3d-viewer"
           linkText="EXPLORE →"
         />
+      </div>
+
+      {/* Beat 5: Vertical 360° Interaction Indicator Bar (Desktop & Mac) */}
+      <div
+        ref={rotateIndicatorRef}
+        className="hero2-rotate-indicator"
+        aria-hidden="true"
+      >
+        <div className="rotate-indicator-inner">
+          <div className="rotate-indicator-icon">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-25 12 12)" />
+              <path d="M12 2a10 10 0 0 1 10 10" strokeDasharray="3 3" opacity="0.6" />
+              <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+            </svg>
+          </div>
+          <div className="rotate-indicator-track">
+            <span className="rotate-indicator-pip" />
+          </div>
+          <div className="rotate-indicator-text">
+            <span>360° ROTATE &amp; INSPECT</span>
+          </div>
+        </div>
       </div>
 
       {/* 3D Perspective Box Showcase for Beat 5 Ring */}

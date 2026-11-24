@@ -116,16 +116,14 @@ body::-webkit-scrollbar,
 }
 
 /* "Explore 3D Viewer" text link — appears during the tail of Beat 5 once
-   the ring's auto-rotate kicks in, fixed centered near the bottom of the
-   viewport. A plain underlined text link (not a button), toggled visible
-   only within its own frame range by HeroPage2. */
+   the ring's auto-rotate kicks in, fixed inside the right side of the widescreen showcase box. */
 .hero2-explore-link {
   position: fixed;
-  left: calc(var(--pbox-outer-right, calc(50% + 340px)) + max(40px, 2vw));
-  right: auto;
+  right: calc(100vw - var(--pbox-outer-right, calc(100vw - 100px)) + clamp(24px, 2.2vw, 44px));
+  left: auto;
   top: 50%;
-  width: min(410px, max(360px, 21.5vw));
-  max-width: min(410px, calc(100vw - var(--pbox-outer-right, calc(50% + 340px)) - max(40px, 2vw) - 44px));
+  width: min(390px, max(330px, 21vw));
+  max-width: 400px;
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -133,13 +131,13 @@ body::-webkit-scrollbar,
   visibility: hidden;
 }
 
-/* MacBook / Laptop viewports: title card maintains identical max(40px, 2vw) gap from the 3D box, with width scaled to comfortably clear VerticalDotNav */
+/* MacBook / Laptop viewports: title card sits inside the right edge of the showcase box */
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    left: calc(var(--pbox-outer-right, calc(50% + 325px)) + max(40px, 2vw)) !important;
-    right: auto !important;
-    width: min(300px, calc(100vw - var(--pbox-outer-right, calc(50% + 325px)) - max(40px, 2vw) - 44px)) !important;
+    right: calc(100vw - var(--pbox-outer-right, calc(100vw - 70px)) + clamp(18px, 1.8vw, 32px)) !important;
+    left: auto !important;
+    width: min(300px, max(260px, 19vw)) !important;
     max-width: 300px !important;
   }
   .hero2-explore-link .glassy-title-card {
@@ -151,6 +149,145 @@ body::-webkit-scrollbar,
   .hero2-explore-link .glassy-title-card p {
     font-size: 12.5px !important;
     line-height: 1.5 !important;
+  }
+}
+
+/* =========================================================================
+   Beat 5: Vertical 360° Interaction Indicator Bar (Desktop & Mac)
+   ========================================================================= */
+.hero2-rotate-indicator {
+  position: fixed;
+  left: calc(var(--pbox-outer-left, 100px) + clamp(24px, 2.2vw, 44px));
+  right: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hero2-rotate-indicator:not(.is-visible) {
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.hero2-rotate-indicator.is-visible {
+  visibility: visible;
+}
+
+@media (max-width: 1024px) and (max-aspect-ratio: 1.25/1), (max-width: 640px) {
+  .hero2-rotate-indicator {
+    display: none !important;
+  }
+}
+
+.rotate-indicator-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 44px;
+  height: 280px;
+  padding: 16px 0;
+  box-sizing: border-box;
+  background: rgba(14, 12, 16, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 0 16px rgba(255, 255, 255, 0.03);
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, background 0.35s ease;
+}
+
+.hero2-rotate-indicator.is-active .rotate-indicator-inner {
+  border-color: rgba(197, 160, 89, 0.5);
+  background: rgba(22, 18, 24, 0.65);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(197, 160, 89, 0.28), inset 0 0 16px rgba(197, 160, 89, 0.12);
+}
+
+.rotate-indicator-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: rgba(255, 255, 255, 0.75);
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.hero2-rotate-indicator.is-active .rotate-indicator-icon {
+  color: #E2C285;
+  transform: scale(1.1);
+}
+
+.rotate-indicator-track {
+  position: relative;
+  width: 2px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.rotate-indicator-pip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), #C5A059);
+  animation: rotateIndicatorPipGlide 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes rotateIndicatorPipGlide {
+  0% { transform: translateY(0); opacity: 0.4; }
+  100% { transform: translateY(24px); opacity: 1; }
+}
+
+.hero2-rotate-indicator.is-active .rotate-indicator-pip {
+  background: #E2C285;
+  box-shadow: 0 0 8px #C5A059;
+  animation-duration: 0.8s;
+}
+
+.rotate-indicator-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.hero2-rotate-indicator.is-active .rotate-indicator-text {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+@media (min-width: 1025px) and (max-width: 1536px),
+       (min-width: 1025px) and (max-height: 940px) {
+  .hero2-rotate-indicator {
+    left: calc(var(--pbox-outer-left, 70px) + clamp(18px, 1.8vw, 32px)) !important;
+  }
+  .rotate-indicator-inner {
+    width: 38px;
+    height: 240px;
+    padding: 12px 0;
+  }
+  .rotate-indicator-text {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+  .rotate-indicator-track {
+    height: 30px;
   }
 }
 
