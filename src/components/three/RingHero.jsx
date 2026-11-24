@@ -4188,7 +4188,7 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            top: "calc(var(--pbox-outer-top, 140px) + var(--pbox-btn-pad, 22px))",
+            top: "calc(var(--pbox-outer-top, 140px) + var(--pbox-btn-pad, 22px) + 26px)",
             bottom: "auto",
             transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
             zIndex: 10,
