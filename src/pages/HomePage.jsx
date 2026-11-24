@@ -1797,10 +1797,10 @@ export default function HomePage() {
         el.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
         el.classList.toggle("is-visible", opacity > 0.01);
       } else {
-        // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility
-        const b5Start = config.beat5EntryStart ?? 180;
+        // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility at EXPLORE_LINK_GLOBAL_FRAME (220)
+        // after the ring lands and the perspective box completes drawing
         const showExploreLink =
-          frame >= b5Start &&
+          frame >= EXPLORE_LINK_GLOBAL_FRAME &&
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
         const el = exploreLinkRef.current;
         el.style.transform = "";
