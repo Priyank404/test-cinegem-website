@@ -106,9 +106,9 @@ export function resolveBakeProfile(deviceTier) {
 
   const mobile = {
     small: "baked",
-    big: "baked",
+    big: "exact", // Big center diamond stays 100% exact BVH on mobile!
     faceSmall: BAKE_CONFIG.faceSizeSmall.mobile,
-    faceBig: BAKE_CONFIG.faceSizeBig.mobile,
+    faceBig: 0,
   };
   if (ov === "all") return { ...mobile, reason: "user override: all" };
   if (ov === "small") return { ...mobile, big: "exact", reason: "user override: small" };

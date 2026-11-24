@@ -219,4 +219,73 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
     this.viewMatrixInverse = uniforms.viewMatrixInverse.value;
     this.projectionMatrixInverse = uniforms.projectionMatrixInverse.value;
   }
+
+  // Base Environment Texture
+  get envMapBase() { return this.uniforms?.envMapBase?.value; }
+  set envMapBase(v) {
+    if (!this.uniforms?.envMapBase) return;
+    this.uniforms.envMapBase.value = v;
+  }
+
+  // Spotlight Environment Texture
+  get envMapSpot() { return this.uniforms?.envMapSpot?.value; }
+  set envMapSpot(v) {
+    if (!this.uniforms?.envMapSpot) return;
+    this.uniforms.envMapSpot.value = v;
+    if (this.uniforms?.hasSpotMap) this.uniforms.hasSpotMap.value = v ? 1.0 : 0.0;
+  }
+
+  get hasSpotMap() { return this.uniforms?.hasSpotMap?.value; }
+  set hasSpotMap(v) { if (this.uniforms?.hasSpotMap) this.uniforms.hasSpotMap.value = v ? 1.0 : 0.0; }
+
+  get isMatte() { return this.uniforms?.isMatte?.value ?? 0.0; }
+  set isMatte(v) { if (this.uniforms?.isMatte) this.uniforms.isMatte.value = v ? 1.0 : 0.0; }
+
+  get ior() { return this.uniforms?.ior?.value; }
+  set ior(v) { if (this.uniforms?.ior) this.uniforms.ior.value = v; }
+
+  get aberrationStrength() { return this.uniforms?.aberrationStrength?.value; }
+  set aberrationStrength(v) { if (this.uniforms?.aberrationStrength) this.uniforms.aberrationStrength.value = v; }
+
+  get fresnel() { return this.uniforms?.fresnel?.value; }
+  set fresnel(v) { if (this.uniforms?.fresnel) this.uniforms.fresnel.value = v; }
+
+  get roughness() { return this.uniforms?.roughness?.value; }
+  set roughness(v) { if (this.uniforms?.roughness) this.uniforms.roughness.value = v; }
+
+  get envMapIntensity() { return this.uniforms?.basePower?.value; }
+  set envMapIntensity(v) { if (this.uniforms?.basePower) this.uniforms.basePower.value = v; }
+
+  get opacity() { return this.uniforms?.opacity?.value ?? 1.0; }
+  set opacity(v) { if (this.uniforms?.opacity) this.uniforms.opacity.value = v; }
+
+  get color() { return this.uniforms?.color?.value; }
+  set color(v) {
+    if (!this.uniforms?.color) return;
+    if (v instanceof THREE.Color) {
+      this.uniforms.color.value.copy(v);
+    } else {
+      this.uniforms.color.value.set(v);
+    }
+  }
+
+  // Base slot parameters
+  get basePower() { return this.uniforms?.basePower?.value; }
+  set basePower(v) { if (this.uniforms?.basePower) this.uniforms.basePower.value = v; }
+  get baseGamma() { return this.uniforms?.baseGamma?.value; }
+  set baseGamma(v) { if (this.uniforms?.baseGamma) this.uniforms.baseGamma.value = v; }
+  get baseRot() { return this.uniforms?.baseRot?.value; }
+  set baseRot(v) { if (this.uniforms?.baseRot) this.uniforms.baseRot.value = v; }
+  get baseLod() { return this.uniforms?.baseLod?.value; }
+  set baseLod(v) { if (this.uniforms?.baseLod) this.uniforms.baseLod.value = v; }
+
+  // Spotlight slot parameters
+  get spotPower() { return this.uniforms?.spotPower?.value; }
+  set spotPower(v) { if (this.uniforms?.spotPower) this.uniforms.spotPower.value = v; }
+  get spotGamma() { return this.uniforms?.spotGamma?.value; }
+  set spotGamma(v) { if (this.uniforms?.spotGamma) this.uniforms.spotGamma.value = v; }
+  get spotRot() { return this.uniforms?.spotRot?.value; }
+  set spotRot(v) { if (this.uniforms?.spotRot) this.uniforms.spotRot.value = v; }
+  get spotLod() { return this.uniforms?.spotLod?.value; }
+  set spotLod(v) { if (this.uniforms?.spotLod) this.uniforms.spotLod.value = v; }
 }
