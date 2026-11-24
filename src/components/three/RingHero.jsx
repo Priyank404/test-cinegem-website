@@ -4179,6 +4179,61 @@ export default function RingHero({
         </button>
       )}
 
+      {/* Desktop "Drag to explore" hint — purely visual, positioned inside the bottom of the showcase box.
+          pointerEvents:"none" so it never intercepts the drag itself. Fades in when the interactive
+          window opens, fades out on first drag (see dismissedOnceRef). */}
+      {!isMobileMode && (
+        <div
+          className="ring-hero-drag-hint ring-hero-drag-hint--desktop"
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: "calc(var(--pbox-bottom-offset, 66px) + var(--pbox-btn-pad, 22px))",
+            transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
+            zIndex: 10,
+            pointerEvents: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 18px",
+            borderRadius: "999px",
+            background: "rgba(10,10,12,0.55)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            color: "rgba(255,255,255,0.9)",
+            fontSize: "13px",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            fontFamily: "inherit",
+            opacity: showDragHint ? 1 : 0,
+            transition: "opacity 0.6s ease",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              animation: showDragHint
+                ? "ringHeroDragHintSway 1.6s ease-in-out infinite"
+                : "none",
+            }}
+          >
+            <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
+            <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
+            <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
+            <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
+          </svg>
+          Drag to rotate
+        </div>
+      )}
       <style>{`
         @keyframes ringHeroDragHintSway {
           0%, 100% { transform: translateX(0); }

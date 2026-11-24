@@ -259,22 +259,20 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
       outerBottom = Math.round(ringCy + halfOuterH);
     } else if (isMac) {
       // Dedicated Mac / Laptop tier (1440x900, 1280x800):
-      // Widescreen showcase box encompassing the left vertical indicator, center ring, and right title card
-      const maxTopClearance = ringCy - 130;
-      const maxBottomClearance = (winH - 65) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.38, 345));
-      halfOuterW = Math.min(Math.round((winW - 140) / 2), 650);
+      halfOuterH = Math.min(Math.round(winH * 0.344), 310);
+      halfOuterW = Math.min(Math.round(winW * 0.225), 325);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
       outerBottom = Math.round(ringCy + halfOuterH);
     } else {
       // Dedicated Big Desktop tier (1920x1080, 2560x1440):
-      // Widescreen showcase box encompassing the left vertical indicator, center ring, and right title card
-      const maxTopClearance = ringCy - 130;
-      const maxBottomClearance = (winH - 70) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.40, 440));
-      halfOuterW = Math.min(Math.round((winW - 200) / 2), 860);
+      // Pure 1:1 square box centered on the ring, clearing the top logo and bottom drag pill
+      const maxTopClearance = ringCy - 134;
+      const maxBottomClearance = (winH - 66) - ringCy;
+      const halfSize = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.42));
+      halfOuterH = halfSize;
+      halfOuterW = halfSize;
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
