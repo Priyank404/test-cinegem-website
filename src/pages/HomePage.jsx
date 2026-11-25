@@ -629,6 +629,8 @@ export default function HomePage() {
   const [glbUrl, setGlbUrl] = useState(defaultGlbUrl);
 
   const [metalPresetKey, setMetalPresetKey] = useState("yellowGold");
+  const metalPresetKeyRef = useRef(metalPresetKey);
+  metalPresetKeyRef.current = metalPresetKey;
   const [isAutoRotateActive, setIsAutoRotateActive] = useState(true);
   // Default HDRs tuned to studio calibration:
   // Metal: env_metal_029_1798f1cf07-metal.hdr
@@ -1857,6 +1859,14 @@ export default function HomePage() {
       if (newSectionIndex !== activeSectionRef.current) {
         activeSectionRef.current = newSectionIndex;
         setActiveSectionIndex(newSectionIndex);
+      }
+
+      // Scope swapped metal color to Beat 5 showcase; revert to default yellowGold when exiting up or into footer
+      const inBeat5Showcase =
+        frame >= (cardTimingConfig.beat5EntryStart ?? 180) &&
+        frame < FOOTER_REVEAL_GLOBAL_START_FRAME + 7;
+      if (!inBeat5Showcase && metalPresetKeyRef.current !== "yellowGold") {
+        setMetalPresetKey("yellowGold");
       }
 
       applyCardOverlayFrame(frame, cardTimingConfig);
