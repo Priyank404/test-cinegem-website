@@ -736,6 +736,8 @@ export default function RingHero({
   // True only while the scroll-tweened frame is inside the auto-rotate
   // range — re-evaluated every scroll tick below, NOT a one-way latch.
   const autoRotateActiveRef = useRef(false);
+  const autoRotateEnabledRef = useRef(autoRotateEnabled);
+  autoRotateEnabledRef.current = autoRotateEnabled;
   // Accumulated auto-rotate angle, added on top of the scroll-tweened
   // rotState.y once latched, so the spin continues smoothly from wherever
   // scroll left off instead of snapping to a fixed angle.
@@ -3517,7 +3519,7 @@ export default function RingHero({
             // Inside the 360 spin & interactive section:
             // Continuous unified turntable rotation around Y.
             // When NOT dragging (and not in freeze debug), continuously advance currentSpinYRef
-            if (!dragStateRef.current.dragging && !isRingDebug && autoRotateEnabled) {
+            if (!dragStateRef.current.dragging && !isRingDebug && autoRotateEnabledRef.current) {
               currentSpinYRef.current = wrapAngle(
                 currentSpinYRef.current + autoRotateSpeed * dt,
               );

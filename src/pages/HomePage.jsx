@@ -2507,7 +2507,7 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3-Metal Swatch Card */}
+      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3 Slim Metallic Pill Tabs */}
       <div
         ref={leftControlsRef}
         className="hero2-left-controls"
@@ -2549,41 +2549,30 @@ export default function HomePage() {
           />
         </button>
 
-        <div className="hero2-metal-swatch-card">
-          <div className="swatch-card-header">
-            <div className="swatch-card-header-left">
-              <span className="swatch-card-icon" />
-              <span className="swatch-card-title">Metal Swatch</span>
-            </div>
-            <span className="swatch-card-active-label">
-              {metalPresetKey === "yellowGold"
-                ? "Yellow Gold"
-                : metalPresetKey === "whiteGold"
-                ? "White Gold"
-                : "Rose Gold"}
-            </span>
-          </div>
-          <div className="swatch-card-options" role="radiogroup" aria-label="Precious Metal Selection">
-            {[
-              { key: "yellowGold", label: "Yellow Gold" },
-              { key: "whiteGold", label: "White Gold" },
-              { key: "roseGold", label: "Rose Gold" },
-            ].map((metal) => {
-              const isSelected = metalPresetKey === metal.key;
-              return (
-                <button
-                  key={metal.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  className={`metal-swatch-btn metal-swatch-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
-                  onClick={() => setMetalPresetKey(metal.key)}
-                  title={metal.label}
-                  aria-label={metal.label}
-                />
-              );
-            })}
-          </div>
+        <div
+          className="hero2-metal-pills"
+          role="radiogroup"
+          aria-label="Precious Metal Selection"
+        >
+          {[
+            { key: "yellowGold", label: "Yellow Gold" },
+            { key: "whiteGold", label: "White Gold" },
+            { key: "roseGold", label: "Rose Gold" },
+          ].map((metal) => {
+            const isSelected = metalPresetKey === metal.key;
+            return (
+              <button
+                key={metal.key}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                className={`metal-pill-tab metal-pill-tab--${metal.key} ${isSelected ? "is-selected" : ""}`}
+                onClick={() => setMetalPresetKey(metal.key)}
+                title={metal.label}
+                aria-label={metal.label}
+              />
+            );
+          })}
         </div>
       </div>
 
