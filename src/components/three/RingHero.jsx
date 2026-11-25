@@ -1749,10 +1749,11 @@ export default function RingHero({
     function retargetForLandscape(localFrame = 0) {
       if (!ring || !ringBS || !camera) return;
 
-      // Active during Beat 5 (Interactive 3D Viewer & Footer Reveal, frames 205–260)
-      if (localFrame < 205) return;
+      // Blend smoothly across the entire Beat 4 -> Beat 5 flight (frames 158–214) so the ring
+      // arrives directly into its centered Beat 5 rest pose without lifting high and dropping later.
+      if (localFrame <= 158) return;
 
-      const isViewerSection = smooth(205, 218, localFrame) * (1 - smooth(245, 255, localFrame));
+      const isViewerSection = smooth(158, 214, localFrame) * (1 - smooth(245, 255, localFrame));
       const footerFactor = smooth(245, 260, localFrame);
       const beat5Factor = Math.max(isViewerSection, footerFactor);
       if (beat5Factor < 0.001) return;
