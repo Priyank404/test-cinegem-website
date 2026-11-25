@@ -325,11 +325,11 @@ if (uMetalTransitionProgress < 0.999) {
   float halfExt = max(uMetalBoundsHalfExtent, 0.4);
   float normY = (vMetalWorldPos.y - uMetalBoundsCenter.y) / halfExt;
 
-  // Wavefront travels strictly from bottom (-1.4) to top (+1.4)
-  float waveFront = mix(-1.45, 1.45, uMetalTransitionProgress);
+  // Wavefront travels strictly from bottom (-1.35) to top (+1.35)
+  float waveFront = mix(-1.35, 1.35, uMetalTransitionProgress);
 
-  // Distinct thick gradient bar band (half-width ~0.26 in normalized height)
-  float barHalfWidth = 0.26;
+  // Sleek, refined gradient bar band (reduced thickness)
+  float barHalfWidth = 0.16;
 
   // Transition factor:
   // Below the bar (normY < waveFront - barHalfWidth): 1.0 (New / To Color)
