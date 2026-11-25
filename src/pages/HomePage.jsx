@@ -2454,7 +2454,7 @@ export default function HomePage() {
         autoRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME - 0.5}
         autoRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         autoRotateSpeed={0.35}
-        interactiveRotateStartFrame={AUTO_ROTATE_GLOBAL_FRAME - 0.5}
+        interactiveRotateStartFrame={EXPLORE_LINK_GLOBAL_FRAME + 0.5}
         interactiveRotateEndFrame={FOOTER_REVEAL_GLOBAL_START_FRAME}
         onDragStateChange={(isDragging) => {
           if (isDragging) {
