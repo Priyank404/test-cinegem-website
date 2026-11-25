@@ -120,11 +120,11 @@ body::-webkit-scrollbar,
    Desktop position stays exactly anchored at 50% + 460px with equal proportion to left controls. */
 .hero2-explore-link {
   position: fixed;
-  right: calc(var(--pbox-scaled-right-margin, var(--pbox-outer-right-margin, calc(50vw - 920px))) + 55px * var(--pbox-scale, 1));
-  left: auto !important;
+  left: calc(50% + 460px * var(--pbox-scale, 1));
+  right: auto;
   top: 50%;
-  width: 250px;
-  max-width: 250px;
+  width: 360px;
+  max-width: min(380px, calc((100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px) / var(--pbox-scale, 1)));
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -136,10 +136,10 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    right: calc(var(--pbox-scaled-right-margin, var(--pbox-outer-right-margin, calc(50vw - 540px))) + clamp(24px, 2.2vw, 40px) * var(--pbox-scale, 1)) !important;
-    left: auto !important;
-    width: 230px !important;
-    max-width: 230px !important;
+    left: calc(50% + clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1)) !important;
+    right: auto !important;
+    width: clamp(220px, 16.8vw, 290px) !important;
+    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 16px)) !important;
   }
   .hero2-explore-link .glassy-title-card {
     padding: 16px 20px !important;
@@ -160,8 +160,6 @@ body::-webkit-scrollbar,
 
 .hero2-explore-link .glassy-title-card {
   width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
 }
 
 .hero2-explore-link:not(.is-visible) {
@@ -194,9 +192,9 @@ body::-webkit-scrollbar,
   z-index: 8;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  width: 250px;
-  max-width: 250px;
+  gap: 16px;
+  width: 360px;
+  max-width: min(380px, calc((100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px) / var(--pbox-scale, 1)));
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -207,25 +205,26 @@ body::-webkit-scrollbar,
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-left-controls {
     left: calc(var(--pbox-scaled-left, var(--pbox-outer-left, calc(50% - 540px))) + clamp(24px, 2.2vw, 40px) * var(--pbox-scale, 1)) !important;
-    width: 230px !important;
-    max-width: 230px !important;
-    gap: 10px !important;
+    width: clamp(220px, 16.8vw, 290px) !important;
+    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 16px)) !important;
+    gap: 12px !important;
   }
   .hero2-left-controls .hero2-rotate-toggle-btn {
-    padding: 8px 14px !important;
-    font-size: 10px !important;
-  }
-  .hero2-left-controls .hero2-metal-card {
-    padding: 12px 14px 14px !important;
+    padding: 12px 18px !important;
+    font-size: 11px !important;
     border-radius: 14px !important;
   }
+  .hero2-left-controls .hero2-metal-card {
+    padding: 18px 20px 20px !important;
+    border-radius: 18px !important;
+  }
   .hero2-left-controls .hero2-metal-card-label {
-    font-size: 9.5px !important;
-    margin-bottom: 10px !important;
+    font-size: 11px !important;
+    margin-bottom: 14px !important;
   }
   .hero2-left-controls .metal-sphere-btn {
-    width: 30px !important;
-    height: 30px !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 }
 
@@ -249,10 +248,10 @@ body::-webkit-scrollbar,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 11px 18px;
-  border-radius: 9999px;
+  padding: 14px 22px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -260,7 +259,7 @@ body::-webkit-scrollbar,
   -webkit-backdrop-filter: blur(14px);
   color: #FCFBFA;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -304,8 +303,8 @@ body::-webkit-scrollbar,
 .hero2-metal-card {
   position: relative;
   width: 100%;
-  padding: 15px 18px 18px;
-  border-radius: 18px;
+  padding: 22px 24px 26px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -315,12 +314,12 @@ body::-webkit-scrollbar,
 }
 
 .hero2-metal-card-label {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   text-align: left;
   white-space: nowrap;
 }
@@ -329,13 +328,13 @@ body::-webkit-scrollbar,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 3px;
+  padding: 2px 6px;
 }
 
 .metal-sphere-btn {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: transparent;
   border: none;
@@ -357,8 +356,8 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .metal-sphere-btn {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
   }
 }
 
