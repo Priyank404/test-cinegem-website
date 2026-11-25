@@ -124,7 +124,7 @@ body::-webkit-scrollbar,
   right: auto;
   top: 50%;
   width: 360px;
-  max-width: min(380px, calc(100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px));
+  max-width: min(380px, calc((100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px) / var(--pbox-scale, 1)));
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -139,7 +139,7 @@ body::-webkit-scrollbar,
     left: calc(50% + clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1)) !important;
     right: auto !important;
     width: clamp(220px, 16.8vw, 290px) !important;
-    max-width: min(290px, calc(var(--pbox-scaled-right, var(--pbox-outer-right, calc(50vw + 540px))) - 50vw - clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1) - 16px)) !important;
+    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 16px)) !important;
   }
   .hero2-explore-link .glassy-title-card {
     padding: 16px 20px !important;
