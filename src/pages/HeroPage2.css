@@ -265,16 +265,8 @@ body::-webkit-scrollbar,
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   user-select: none;
-}
-
-.hero2-rotate-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
 }
 
 .hero2-rotate-toggle-btn.is-active {
@@ -312,12 +304,6 @@ body::-webkit-scrollbar,
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   user-select: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.hero2-metal-card:hover {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .hero2-metal-card-label {
