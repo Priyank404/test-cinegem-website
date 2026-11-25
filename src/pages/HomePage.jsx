@@ -2574,6 +2574,13 @@ export default function HomePage() {
             );
           })}
         </div>
+        <div className="hero2-metal-color-label" aria-live="polite">
+          {metalPresetKey === "yellowGold"
+            ? "Yellow Gold"
+            : metalPresetKey === "whiteGold"
+              ? "White Gold"
+              : "Rose Gold"}
+        </div>
       </div>
 
       {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
