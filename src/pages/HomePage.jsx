@@ -1784,7 +1784,7 @@ export default function HomePage() {
         }
 
         const el = exploreLinkRef.current;
-        el.style.transformOrigin = "left center";
+        el.style.transformOrigin = "right center";
         el.style.transform = `translateY(calc(-50% + ${yOffset}px + var(--pbox-footer-offset-y, 0px))) scale(var(--pbox-scale, 1))`;
         el.style.opacity = opacity.toFixed(3);
         el.style.visibility = opacity > 0 ? "visible" : "hidden";
@@ -1808,6 +1808,7 @@ export default function HomePage() {
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
         const el = exploreLinkRef.current;
         el.style.transform = "";
+        el.style.transformOrigin = "";
         el.style.opacity = "";
         el.style.visibility = "";
         el.style.pointerEvents = showExploreLink ? "auto" : "none";

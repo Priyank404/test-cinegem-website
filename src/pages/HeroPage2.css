@@ -120,11 +120,11 @@ body::-webkit-scrollbar,
    Desktop position stays exactly anchored at 50% + 460px with equal proportion to left controls. */
 .hero2-explore-link {
   position: fixed;
-  left: calc(50% + 460px * var(--pbox-scale, 1));
-  right: auto;
+  right: calc(var(--pbox-scaled-right-margin, var(--pbox-outer-right-margin, calc(50vw - 920px))) + 55px * var(--pbox-scale, 1));
+  left: auto !important;
   top: 50%;
-  width: 360px;
-  max-width: min(380px, calc((100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px) / var(--pbox-scale, 1)));
+  width: 250px;
+  max-width: 250px;
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -136,10 +136,10 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    left: calc(50% + clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1)) !important;
-    right: auto !important;
-    width: clamp(220px, 16.8vw, 290px) !important;
-    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 16px)) !important;
+    right: calc(var(--pbox-scaled-right-margin, var(--pbox-outer-right-margin, calc(50vw - 540px))) + clamp(24px, 2.2vw, 40px) * var(--pbox-scale, 1)) !important;
+    left: auto !important;
+    width: 230px !important;
+    max-width: 230px !important;
   }
   .hero2-explore-link .glassy-title-card {
     padding: 16px 20px !important;
@@ -160,6 +160,8 @@ body::-webkit-scrollbar,
 
 .hero2-explore-link .glassy-title-card {
   width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .hero2-explore-link:not(.is-visible) {
@@ -193,7 +195,8 @@ body::-webkit-scrollbar,
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 220px;
+  width: 250px;
+  max-width: 250px;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -204,7 +207,8 @@ body::-webkit-scrollbar,
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-left-controls {
     left: calc(var(--pbox-scaled-left, var(--pbox-outer-left, calc(50% - 540px))) + clamp(24px, 2.2vw, 40px) * var(--pbox-scale, 1)) !important;
-    width: clamp(166px, 12vw, 195px) !important;
+    width: 230px !important;
+    max-width: 230px !important;
     gap: 10px !important;
   }
   .hero2-left-controls .hero2-rotate-toggle-btn {

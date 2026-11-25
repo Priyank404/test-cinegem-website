@@ -379,6 +379,10 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         `${outerLeft}px`
       );
       document.documentElement.style.setProperty(
+        "--pbox-outer-right-margin",
+        `${winW - outerRight}px`
+      );
+      document.documentElement.style.setProperty(
         "--pbox-outer-top",
         `${outerTop}px`
       );
@@ -429,6 +433,7 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
               document.documentElement.style.setProperty("--pbox-scale", "1");
               document.documentElement.style.setProperty("--pbox-translate-y", "0px");
               document.documentElement.style.setProperty("--pbox-footer-offset-y", "0px");
+              document.documentElement.style.setProperty("--pbox-scaled-right-margin", "0px");
             }
           }
           return;
@@ -699,6 +704,10 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           document.documentElement.style.setProperty(
             "--pbox-scaled-right",
             `${scaledRight}px`
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-scaled-right-margin",
+            `${Math.round(geomRef.current.winW - scaledRight)}px`
           );
           document.documentElement.style.setProperty(
             "--pbox-scaled-top",
