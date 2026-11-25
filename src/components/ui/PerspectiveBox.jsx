@@ -623,15 +623,15 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
               ? footerEl.getBoundingClientRect().height
               : 250;
             const safeTop = geomRef.current.isMac
-              ? Math.max(92, Math.round(winH * 0.105))
-              : Math.max(110, Math.round(winH * 0.11));
+              ? Math.max(134, Math.round(winH * 0.148))
+              : Math.max(134, Math.round(winH * 0.12));
             const safeBottom =
-              winH - footerH - (geomRef.current.isMac ? 16 : 22);
+              winH - footerH - (geomRef.current.isMac ? 24 : 28);
             const availH = Math.max(200, safeBottom - safeTop);
             const targetCenterY = Math.round((safeTop + safeBottom) * 0.5);
             const boxFooterScale = Math.min(
-              0.84,
-              Math.max(0.54, availH / outerH)
+              0.82,
+              Math.max(0.48, availH / outerH)
             );
             const footerShiftY = targetCenterY - geomRef.current.cy;
 

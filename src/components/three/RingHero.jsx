@@ -1793,11 +1793,11 @@ export default function RingHero({
         (typeof document !== "undefined"
           ? parseFloat(document.documentElement.style.getPropertyValue("--pbox-outer-height"))
           : 0) || winH * 0.74;
-      const safeTop = isMacWin ? Math.max(92, Math.round(winH * 0.105)) : Math.max(110, Math.round(winH * 0.11));
-      const safeBottom = winH - footerH - (isMacWin ? 16 : 22);
+      const safeTop = isMacWin ? Math.max(134, Math.round(winH * 0.148)) : Math.max(134, Math.round(winH * 0.12));
+      const safeBottom = winH - footerH - (isMacWin ? 24 : 28);
       const availH = Math.max(200, safeBottom - safeTop);
       const targetCenterY = Math.round((safeTop + safeBottom) * 0.5);
-      const boxFooterScale = Math.min(0.84, Math.max(0.54, availH / Math.max(1, outerH)));
+      const boxFooterScale = Math.min(0.82, Math.max(0.48, availH / Math.max(1, outerH)));
 
       const totalScale = viewerScaleBlend * THREE.MathUtils.lerp(1.0, boxFooterScale * 0.96, footerFactor);
       if (totalScale < 0.9999) {
@@ -4167,7 +4167,7 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            top: "calc(var(--pbox-scaled-top, calc(var(--pbox-outer-top, 90px) + var(--pbox-translate-y, 0px))) + 20px * var(--pbox-scale, 1))",
+            top: "calc(var(--pbox-scaled-top, calc(var(--pbox-outer-top, 90px) + var(--pbox-translate-y, 0px))) + 16px * var(--pbox-scale, 1))",
             bottom: "auto",
             transformOrigin: "top center",
             transform: "translateX(-50%) scale(var(--pbox-scale, 1))",
