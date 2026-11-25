@@ -159,18 +159,14 @@ export function buildMetalMaterial(preset, envMap, roughnessOverride = null, glo
       .replace(
         "#include <common>",
         `#include <common>
-uniform mat4 uMetalRingInvMatrix;
-uniform vec3 uMetalBoundsCenter;
-uniform float uMetalBoundsHalfExtent;
-varying vec3 vMetalSpreadPos;
+varying vec3 vMetalWorldPos;
 `
       )
       .replace(
         "#include <begin_vertex>",
         `#include <begin_vertex>
-vec4 _metalWorldPos = modelMatrix * vec4(transformed, 1.0);
-vec3 _metalRawPos = (uMetalRingInvMatrix * _metalWorldPos).xyz;
-vMetalSpreadPos = (_metalRawPos - uMetalBoundsCenter) / max(uMetalBoundsHalfExtent, 1e-4);
+vec4 _mWorldPos = modelMatrix * vec4(transformed, 1.0);
+vMetalWorldPos = _mWorldPos.xyz;
 `
       );
 
@@ -275,8 +271,9 @@ uniform float uMetalEnvView;
 uniform vec3 uMetalFromColor;
 uniform vec3 uMetalToColor;
 uniform float uMetalTransitionProgress;
-uniform vec3 uMetalTransitionSeed;
-varying vec3 vMetalSpreadPos;
+uniform vec3 uMetalBoundsCenter;
+uniform float uMetalBoundsHalfExtent;
+varying vec3 vMetalWorldPos;
 `;
 
     const virusFogHelpers = `
@@ -324,36 +321,30 @@ float _metalFbmFog(vec3 p) {
         "#include <color_fragment>",
         `#include <color_fragment>
 if (uMetalTransitionProgress < 0.999) {
-  // Angular-coordinate around ring loop for progressive wipe around the band
-  float ringAngle = atan(vMetalSpreadPos.z, vMetalSpreadPos.x) / 3.14159265; // [-1.0, 1.0]
-  float sweepCoord = ringAngle * 0.5 + 0.5; // [0.0, 1.0]
+  // Pure bottom-to-top screen/world Y coordinate normalized across ring bounds [-1.0 (bottom) to +1.0 (top)]
+  float halfExt = max(uMetalBoundsHalfExtent, 0.4);
+  float normY = (vMetalWorldPos.y - uMetalBoundsCenter.y) / halfExt;
 
-  // Add subtle organic curve along height and minimal micro-jitter
-  float heightTweak = vMetalSpreadPos.y * 0.08;
-  float microJitter = (_metalHash31(floor(vMetalSpreadPos * 8.0)) - 0.5) * 0.03;
-  float progressionCoord = sweepCoord + heightTweak + microJitter;
+  // Wavefront travels strictly from bottom (-1.4) to top (+1.4)
+  float waveFront = mix(-1.45, 1.45, uMetalTransitionProgress);
 
-  // Wavefront moves around the band from 0 to 1
-  float waveFront = mix(-0.15, 1.15, uMetalTransitionProgress);
-
-  // Defined thick gradient transition bar
-  float barHalfWidth = 0.08; // Clean, distinct transition band width
-  float edgeFeather = 0.008; // Sharp delineation between zones
+  // Distinct thick gradient bar band (half-width ~0.26 in normalized height)
+  float barHalfWidth = 0.26;
 
   // Transition factor:
-  // Behind the bar: 1.0 (Next / To Color)
-  // Ahead of the bar: 0.0 (Previous / From Color)
-  // Inside the bar: Smooth gradient bridging the two
-  float barT = smoothstep(waveFront - barHalfWidth, waveFront + barHalfWidth, progressionCoord);
+  // Below the bar (normY < waveFront - barHalfWidth): 1.0 (New / To Color)
+  // Above the bar (normY > waveFront + barHalfWidth): 0.0 (Previous / From Color)
+  // Inside the bar: Smooth hermite transition bridging from previous to new color
+  float barT = smoothstep(waveFront - barHalfWidth, waveFront + barHalfWidth, normY);
   float toColorFactor = 1.0 - barT;
 
   // Highlight specular sheen across the thick bar center
-  float barCenterDist = abs(progressionCoord - waveFront) / barHalfWidth;
-  float barGleam = (1.0 - smoothstep(0.0, 1.0, barCenterDist)) * (1.0 - smoothstep(1.0 - edgeFeather * 2.0, 1.0, barCenterDist));
+  float barCenterDist = clamp(abs(normY - waveFront) / barHalfWidth, 0.0, 1.0);
+  float barGleam = pow(1.0 - barCenterDist, 2.2);
 
   vec3 baseBlend = mix(uMetalFromColor, uMetalToColor, toColorFactor);
-  vec3 gleamColor = mix(vec3(1.0), uMetalToColor, 0.4);
-  diffuseColor.rgb = baseBlend + gleamColor * barGleam * 0.22;
+  vec3 gleamColor = mix(vec3(1.0), uMetalToColor, 0.45);
+  diffuseColor.rgb = baseBlend + gleamColor * barGleam * 0.18;
 }
 `
       );

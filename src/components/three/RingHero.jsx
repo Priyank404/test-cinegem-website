@@ -1462,8 +1462,8 @@ export default function RingHero({
 
       gsap.to(uProgress, {
         value: 1.0,
-        duration: 1.35,
-        ease: "power2.inOut",
+        duration: 1.5,
+        ease: "sine.inOut",
       });
     } else {
       gsap.to(metalMat.color, {
@@ -3696,16 +3696,17 @@ export default function RingHero({
             }
           }
 
-          // Update ring inverse matrix on GPU only while virus/fog color transition is actively spreading
+          // Update ring world bounds on GPU while color transition is actively spreading bottom-to-top
           const activeMetalMat = metalMaterialRef.current;
           if (
             activeMetalMat?.userData?.metalTransitionProgress?.value < 0.999 &&
-            activeMetalMat.userData.metalRingInvMatrix
+            activeMetalMat.userData.metalBoundsCenter
           ) {
             ring.updateMatrixWorld();
-            activeMetalMat.userData.metalRingInvMatrix.value
-              .copy(ring.matrixWorld)
-              .invert();
+            const ringBox = new THREE.Box3().setFromObject(ring);
+            ringBox.getCenter(activeMetalMat.userData.metalBoundsCenter.value);
+            const rSize = ringBox.getSize(new THREE.Vector3());
+            activeMetalMat.userData.metalBoundsHalfExtent.value = Math.max(rSize.y * 0.5, 0.4);
           }
         }
 
