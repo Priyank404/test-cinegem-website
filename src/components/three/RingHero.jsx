@@ -1749,13 +1749,13 @@ export default function RingHero({
     function retargetForLandscape(localFrame = 0) {
       if (!ring || !ringBS || !camera) return;
 
-      // Blend smoothly across the entire Beat 4 -> Beat 5 flight (frames 158–214) so the ring
-      // arrives directly into its centered Beat 5 rest pose without lifting high and dropping later.
+      // Blend smoothly across Beat 4 -> Beat 5 flight (frames 158–214) and remain active
+      // through footer reveal (frames 245–260) synced to PerspectiveBox's footer transform.
       if (localFrame <= 158) return;
 
-      const isViewerSection = smooth(158, 214, localFrame) * (1 - smooth(245, 255, localFrame));
+      const isViewerSection = smooth(158, 214, localFrame);
       const footerFactor = smooth(245, 260, localFrame);
-      const beat5Factor = Math.max(isViewerSection, footerFactor);
+      const beat5Factor = isViewerSection;
       if (beat5Factor < 0.001) return;
 
       camera.updateMatrixWorld(true);
@@ -1766,40 +1766,50 @@ export default function RingHero({
       const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist;
       const halfW = halfH * camera.aspect;
 
+      const winW = typeof window !== "undefined" ? window.innerWidth : 1920;
       const winH = typeof window !== "undefined" ? window.innerHeight : 1080;
+      const isMacWin = winW <= 1536 || winH < 950;
       const headerH = 80;
       const footerEl = typeof document !== "undefined" ? document.querySelector(".hero2-footer-reveal") : null;
-      const footerH = footerEl ? footerEl.getBoundingClientRect().height : 273;
+      const footerH = footerEl ? footerEl.getBoundingClientRect().height : 250;
 
-      // 1. Center calculation:
-      // Open canvas height between top header and bottom footer:
-      const openH = winH - headerH - footerH * footerFactor;
-      // Optical centroid compensation for the ring (diamond + shank) in Beat 5 & footer:
-      const opticalShift = THREE.MathUtils.lerp(0.01, 0.02, footerFactor);
-      const targetFooterNy = (footerH * footerFactor - headerH) / winH + opticalShift;
-
-      // 2. Adaptive scale calculation:
-      // Ensure the ring fits within the open canvas with clean, balanced margins.
-      // On MacBook (1440x900) or laptops with shorter height, scale to ~370px for balanced perspective cube
+      // 1. Base Beat 5 scale fit (open viewport height before footer reveal):
+      const baseOpenH = winH - headerH;
       const currentRingHeightPx = (ringBS.r * 2 * ring.scale.y / halfH) * (winH / 2);
-      const maxRingHeightPx = winH < 950 ? Math.max(160, openH * 0.50) : Math.max(160, openH * 0.58);
-      
-      let scaleMult = 1.0;
+      const maxRingHeightPx = winH < 950 ? Math.max(160, baseOpenH * 0.50) : Math.max(160, baseOpenH * 0.58);
+
+      let viewerScaleMult = 1.0;
       if (currentRingHeightPx > maxRingHeightPx) {
-        scaleMult = maxRingHeightPx / currentRingHeightPx;
+        viewerScaleMult = maxRingHeightPx / currentRingHeightPx;
       }
-      
-      if (scaleMult < 1.0) {
-        const blendScale = THREE.MathUtils.lerp(
-          1.0,
-          scaleMult,
-          Math.max(footerFactor, isViewerSection * (winH < 950 ? 0.75 : 0.4))
-        );
-        ring.scale.multiplyScalar(blendScale);
+      const viewerScaleBlend = THREE.MathUtils.lerp(
+        1.0,
+        viewerScaleMult,
+        isViewerSection * (winH < 950 ? 0.75 : 0.4)
+      );
+
+      // 2. Sync footer shrink & vertical center 1:1 with PerspectiveBox so ring stays dead-center inside shrunk box:
+      const outerH =
+        (typeof document !== "undefined"
+          ? parseFloat(document.documentElement.style.getPropertyValue("--pbox-outer-height"))
+          : 0) || winH * 0.74;
+      const safeTop = isMacWin ? Math.max(92, Math.round(winH * 0.105)) : Math.max(110, Math.round(winH * 0.11));
+      const safeBottom = winH - footerH - (isMacWin ? 16 : 22);
+      const availH = Math.max(200, safeBottom - safeTop);
+      const targetCenterY = Math.round((safeTop + safeBottom) * 0.5);
+      const boxFooterScale = Math.min(0.84, Math.max(0.54, availH / Math.max(1, outerH)));
+
+      const totalScale = viewerScaleBlend * THREE.MathUtils.lerp(1.0, boxFooterScale * 0.96, footerFactor);
+      if (totalScale < 0.9999) {
+        ring.scale.multiplyScalar(totalScale);
         ring.updateMatrixWorld(true);
       }
 
-      // 3. Smoothly reposition ring to target NDC coordinates:
+      // 3. Smoothly reposition ring to Beat 5 center, transitioning cleanly to shrunk box center above footer:
+      const viewerNy = -headerH / winH + 0.01;
+      const footerTargetNy = 1.0 - (2.0 * targetCenterY) / winH;
+      const targetFooterNy = THREE.MathUtils.lerp(viewerNy, footerTargetNy, footerFactor);
+
       const currentNDC = ring.localToWorld(ringBS.c.clone()).project(camera);
       const targetNx = THREE.MathUtils.lerp(currentNDC.x, 0.0, beat5Factor);
       const targetNy = THREE.MathUtils.lerp(currentNDC.y, targetFooterNy, beat5Factor);
@@ -2802,16 +2812,18 @@ export default function RingHero({
               autoRotateActiveRef.current = inRange;
             }
             if (interactiveRotateStartFrame != null) {
+              const isPortrait = RESPONSIVE_V2 && viewport.profile === "portrait";
+              const effectiveEndFrame = isPortrait
+                ? Math.min(interactiveRotateEndFrame ?? 245, 245)
+                : interactiveRotateEndFrame;
               const inInteractiveRange =
                 localFrame >= (interactiveRotateStartFrame - 0.25) &&
-                (interactiveRotateEndFrame == null ||
-                  localFrame <= interactiveRotateEndFrame);
+                (effectiveEndFrame == null ||
+                  localFrame <= effectiveEndFrame);
               debugFrameStateRef.current.inRange = inInteractiveRange;
               const rangeChanged =
                 inInteractiveRange !== interactiveActiveRef.current;
               interactiveActiveRef.current = inInteractiveRange;
-
-              const isPortrait = RESPONSIVE_V2 && viewport.profile === "portrait";
 
               if (canvas) {
                 // On portrait (mobile/tablet), canvas stays pointerEvents: none so outside touches scroll page;
@@ -4155,9 +4167,10 @@ export default function RingHero({
           style={{
             position: "fixed",
             left: "50%",
-            top: "calc(var(--pbox-outer-top, 90px) + 20px)",
+            top: "calc(var(--pbox-scaled-top, calc(var(--pbox-outer-top, 90px) + var(--pbox-translate-y, 0px))) + 20px * var(--pbox-scale, 1))",
             bottom: "auto",
-            transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
+            transformOrigin: "top center",
+            transform: "translateX(-50%) scale(var(--pbox-scale, 1))",
             zIndex: 10,
             pointerEvents: "none",
             display: "flex",

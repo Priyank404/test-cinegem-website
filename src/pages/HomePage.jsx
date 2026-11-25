@@ -1759,13 +1759,10 @@ export default function HomePage() {
             window.innerWidth / Math.max(1, window.innerHeight) <= 1.25));
 
       if (!isMobileOrPortrait) {
-        // Desktop & Mac viewports: title card enters from the bottom of the viewport
-        // and glides up into its vertically centered resting position (top: 50%; translateY(-50%))
-        // beside the 3D Perspective Box, exactly like Beat 2 and Beat 3 title card animations.
+        // Desktop & Mac viewports: title card and left controls enter from the bottom of the viewport
+        // into vertically centered Beat 5 resting position and remain visible in the shrunk showcase above the footer.
         const b5es = config.beat5EntryStart ?? 180;
         const b5ee = config.beat5EntryEnd ?? 216;
-        const b5xs = config.beat5ExitStart ?? FOOTER_REVEAL_GLOBAL_START_FRAME;
-        const b5xe = config.beat5ExitEnd ?? 255;
 
         const winH = typeof window !== "undefined" ? window.innerHeight : 900;
         const slideDist = Math.max(700, Math.round(winH * 0.7));
@@ -1781,21 +1778,14 @@ export default function HomePage() {
           const easeT = t * t * (3 - 2 * t);
           yOffset = Math.round(slideDist * (1 - easeT));
           opacity = Math.min(1, easeT * 1.25);
-        } else if (frame >= b5ee && frame < b5xs) {
+        } else {
           yOffset = 0;
           opacity = 1;
-        } else if (frame >= b5xs && frame <= b5xe) {
-          const t = (frame - b5xs) / Math.max(0.001, b5xe - b5xs);
-          const easeT = t * t * (3 - 2 * t);
-          yOffset = Math.round(-slideDist * easeT);
-          opacity = Math.max(0, 1 - easeT);
-        } else {
-          yOffset = -slideDist;
-          opacity = 0;
         }
 
         const el = exploreLinkRef.current;
-        el.style.transform = `translateY(calc(-50% + ${yOffset}px))`;
+        el.style.transformOrigin = "left center";
+        el.style.transform = `translateY(calc(-50% + ${yOffset}px + var(--pbox-footer-offset-y, 0px))) scale(var(--pbox-scale, 1))`;
         el.style.opacity = opacity.toFixed(3);
         el.style.visibility = opacity > 0 ? "visible" : "hidden";
         el.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
@@ -1803,7 +1793,8 @@ export default function HomePage() {
 
         if (leftControlsRef.current) {
           const lEl = leftControlsRef.current;
-          lEl.style.transform = `translateY(calc(-50% + ${yOffset}px))`;
+          lEl.style.transformOrigin = "left center";
+          lEl.style.transform = `translateY(calc(-50% + ${yOffset}px + var(--pbox-footer-offset-y, 0px))) scale(var(--pbox-scale, 1))`;
           lEl.style.opacity = opacity.toFixed(3);
           lEl.style.visibility = opacity > 0 ? "visible" : "hidden";
           lEl.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
@@ -1867,20 +1858,26 @@ export default function HomePage() {
         setActiveSectionIndex(newSectionIndex);
       }
 
-      // Scope swapped metal color to Beat 5 showcase; revert to default yellowGold when exiting up or into footer
-      const inBeat5Showcase =
-        frame >= (cardTimingConfig.beat5EntryStart ?? 180) &&
-        frame < FOOTER_REVEAL_GLOBAL_START_FRAME + 7;
+      // Scope swapped metal color to Beat 5 showcase (stays active through footer on Desktop & Mac)
+      const isMobileOrPortrait =
+        typeof window !== "undefined" &&
+        (window.innerWidth <= 640 ||
+          (window.innerWidth <= 1024 &&
+            window.innerWidth / Math.max(1, window.innerHeight) <= 1.25));
+      const inBeat5Showcase = isMobileOrPortrait
+        ? frame >= (cardTimingConfig.beat5EntryStart ?? 180) &&
+          frame < FOOTER_REVEAL_GLOBAL_START_FRAME + 7
+        : frame >= (cardTimingConfig.beat5EntryStart ?? 180);
       if (!inBeat5Showcase && metalPresetKeyRef.current !== "yellowGold") {
         setMetalPresetKey("yellowGold");
       }
 
-      applyCardOverlayFrame(frame, cardTimingConfig);
-
-      // 3D Perspective Box Showcase for Beat 5 Ring
+      // 3D Perspective Box Showcase for Beat 5 Ring (updates --pbox-* variables consumed by cards)
       if (perspectiveBoxRef.current) {
         perspectiveBoxRef.current.update(frame, progress);
       }
+
+      applyCardOverlayFrame(frame, cardTimingConfig);
 
       // Footer reveal
       if (footerRevealRef.current) {
@@ -2455,7 +2452,7 @@ export default function HomePage() {
         autoRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         autoRotateSpeed={0.35}
         interactiveRotateStartFrame={EXPLORE_LINK_GLOBAL_FRAME + 0.5}
-        interactiveRotateEndFrame={FOOTER_REVEAL_GLOBAL_START_FRAME}
+        interactiveRotateEndFrame={AUTO_ROTATE_GLOBAL_END_FRAME}
         onDragStateChange={(isDragging) => {
           if (isDragging) {
             lenisRef.current?.stop();

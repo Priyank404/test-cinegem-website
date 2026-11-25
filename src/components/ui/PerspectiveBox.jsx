@@ -415,14 +415,21 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
         const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
 
-        // Visibility range gating
-        const inWindow =
-          frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
+        // Visibility range gating: Desktop & Mac keep the showcase active through the footer (frame 260);
+        // Mobile & Tablet Portrait still exit at BOX_EXIT_COMPLETE_FRAME.
+        const inWindow = isDesktopTier
+          ? frame >= boxStartFrame
+          : frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
 
         if (!inWindow) {
           if (lastStateRef.current.visible) {
             container.style.display = "none";
             lastStateRef.current.visible = false;
+            if (typeof document !== "undefined") {
+              document.documentElement.style.setProperty("--pbox-scale", "1");
+              document.documentElement.style.setProperty("--pbox-translate-y", "0px");
+              document.documentElement.style.setProperty("--pbox-footer-offset-y", "0px");
+            }
           }
           return;
         }
@@ -470,9 +477,9 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           rawPerspProgress * rawPerspProgress * (3 - 2 * rawPerspProgress);
 
         // Perspective Gradient Exit Bloom:
-        // Fades out completely ahead of the line un-draw (frame 241 -> 245),
-        // ensuring zero gradient remains when the line begins retracting.
-        if (frame >= 241) {
+        // Mobile & Tablet Portrait fade out ahead of line un-draw (frame 241 -> 245);
+        // Desktop & Mac keep the showcase active and shrink smoothly above the footer.
+        if (!isDesktopTier && frame >= 241) {
           const rawPerspFade = Math.min(
             1,
             Math.max(0, (frame - 241) / (BOX_EXIT_START_FRAME - 241))
@@ -482,9 +489,9 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           perspT = perspT * (1 - easePerspFade);
         }
 
-        // 3. Exit Transition (frame 245 -> 250)
+        // 3. Exit Transition (Mobile & Tablet Portrait only: frame 245 -> 250)
         let exitT = 0;
-        if (frame >= BOX_EXIT_START_FRAME) {
+        if (!isDesktopTier && frame >= BOX_EXIT_START_FRAME) {
           const rawExit = Math.min(
             1,
             Math.max(
@@ -596,28 +603,66 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
           }
         }
 
-        // Footer Clearance during exit (frame >= 245):
-        // Provide gentle clearance above the rising footer, while strictly keeping
-        // the bottom of the box and the convergence point safely below the ring shank across all viewports.
+        // Footer Clearance (frame >= 245):
+        // - Desktop & Mac: keep showcase box visible, shrink smoothly and center cleanly above footer without intersecting
+        // - Mobile & Tablet Portrait: slight upward nudge while fading out
+        let footerOffsetY = 0;
         if (frame >= BOX_EXIT_START_FRAME) {
-          const maxAllowedLift = geomRef.current.isMobile
-            ? 16
-            : geomRef.current.isPortrait
-            ? 22
-            : geomRef.current.isMac
-            ? 28
-            : 36;
-          const footerProgress = Math.min(
-            1,
-            Math.max(
-              0,
-              (frame - BOX_EXIT_START_FRAME) /
-                (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
-            )
-          );
-          const easeLift =
-            footerProgress * footerProgress * (3 - 2 * footerProgress);
-          translateY -= Math.round(maxAllowedLift * easeLift);
+          if (isDesktopTier) {
+            const winH = geomRef.current.winH || 900;
+            const outerH = Math.max(
+              1,
+              (geomRef.current.outerBottom ?? winH * 0.85) -
+                (geomRef.current.outerTop ?? winH * 0.15)
+            );
+            const footerEl =
+              typeof document !== "undefined"
+                ? document.querySelector(".hero2-footer-reveal")
+                : null;
+            const footerH = footerEl
+              ? footerEl.getBoundingClientRect().height
+              : 250;
+            const safeTop = geomRef.current.isMac
+              ? Math.max(92, Math.round(winH * 0.105))
+              : Math.max(110, Math.round(winH * 0.11));
+            const safeBottom =
+              winH - footerH - (geomRef.current.isMac ? 16 : 22);
+            const availH = Math.max(200, safeBottom - safeTop);
+            const targetCenterY = Math.round((safeTop + safeBottom) * 0.5);
+            const boxFooterScale = Math.min(
+              0.84,
+              Math.max(0.54, availH / outerH)
+            );
+            const footerShiftY = targetCenterY - geomRef.current.cy;
+
+            const footerT = Math.min(
+              1,
+              Math.max(
+                0,
+                (frame - BOX_EXIT_START_FRAME) / (260 - BOX_EXIT_START_FRAME)
+              )
+            );
+            const easeFooter = footerT * footerT * (3 - 2 * footerT);
+
+            currentScale = 1.0 + (boxFooterScale - 1.0) * easeFooter;
+            translateY = Math.round(footerShiftY * easeFooter);
+            footerOffsetY = Math.round(
+              (targetCenterY - winH * 0.5) * easeFooter
+            );
+          } else {
+            const maxAllowedLift = geomRef.current.isMobile ? 16 : 22;
+            const footerProgress = Math.min(
+              1,
+              Math.max(
+                0,
+                (frame - BOX_EXIT_START_FRAME) /
+                  (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
+              )
+            );
+            const easeLift =
+              footerProgress * footerProgress * (3 - 2 * footerProgress);
+            translateY -= Math.round(maxAllowedLift * easeLift);
+          }
         }
 
         // Apply hardware-accelerated transform centered on the ring's resting anchor
@@ -630,9 +675,38 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         container.style.transform = (transStr || scaleStr) ? `${transStr}${scaleStr}`.trim() : "";
 
         if (typeof document !== "undefined") {
+          const scaledLeft = Math.round(
+            cx + (geomRef.current.outerLeft - cx) * currentScale
+          );
+          const scaledRight = Math.round(
+            cx + (geomRef.current.outerRight - cx) * currentScale
+          );
+          const scaledTop = Math.round(
+            cy + (geomRef.current.outerTop - cy) * currentScale + translateY
+          );
           document.documentElement.style.setProperty(
             "--pbox-translate-y",
             `${translateY}px`
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-scale",
+            currentScale.toFixed(4)
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-scaled-left",
+            `${scaledLeft}px`
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-scaled-right",
+            `${scaledRight}px`
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-scaled-top",
+            `${scaledTop}px`
+          );
+          document.documentElement.style.setProperty(
+            "--pbox-footer-offset-y",
+            `${footerOffsetY}px`
           );
         }
 

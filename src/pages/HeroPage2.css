@@ -120,11 +120,11 @@ body::-webkit-scrollbar,
    Desktop position stays exactly anchored at 50% + 460px with equal proportion to left controls. */
 .hero2-explore-link {
   position: fixed;
-  left: calc(50% + 460px);
+  left: calc(50% + 460px * var(--pbox-scale, 1));
   right: auto;
   top: 50%;
   width: 360px;
-  max-width: min(380px, calc(100vw - (50% + 460px) - 24px));
+  max-width: min(380px, calc(100vw - (50vw + 460px * var(--pbox-scale, 1)) - 24px));
   z-index: 8;
   transform: translateY(-50%);
   opacity: 0;
@@ -136,10 +136,10 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    left: calc(50% + clamp(210px, 17.5vw, 310px)) !important;
+    left: calc(50% + clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1)) !important;
     right: auto !important;
     width: clamp(220px, 16.8vw, 290px) !important;
-    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 24px)) !important;
+    max-width: min(290px, calc(var(--pbox-scaled-right, var(--pbox-outer-right, calc(50vw + 540px))) - 50vw - clamp(210px, 17.5vw, 310px) * var(--pbox-scale, 1) - 16px)) !important;
   }
   .hero2-explore-link .glassy-title-card {
     padding: 16px 20px !important;
@@ -186,7 +186,7 @@ body::-webkit-scrollbar,
    ========================================================================== */
 .hero2-left-controls {
   position: fixed;
-  left: calc(var(--pbox-outer-left, calc(50% - 920px)) + 55px);
+  left: calc(var(--pbox-scaled-left, var(--pbox-outer-left, calc(50% - 920px))) + 55px * var(--pbox-scale, 1));
   top: 50%;
   transform: translateY(-50%);
   z-index: 8;
@@ -203,7 +203,7 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-left-controls {
-    left: calc(var(--pbox-outer-left, calc(50% - 540px)) + clamp(24px, 2.2vw, 40px)) !important;
+    left: calc(var(--pbox-scaled-left, var(--pbox-outer-left, calc(50% - 540px))) + clamp(24px, 2.2vw, 40px) * var(--pbox-scale, 1)) !important;
     width: clamp(166px, 12vw, 195px) !important;
     gap: 10px !important;
   }
