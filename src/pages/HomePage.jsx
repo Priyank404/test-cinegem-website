@@ -2520,13 +2520,13 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* Left Showcase Controls (Desktop & Mac only): Exact copy of right TitleGlassyCard container with inner controls */}
+      {/* Left Showcase Controls (Desktop & Mac: Glassy Card with SEO text; Mobile & Tablet: pure floating controls, NO layer) */}
       <div
         ref={leftControlsRef}
         className="hero2-left-controls"
         style={{ pointerEvents: "none" }}
       >
-        <TitleGlassyCard className="hero2-left-glassy-card">
+        <TitleGlassyCard className="hero2-left-glassy-card" bare={viewportWidth <= 1024}>
           {/* 1. AUTO ROTATE Button */}
           <button
             type="button"

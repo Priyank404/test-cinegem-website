@@ -396,20 +396,27 @@ body::-webkit-scrollbar,
   }
 
   /* Strip the outer TitleGlassyCard wrapper styling completely on mobile/tablet */
+  .hero2-left-controls,
   .hero2-left-controls .glassy-title-card,
-  .hero2-left-controls .hero2-left-glassy-card {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    width: 100% !important;
-    padding: 0 !important;
+  .hero2-left-controls .hero2-left-glassy-card,
+  .hero2-left-controls .glassy-card {
     background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  .hero2-left-controls .glassy-title-card,
+  .hero2-left-controls .hero2-left-glassy-card,
+  .hero2-left-controls .glassy-card {
+    display: contents !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
   }
 
   /* Hide the desktop-only SEO paragraph on mobile/tablet portrait */

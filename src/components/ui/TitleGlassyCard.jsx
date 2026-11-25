@@ -10,7 +10,12 @@ export default function TitleGlassyCard({
   className = "",
   style,
   children,
+  bare = false,
 }) {
+  if (bare) {
+    return <>{children}</>;
+  }
+
   return (
     <div className={`glassy-card glassy-title-card p-4 sm:p-6 md:p-8 flex flex-col gap-2 sm:gap-3 ${className}`} style={style}>
       {subtitle && (
