@@ -1793,7 +1793,7 @@ export default function HomePage() {
 
         if (leftControlsRef.current) {
           const lEl = leftControlsRef.current;
-          lEl.style.transformOrigin = "left center";
+          lEl.style.transformOrigin = "right center";
           lEl.style.transform = `translateY(calc(-50% + ${yOffset}px + var(--pbox-footer-offset-y, 0px))) scale(var(--pbox-scale, 1))`;
           lEl.style.opacity = opacity.toFixed(3);
           lEl.style.visibility = opacity > 0 ? "visible" : "hidden";
