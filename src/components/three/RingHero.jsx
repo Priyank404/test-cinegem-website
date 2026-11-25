@@ -4304,17 +4304,6 @@ export default function RingHero({
             whiteSpace: "nowrap",
           }}
         >
-          <span
-            style={{
-              display: "inline-block",
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: "#4ade80",
-              boxShadow: "0 0 8px rgba(74, 222, 128, 0.95)",
-              marginRight: "4px",
-            }}
-          />
           3D Interactive
         </div>
       )}
