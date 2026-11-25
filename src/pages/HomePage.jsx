@@ -2741,10 +2741,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 3. SEO Text Block (Desktop & Mac only, hidden on mobile & tablet) */}
-          <p className="hero2-left-seo-text hidden md:block font-[Poppins] font-light text-[11px] sm:text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 pt-0.5">
-            Real-time interactive jewellery configurator. Rotate and customize precious metals with diamond refraction.
-          </p>
+          {/* 3. SEO Text Block (Desktop & Mac only, never on mobile or tablet) */}
+          {viewportWidth > 1024 && (
+            <p className="hero2-left-seo-text hidden lg:block font-[Poppins] font-light text-[11px] sm:text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 pt-0.5">
+              Real-time interactive jewellery configurator. Rotate and customize precious metals with diamond refraction.
+            </p>
+          )}
         </TitleGlassyCard>
       </div>
   {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
