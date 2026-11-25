@@ -370,11 +370,87 @@ body::-webkit-scrollbar,
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.56)) brightness(1.06);
 }
 
-/* Tablet & Mobile exclusion: Left controls are strictly Desktop & Mac */
+/* Tablet Portrait & Mobile: place Rotate 360° pill (top-left) and 3 metallic spheres (top-right) inside the Perspective Box */
 @media (max-width: 1024px) and (max-aspect-ratio: 1.25/1),
        (max-width: 640px) {
   .hero2-left-controls {
+    position: fixed !important;
+    left: var(--pbox-outer-left, 16px) !important;
+    top: calc(var(--pbox-outer-top, 300px) + var(--pbox-btn-pad, 14px)) !important;
+    right: auto !important;
+    width: var(--pbox-outer-width, calc(100vw - 32px)) !important;
+    transform: translateY(var(--pbox-translate-y, 0px)) !important;
+    z-index: 12 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 var(--pbox-btn-pad, 14px) !important;
+    gap: 12px !important;
+    transition: opacity 0.45s ease !important;
+  }
+
+  .hero2-left-controls .hero2-rotate-toggle-btn {
+    width: auto !important;
+    padding: 7px 13px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.1em !important;
+    gap: 6px !important;
+  }
+
+  .hero2-left-controls .hero2-rotate-toggle-btn .rotate-icon {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .hero2-left-controls .hero2-metal-card {
+    width: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .hero2-left-controls .hero2-metal-card-label {
     display: none !important;
+  }
+
+  .hero2-left-controls .hero2-metal-card-spheres {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 0 !important;
+  }
+
+  .hero2-left-controls .metal-sphere-btn {
+    width: 26px !important;
+    height: 26px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero2-left-controls .hero2-rotate-toggle-btn {
+    padding: 6px 11px !important;
+    font-size: 9.5px !important;
+    letter-spacing: 0.08em !important;
+    gap: 5px !important;
+  }
+
+  .hero2-left-controls .hero2-rotate-toggle-btn .rotate-icon {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .hero2-left-controls .hero2-metal-card-spheres {
+    gap: 8px !important;
+  }
+
+  .hero2-left-controls .metal-sphere-btn {
+    width: 22px !important;
+    height: 22px !important;
   }
 }
 

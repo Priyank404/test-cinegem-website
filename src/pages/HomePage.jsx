@@ -1823,7 +1823,13 @@ export default function HomePage() {
         el.classList.toggle("is-visible", showExploreLink);
 
         if (leftControlsRef.current) {
-          leftControlsRef.current.style.display = "none";
+          const lEl = leftControlsRef.current;
+          lEl.style.display = "";
+          lEl.style.transform = "";
+          lEl.style.opacity = "";
+          lEl.style.visibility = "";
+          lEl.style.pointerEvents = showExploreLink ? "auto" : "none";
+          lEl.classList.toggle("is-visible", showExploreLink);
         }
       }
     }
