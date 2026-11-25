@@ -2520,18 +2520,226 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* Left Showcase Controls (Desktop & Mac only): Exact copy of right TitleGlassyCard */}
+      {/* Left Showcase Controls (Desktop & Mac only): Exact copy of right TitleGlassyCard container with inner controls */}
       <div
         ref={leftControlsRef}
         className="hero2-left-controls"
         style={{ pointerEvents: "none" }}
       >
-        <TitleGlassyCard
-          title="Interactive 3D Viewer"
-          description="Real-time interactive 3D configurator with dynamic precious metal switching, diamond refraction, and 360° inspection controls. Launching soon."
-          href="/3d-viewer"
-          linkText="EXPLORE →"
-        />
+        <TitleGlassyCard className="hero2-left-glassy-card">
+          {/* 1. AUTO ROTATE Button */}
+          <button
+            type="button"
+            className={`hero2-rotate-toggle-btn ${isAutoRotateActive ? "is-active" : ""}`}
+            onClick={() => setIsAutoRotateActive((prev) => !prev)}
+            title={isAutoRotateActive ? "Click to pause 360° rotation" : "Click to resume 360° rotation"}
+            aria-label={isAutoRotateActive ? "Pause 360° rotation" : "Resume 360° rotation"}
+          >
+            <svg
+              className="rotate-icon"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            <span>Auto Rotate</span>
+            <span
+              className="status-dot"
+              style={{
+                display: "inline-block",
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.35)",
+                boxShadow: isAutoRotateActive ? "0 0 8px rgba(74, 222, 128, 0.95)" : "none",
+                marginLeft: "4px",
+                transition: "background 0.3s ease, box-shadow 0.3s ease",
+              }}
+            />
+          </button>
+
+          {/* 2. Metal Color & Spheres Section */}
+          <div className="hero2-metal-card">
+            <div className="hero2-metal-card-label">Metal Color</div>
+            <div
+              className="hero2-metal-card-spheres"
+              role="radiogroup"
+              aria-label="Metal Color"
+            >
+              {[
+                {
+                  key: "yellowGold",
+                  label: "Yellow Gold",
+                  baseTop: "#F6DF98",
+                  baseMid: "#C99A3B",
+                  baseEdge: "#5B3E0D",
+                  belly: "#604310",
+                  topGlow: "#FFF7D4",
+                  rightBounce: "#F2D17C",
+                  bottomOccl: "#261803",
+                },
+                {
+                  key: "whiteGold",
+                  label: "White Gold",
+                  baseTop: "#EEF0F4",
+                  baseMid: "#B6BAC3",
+                  baseEdge: "#565A63",
+                  belly: "#6C707A",
+                  topGlow: "#FFFFFF",
+                  rightBounce: "#DFE3EA",
+                  bottomOccl: "#1F2126",
+                },
+                {
+                  key: "roseGold",
+                  label: "Rose Gold",
+                  baseTop: "#F6C8B6",
+                  baseMid: "#C7846D",
+                  baseEdge: "#623023",
+                  belly: "#703C2E",
+                  topGlow: "#FFF1EA",
+                  rightBounce: "#EBB09C",
+                  bottomOccl: "#2A110B",
+                },
+              ].map((metal) => {
+                const isSelected = metalPresetKey === metal.key;
+                const clipId = `metal-sphere-clip-${metal.key}`;
+                const baseGradId = `metal-sphere-base-${metal.key}`;
+                const rimGradId = `metal-sphere-rim-${metal.key}`;
+                const blurSoftId = `metal-sphere-blur-soft-${metal.key}`;
+                const blurCoreId = `metal-sphere-blur-core-${metal.key}`;
+                return (
+                  <button
+                    key={metal.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`metal-sphere-btn metal-sphere-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
+                    onClick={() => setMetalPresetKey(metal.key)}
+                    title={`Switch metal to ${metal.label}`}
+                    aria-label={metal.label}
+                  >
+                    <svg
+                      className="metal-sphere-svg"
+                      viewBox="0 0 100 100"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <defs>
+                        <clipPath id={clipId}>
+                          <circle cx="50" cy="50" r="50" />
+                        </clipPath>
+                        <radialGradient
+                          id={baseGradId}
+                          cx="38%"
+                          cy="32%"
+                          r="65%"
+                          fx="32%"
+                          fy="26%"
+                        >
+                          <stop offset="0%" stopColor={metal.baseTop} />
+                          <stop offset="42%" stopColor={metal.baseMid} />
+                          <stop offset="82%" stopColor={metal.baseEdge} />
+                          <stop offset="100%" stopColor={metal.belly} />
+                        </radialGradient>
+                        <radialGradient
+                          id={rimGradId}
+                          cx="50%"
+                          cy="50%"
+                          r="50%"
+                        >
+                          <stop offset="78%" stopColor="#000000" stopOpacity="0" />
+                          <stop offset="93%" stopColor={metal.baseEdge} stopOpacity="0.55" />
+                          <stop offset="100%" stopColor={metal.baseEdge} stopOpacity="0.88" />
+                        </radialGradient>
+                        <filter
+                          id={blurSoftId}
+                          x="-20%"
+                          y="-20%"
+                          width="140%"
+                          height="140%"
+                        >
+                          <feGaussianBlur stdDeviation="3.5" />
+                        </filter>
+                        <filter
+                          id={blurCoreId}
+                          x="-30%"
+                          y="-30%"
+                          width="160%"
+                          height="160%"
+                        >
+                          <feGaussianBlur stdDeviation="1.6" />
+                        </filter>
+                      </defs>
+                      <g clipPath={`url(#${clipId})`}>
+                        <circle cx="50" cy="50" r="50" fill={`url(#${baseGradId})`} />
+                        <ellipse
+                          cx="76"
+                          cy="64"
+                          rx="18"
+                          ry="26"
+                          transform="rotate(-25 76 64)"
+                          fill={metal.rightBounce}
+                          opacity="0.55"
+                          filter={`url(#${blurSoftId})`}
+                        />
+                        <ellipse
+                          cx="32"
+                          cy="26"
+                          rx="22"
+                          ry="14"
+                          transform="rotate(-20 32 26)"
+                          fill={metal.topGlow}
+                          opacity="0.8"
+                          filter={`url(#${blurSoftId})`}
+                        />
+                        <ellipse
+                          cx="28"
+                          cy="22"
+                          rx="9"
+                          ry="5"
+                          transform="rotate(-15 28 22)"
+                          fill="#FFFFFF"
+                          opacity="0.96"
+                          filter={`url(#${blurCoreId})`}
+                        />
+                        <ellipse
+                          cx="22"
+                          cy="38"
+                          rx="8"
+                          ry="14"
+                          transform="rotate(-15 22 38)"
+                          fill="#FFFFFF"
+                          opacity="0.92"
+                          filter={`url(#${blurCoreId})`}
+                        />
+                        <ellipse
+                          cx="50"
+                          cy="94"
+                          rx="44"
+                          ry="14"
+                          fill={metal.bottomOccl}
+                          opacity="0.86"
+                          filter={`url(#${blurSoftId})`}
+                        />
+                        <circle cx="50" cy="50" r="50" fill={`url(#${rimGradId})`} />
+                      </g>
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. SEO Text Block (2-3 lines) */}
+          <p className="font-[Poppins] font-light text-[11px] sm:text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0 pt-0.5">
+            Real-time interactive jewellery configurator. Rotate and customize precious metals with diamond refraction.
+          </p>
+        </TitleGlassyCard>
       </div>
   {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
       <div
