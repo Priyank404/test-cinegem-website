@@ -324,17 +324,36 @@ float _metalFbmFog(vec3 p) {
         "#include <color_fragment>",
         `#include <color_fragment>
 if (uMetalTransitionProgress < 0.999) {
-  vec3 fogSamplePos = vMetalSpreadPos * 3.6 - vec3(0.0, uMetalTransitionProgress * 0.75, 0.0);
-  float fogNoise = _metalFbmFog(fogSamplePos);
-  float heightNorm = clamp((vMetalSpreadPos.y + 1.0) * 0.5, 0.0, 1.0);
-  float organicField = heightNorm + clamp(vMetalSpreadPos.x, -1.0, 1.0) * uMetalTransitionSeed.x + (fogNoise - 0.5) * 0.38;
-  float waveFront = mix(-0.70, 1.70, uMetalTransitionProgress);
-  float feather = 0.36;
-  float virusMask = 1.0 - smoothstep(waveFront - feather, waveFront + feather, organicField);
-  float mistRim = 4.0 * virusMask * (1.0 - virusMask);
-  vec3 blendedMetal = mix(uMetalFromColor, uMetalToColor, virusMask);
-  vec3 mistTint = mix(uMetalFromColor, uMetalToColor, 0.65);
-  diffuseColor.rgb = blendedMetal + mistTint * mistRim * 0.14;
+  // Angular-coordinate around ring loop for progressive wipe around the band
+  float ringAngle = atan(vMetalSpreadPos.z, vMetalSpreadPos.x) / 3.14159265; // [-1.0, 1.0]
+  float sweepCoord = ringAngle * 0.5 + 0.5; // [0.0, 1.0]
+
+  // Add subtle organic curve along height and minimal micro-jitter
+  float heightTweak = vMetalSpreadPos.y * 0.08;
+  float microJitter = (_metalHash31(floor(vMetalSpreadPos * 8.0)) - 0.5) * 0.03;
+  float progressionCoord = sweepCoord + heightTweak + microJitter;
+
+  // Wavefront moves around the band from 0 to 1
+  float waveFront = mix(-0.15, 1.15, uMetalTransitionProgress);
+
+  // Defined thick gradient transition bar
+  float barHalfWidth = 0.08; // Clean, distinct transition band width
+  float edgeFeather = 0.008; // Sharp delineation between zones
+
+  // Transition factor:
+  // Behind the bar: 1.0 (Next / To Color)
+  // Ahead of the bar: 0.0 (Previous / From Color)
+  // Inside the bar: Smooth gradient bridging the two
+  float barT = smoothstep(waveFront - barHalfWidth, waveFront + barHalfWidth, progressionCoord);
+  float toColorFactor = 1.0 - barT;
+
+  // Highlight specular sheen across the thick bar center
+  float barCenterDist = abs(progressionCoord - waveFront) / barHalfWidth;
+  float barGleam = (1.0 - smoothstep(0.0, 1.0, barCenterDist)) * (1.0 - smoothstep(1.0 - edgeFeather * 2.0, 1.0, barCenterDist));
+
+  vec3 baseBlend = mix(uMetalFromColor, uMetalToColor, toColorFactor);
+  vec3 gleamColor = mix(vec3(1.0), uMetalToColor, 0.4);
+  diffuseColor.rgb = baseBlend + gleamColor * barGleam * 0.22;
 }
 `
       );

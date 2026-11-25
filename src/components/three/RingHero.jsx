@@ -1462,8 +1462,8 @@ export default function RingHero({
 
       gsap.to(uProgress, {
         value: 1.0,
-        duration: 1.6,
-        ease: "sine.inOut",
+        duration: 1.35,
+        ease: "power2.inOut",
       });
     } else {
       gsap.to(metalMat.color, {
