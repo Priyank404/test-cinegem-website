@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HeroPage2.jsx
  * -------------------------------------------------------------------------
  * Full page that wires up RingHero.jsx as a fixed 3D scroll-background,
@@ -2625,88 +2625,90 @@ export default function HomePage() {
                     aria-label={metal.label}
                   >
                     <svg
-                      className="metal-sphere-svg"
                       viewBox="0 0 100 100"
-                      xmlns="http://www.w3.org/2000/svg"
+                      className="metal-sphere-svg"
+                      aria-hidden="true"
                     >
                       <defs>
                         <clipPath id={clipId}>
-                          <circle cx="50" cy="50" r="50" />
+                          <circle cx="50" cy="50" r="49.5" />
                         </clipPath>
                         <radialGradient
                           id={baseGradId}
-                          cx="38%"
-                          cy="32%"
-                          r="65%"
-                          fx="32%"
-                          fy="26%"
+                          cx="42%"
+                          cy="36%"
+                          r="68%"
+                          fx="34%"
+                          fy="28%"
                         >
                           <stop offset="0%" stopColor={metal.baseTop} />
-                          <stop offset="42%" stopColor={metal.baseMid} />
-                          <stop offset="82%" stopColor={metal.baseEdge} />
-                          <stop offset="100%" stopColor={metal.belly} />
+                          <stop offset="52%" stopColor={metal.baseMid} />
+                          <stop offset="88%" stopColor={metal.baseEdge} />
+                          <stop offset="100%" stopColor={metal.bottomOccl} />
                         </radialGradient>
-                        <radialGradient
-                          id={rimGradId}
-                          cx="50%"
-                          cy="50%"
-                          r="50%"
-                        >
-                          <stop offset="78%" stopColor="#000000" stopOpacity="0" />
-                          <stop offset="93%" stopColor={metal.baseEdge} stopOpacity="0.55" />
-                          <stop offset="100%" stopColor={metal.baseEdge} stopOpacity="0.88" />
+                        <radialGradient id={rimGradId} cx="50%" cy="50%" r="50%">
+                          <stop offset="72%" stopColor="rgba(255,255,255,0)" />
+                          <stop offset="93%" stopColor={metal.topGlow} stopOpacity="0.22" />
+                          <stop offset="100%" stopColor={metal.bottomOccl} stopOpacity="0.5" />
                         </radialGradient>
-                        <filter
-                          id={blurSoftId}
-                          x="-20%"
-                          y="-20%"
-                          width="140%"
-                          height="140%"
-                        >
-                          <feGaussianBlur stdDeviation="3.5" />
+                        <filter id={blurSoftId} x="-40%" y="-40%" width="180%" height="180%">
+                          <feGaussianBlur stdDeviation="8" />
                         </filter>
-                        <filter
-                          id={blurCoreId}
-                          x="-30%"
-                          y="-30%"
-                          width="160%"
-                          height="160%"
-                        >
-                          <feGaussianBlur stdDeviation="1.6" />
+                        <filter id={blurCoreId} x="-40%" y="-40%" width="180%" height="180%">
+                          <feGaussianBlur stdDeviation="4" />
                         </filter>
                       </defs>
                       <g clipPath={`url(#${clipId})`}>
+                        {/* Metallic sphere base body */}
                         <circle cx="50" cy="50" r="50" fill={`url(#${baseGradId})`} />
+
+                        {/* Satin dark center-belly contrast band for authentic 3D depth */}
                         <ellipse
-                          cx="76"
-                          cy="64"
-                          rx="18"
-                          ry="26"
-                          transform="rotate(-25 76 64)"
-                          fill={metal.rightBounce}
-                          opacity="0.55"
-                          filter={`url(#${blurSoftId})`}
-                        />
-                        <ellipse
-                          cx="32"
-                          cy="26"
+                          cx="54"
+                          cy="48"
                           rx="22"
-                          ry="14"
-                          transform="rotate(-20 32 26)"
-                          fill={metal.topGlow}
-                          opacity="0.8"
+                          ry="18"
+                          fill={metal.belly}
+                          opacity="0.72"
                           filter={`url(#${blurSoftId})`}
                         />
+
+                        {/* Overhead softbox studio glow */}
                         <ellipse
-                          cx="28"
-                          cy="22"
-                          rx="9"
-                          ry="5"
-                          transform="rotate(-15 28 22)"
-                          fill="#FFFFFF"
-                          opacity="0.96"
-                          filter={`url(#${blurCoreId})`}
+                          cx="52"
+                          cy="15"
+                          rx="30"
+                          ry="12"
+                          fill={metal.topGlow}
+                          opacity="0.58"
+                          filter={`url(#${blurSoftId})`}
                         />
+
+                        {/* Right secondary softbox bounce highlight */}
+                        <ellipse
+                          cx="81"
+                          cy="45"
+                          rx="14"
+                          ry="24"
+                          transform="rotate(8 81 45)"
+                          fill={metal.rightBounce}
+                          opacity="0.65"
+                          filter={`url(#${blurSoftId})`}
+                        />
+
+                        {/* Primary left softbox halo */}
+                        <ellipse
+                          cx="24"
+                          cy="39"
+                          rx="16"
+                          ry="25"
+                          transform="rotate(-14 24 39)"
+                          fill={metal.topGlow}
+                          opacity="0.82"
+                          filter={`url(#${blurSoftId})`}
+                        />
+
+                        {/* Crisp hot specular reflection core */}
                         <ellipse
                           cx="22"
                           cy="38"
@@ -2717,6 +2719,8 @@ export default function HomePage() {
                           opacity="0.92"
                           filter={`url(#${blurCoreId})`}
                         />
+
+                        {/* Grounded lower curve shadow occlusion */}
                         <ellipse
                           cx="50"
                           cy="94"
@@ -2726,6 +2730,8 @@ export default function HomePage() {
                           opacity="0.86"
                           filter={`url(#${blurSoftId})`}
                         />
+
+                        {/* Subtle spherical Fresnel rim */}
                         <circle cx="50" cy="50" r="50" fill={`url(#${rimGradId})`} />
                       </g>
                     </svg>
