@@ -143,10 +143,9 @@ body::-webkit-scrollbar,
   }
   .hero2-explore-link .glassy-title-card,
   .hero2-left-controls .glassy-title-card {
-    padding: 16px 20px !important;
+    padding: 18px 20px !important;
   }
-  .hero2-explore-link .glassy-title-card h2,
-  .hero2-left-controls .glassy-title-card h2 {
+  .hero2-explore-link .glassy-title-card h2 {
     font-size: 20px !important;
     line-height: 1.15 !important;
   }
