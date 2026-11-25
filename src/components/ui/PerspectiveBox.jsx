@@ -260,10 +260,10 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
     } else if (isMac) {
       // Dedicated Mac / Laptop tier (1440x900, 1280x800):
       // Expanded symmetrical widescreen showcase box enclosing left controls and right title card
-      const maxTopClearance = ringCy - 80;
-      const maxBottomClearance = (winH - 42) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.42, 385));
-      halfOuterW = Math.min(Math.round((winW - 80) / 2), 700);
+      const maxTopClearance = ringCy - 72;
+      const maxBottomClearance = (winH - 28) - ringCy;
+      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.45, 415));
+      halfOuterW = Math.min(Math.round((winW - 56) / 2), 735);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
@@ -271,10 +271,10 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
     } else {
       // Dedicated Big Desktop tier (1920x1080, 2560x1440):
       // Expanded symmetrical widescreen showcase box enclosing left controls and right title card
-      const maxTopClearance = ringCy - 90;
-      const maxBottomClearance = (winH - 48) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.44, 465));
-      halfOuterW = Math.min(Math.round((winW - 90) / 2), 920);
+      const maxTopClearance = ringCy - 76;
+      const maxBottomClearance = (winH - 32) - ringCy;
+      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.46, 510));
+      halfOuterW = Math.min(Math.round((winW - 60) / 2), 960);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);
