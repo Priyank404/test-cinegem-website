@@ -259,11 +259,13 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
       outerBottom = Math.round(ringCy + halfOuterH);
     } else if (isMac) {
       // Dedicated Mac / Laptop tier (1440x900, 1280x800):
-      // Expanded symmetrical widescreen showcase box enclosing left controls and right title card
-      const maxTopClearance = ringCy - 72;
-      const maxBottomClearance = (winH - 28) - ringCy;
-      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.45, 415));
-      halfOuterW = Math.min(Math.round((winW - 56) / 2), 735);
+      // Matches Desktop proportions (~75% width -> ~12.5% outer margins clearing nav dots, ~17% top gap clearing logo)
+      const minTopGap = Math.max(138, Math.round(winH * 0.172));
+      const minBottomGap = Math.max(54, Math.round(winH * 0.08));
+      const maxTopClearance = ringCy - minTopGap;
+      const maxBottomClearance = (winH - minBottomGap) - ringCy;
+      halfOuterH = Math.floor(Math.min(maxTopClearance, maxBottomClearance, winH * 0.39));
+      halfOuterW = Math.min(Math.round(winW * 0.375), 740);
       outerLeft = Math.round(ringCx - halfOuterW);
       outerRight = Math.round(ringCx + halfOuterW);
       outerTop = Math.round(ringCy - halfOuterH);

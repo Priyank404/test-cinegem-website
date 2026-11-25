@@ -132,24 +132,29 @@ body::-webkit-scrollbar,
   visibility: hidden;
 }
 
-/* MacBook / Laptop viewports: title card maintains clean right-bay proportion inside the showcase box */
+/* MacBook / Laptop viewports: match Desktop's proportional card size & box inset */
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-explore-link {
-    left: calc(50% + 320px) !important;
+    left: calc(50% + clamp(210px, 17.5vw, 310px)) !important;
     right: auto !important;
-    width: 290px !important;
-    max-width: min(300px, calc(100vw - (50% + 320px) - 24px)) !important;
+    width: clamp(220px, 16.8vw, 290px) !important;
+    max-width: min(290px, calc(var(--pbox-outer-right, calc(50vw + 540px)) - 50vw - clamp(210px, 17.5vw, 310px) - 24px)) !important;
   }
   .hero2-explore-link .glassy-title-card {
-    padding: 20px 24px !important;
+    padding: 16px 20px !important;
   }
   .hero2-explore-link .glassy-title-card h2 {
-    font-size: 23px !important;
+    font-size: 20px !important;
+    line-height: 1.15 !important;
   }
   .hero2-explore-link .glassy-title-card p {
-    font-size: 12.5px !important;
-    line-height: 1.5 !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+  }
+  .hero2-explore-link a {
+    padding: 8px 16px !important;
+    font-size: 10.5px !important;
   }
 }
 
@@ -198,9 +203,25 @@ body::-webkit-scrollbar,
 @media (min-width: 1025px) and (max-width: 1536px),
        (min-width: 1025px) and (max-height: 940px) {
   .hero2-left-controls {
-    left: calc(var(--pbox-outer-left, calc(50% - 700px)) + 40px) !important;
-    width: 200px !important;
-    gap: 12px !important;
+    left: calc(var(--pbox-outer-left, calc(50% - 540px)) + clamp(24px, 2.2vw, 40px)) !important;
+    width: clamp(166px, 12vw, 195px) !important;
+    gap: 10px !important;
+  }
+  .hero2-left-controls .hero2-rotate-toggle-btn {
+    padding: 8px 14px !important;
+    font-size: 10px !important;
+  }
+  .hero2-left-controls .hero2-metal-card {
+    padding: 12px 14px 14px !important;
+    border-radius: 14px !important;
+  }
+  .hero2-left-controls .hero2-metal-card-label {
+    font-size: 9.5px !important;
+    margin-bottom: 10px !important;
+  }
+  .hero2-left-controls .metal-sphere-btn {
+    width: 30px !important;
+    height: 30px !important;
   }
 }
 
