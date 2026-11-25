@@ -2507,7 +2507,7 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3 Slim Metallic Pill Tabs */}
+      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3 Circular Metal Dots */}
       <div
         ref={leftControlsRef}
         className="hero2-left-controls"
@@ -2566,7 +2566,7 @@ export default function HomePage() {
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                className={`metal-pill-tab metal-pill-tab--${metal.key} ${isSelected ? "is-selected" : ""}`}
+                className={`metal-dot-btn metal-dot-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
                 onClick={() => setMetalPresetKey(metal.key)}
                 title={metal.label}
                 aria-label={metal.label}
