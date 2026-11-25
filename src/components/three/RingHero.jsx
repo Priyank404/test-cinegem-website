@@ -1428,53 +1428,90 @@ export default function RingHero({
     }
   }, [effectiveBaseHdrUrl, gemBaseEnv?.mono, gemSpotHdrUrl, gemSpotEnv?.mono, metalHdrUrl, metalSpotHdrUrl, onRefreshPreviews]);
 
-  // Live dynamic hot-swapping for Metal Preset (gold / rose gold / white gold / platinum)
+  // Live dynamic hot-swapping for Metal Preset (virus/fog spreading transition)
+  const activeMetalKeyRef = useRef(metalPreset?.key);
   useEffect(() => {
     const metalMat = metalMaterialRef.current;
-    if (metalMat && metalPreset) {
-      const targetColor = new THREE.Color(metalPreset.color);
-      const targetSpecular =
-        metalPreset.specularColor !== undefined
-          ? new THREE.Color(metalPreset.specularColor)
-          : null;
-      const targetRoughness = Math.max(
-        metalPreset.roughness ?? 0.08,
-        metalPreset.minRoughness ?? 0.045
-      );
+    if (!metalMat || !metalPreset) return;
 
-      // Smooth color and material tween over 0.55s
+    if (activeMetalKeyRef.current === metalPreset.key) return;
+    activeMetalKeyRef.current = metalPreset.key;
+
+    const targetColor = new THREE.Color(metalPreset.color);
+    const targetSpecular =
+      metalPreset.specularColor !== undefined
+        ? new THREE.Color(metalPreset.specularColor)
+        : null;
+    const targetRoughness = Math.max(
+      metalPreset.roughness ?? 0.08,
+      metalPreset.minRoughness ?? 0.045
+    );
+
+    const uProgress = metalMat.userData?.metalTransitionProgress;
+    const uFrom = metalMat.userData?.metalFromColor;
+    const uTo = metalMat.userData?.metalToColor;
+    const uSeed = metalMat.userData?.metalTransitionSeed;
+
+    gsap.killTweensOf(metalMat);
+    if (metalMat.specularColor) gsap.killTweensOf(metalMat.specularColor);
+
+    if (uProgress && uFrom && uTo) {
+      gsap.killTweensOf(uProgress);
+
+      // Anchor from-color at current visual midpoint so rapid clicks never pop
+      const currentBlended = uFrom.value.clone().lerp(uTo.value, uProgress.value);
+      uFrom.value.copy(currentBlended);
+      uTo.value.copy(targetColor);
+
+      // Seed wave from crown / upper shoulder depending on target metal
+      if (uSeed) {
+        if (metalPreset.key === "yellow_gold") {
+          uSeed.value.set(0.32, 0.92, 0.22);
+        } else if (metalPreset.key === "white_gold") {
+          uSeed.value.set(0.0, 0.96, 0.0);
+        } else {
+          uSeed.value.set(-0.32, 0.92, -0.22);
+        }
+      }
+
+      metalMat.color.copy(targetColor);
+      uProgress.value = 0.0;
+
+      gsap.to(uProgress, {
+        value: 1.0,
+        duration: 1.4,
+        ease: "power2.inOut",
+      });
+    } else {
       gsap.to(metalMat.color, {
         r: targetColor.r,
         g: targetColor.g,
         b: targetColor.b,
-        duration: 0.55,
-        ease: "power2.out",
-        onUpdate: () => {
-          metalMat.needsUpdate = true;
-        },
-      });
-
-      if (metalMat.specularColor && targetSpecular) {
-        gsap.to(metalMat.specularColor, {
-          r: targetSpecular.r,
-          g: targetSpecular.g,
-          b: targetSpecular.b,
-          duration: 0.55,
-          ease: "power2.out",
-        });
-      }
-
-      gsap.to(metalMat, {
-        roughness: targetRoughness,
-        clearcoat: metalPreset.clearcoat ?? 0.25,
-        clearcoatRoughness: metalPreset.clearcoatRoughness ?? 0.14,
-        duration: 0.55,
-        ease: "power2.out",
-        onComplete: () => {
-          applyHdrConfigToLiveMaterials();
-        },
+        duration: 0.9,
+        ease: "power2.inOut",
       });
     }
+
+    if (metalMat.specularColor && targetSpecular) {
+      gsap.to(metalMat.specularColor, {
+        r: targetSpecular.r,
+        g: targetSpecular.g,
+        b: targetSpecular.b,
+        duration: 1.4,
+        ease: "power2.inOut",
+      });
+    }
+
+    gsap.to(metalMat, {
+      roughness: targetRoughness,
+      clearcoat: metalPreset.clearcoat ?? 0.25,
+      clearcoatRoughness: metalPreset.clearcoatRoughness ?? 0.14,
+      duration: 1.4,
+      ease: "power2.inOut",
+      onComplete: () => {
+        applyHdrConfigToLiveMaterials();
+      },
+    });
   }, [metalPreset]);
 
   // Live dynamic hot-swapping for Gem Material Mode (refraction / matte) & gemPreset
@@ -2505,12 +2542,20 @@ export default function RingHero({
 
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
+        const rawCenter = center.clone();
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = 1.4 / maxDim;
         ring.scale.setScalar(scale);
         ring.position.sub(center.multiplyScalar(scale));
 
         scene.add(ring);
+
+        if (metalMaterial?.userData?.metalBoundsCenter) {
+          metalMaterial.userData.metalBoundsCenter.value.copy(rawCenter);
+          metalMaterial.userData.metalBoundsHalfExtent.value = Math.max(maxDim * 0.5, 1e-4);
+          ring.updateMatrixWorld();
+          metalMaterial.userData.metalRingInvMatrix.value.copy(ring.matrixWorld).invert();
+        }
 
         ringHeroTransform.position.copy(ring.position);
         ringHeroTransform.rotation.copy(ring.rotation);
@@ -3657,10 +3702,25 @@ export default function RingHero({
               retargetForLandscape(localFrame);
             }
           }
+
+          // Update ring inverse matrix on GPU only while virus/fog color transition is actively spreading
+          const activeMetalMat = metalMaterialRef.current;
+          if (
+            activeMetalMat?.userData?.metalTransitionProgress?.value < 0.999 &&
+            activeMetalMat.userData.metalRingInvMatrix
+          ) {
+            ring.updateMatrixWorld();
+            activeMetalMat.userData.metalRingInvMatrix.value
+              .copy(ring.matrixWorld)
+              .invert();
+          }
         }
 
+        const isMetalSpreading =
+          (metalMaterialRef.current?.userData?.metalTransitionProgress?.value ?? 1.0) < 0.999;
+
         // ── Demand-driven render in video sections ─────────────────────────
-        if (inVideoSection && isStill && atmosphereWeightRef.current <= 0.005) {
+        if (inVideoSection && isStill && atmosphereWeightRef.current <= 0.005 && !isMetalSpreading) {
           if (settleFramesRef.current >= 5) {
             // Ring has completely settled in 4K resolution; pause rendering to free 100% GPU for smooth video
             return;

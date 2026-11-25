@@ -118,7 +118,17 @@ export function buildMetalMaterial(preset, envMap, roughnessOverride = null, glo
   mat.userData.metalSpotTrans = { value: new THREE.Vector2(0.0, 0.0) };
   mat.userData.metalSpotScaleInvert = { value: 0.0 };
   mat.userData.metalEnvView = { value: 0.0 };
-  mat.customProgramCacheKey = () => "metal_env_octane_v5";
+
+  // Virus / fog spread transition uniforms (active when metalTransitionProgress < 0.999)
+  mat.userData.metalFromColor = { value: new THREE.Color(preset.color) };
+  mat.userData.metalToColor = { value: new THREE.Color(preset.color) };
+  mat.userData.metalTransitionProgress = { value: 1.0 };
+  mat.userData.metalTransitionSeed = { value: new THREE.Vector3(0.0, 0.95, 0.0) };
+  mat.userData.metalRingInvMatrix = { value: new THREE.Matrix4() };
+  mat.userData.metalBoundsCenter = { value: new THREE.Vector3(0, 0, 0) };
+  mat.userData.metalBoundsHalfExtent = { value: 1.0 };
+
+  mat.customProgramCacheKey = () => "metal_env_octane_v6";
 
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uEnvSaturation = mat.userData.envSaturation;
@@ -136,6 +146,33 @@ export function buildMetalMaterial(preset, envMap, roughnessOverride = null, glo
     shader.uniforms.uMetalSpotTrans = mat.userData.metalSpotTrans;
     shader.uniforms.uMetalSpotScaleInvert = mat.userData.metalSpotScaleInvert;
     shader.uniforms.uMetalEnvView = mat.userData.metalEnvView;
+
+    shader.uniforms.uMetalFromColor = mat.userData.metalFromColor;
+    shader.uniforms.uMetalToColor = mat.userData.metalToColor;
+    shader.uniforms.uMetalTransitionProgress = mat.userData.metalTransitionProgress;
+    shader.uniforms.uMetalTransitionSeed = mat.userData.metalTransitionSeed;
+    shader.uniforms.uMetalRingInvMatrix = mat.userData.metalRingInvMatrix;
+    shader.uniforms.uMetalBoundsCenter = mat.userData.metalBoundsCenter;
+    shader.uniforms.uMetalBoundsHalfExtent = mat.userData.metalBoundsHalfExtent;
+
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+uniform mat4 uMetalRingInvMatrix;
+uniform vec3 uMetalBoundsCenter;
+uniform float uMetalBoundsHalfExtent;
+varying vec3 vMetalSpreadPos;
+`
+      )
+      .replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+vec4 _metalWorldPos = modelMatrix * vec4(transformed, 1.0);
+vec3 _metalRawPos = (uMetalRingInvMatrix * _metalWorldPos).xyz;
+vMetalSpreadPos = (_metalRawPos - uMetalBoundsCenter) / max(uMetalBoundsHalfExtent, 1e-4);
+`
+      );
 
     const sampleDirGlsl = `
 vec3 sampleOctaneDir(vec3 d, float rot, vec2 scale, vec2 trans, float scaleInvert) {
@@ -234,12 +271,73 @@ uniform vec2 uMetalSpotScale;
 uniform vec2 uMetalSpotTrans;
 uniform float uMetalSpotScaleInvert;
 uniform float uMetalEnvView;
+
+uniform vec3 uMetalFromColor;
+uniform vec3 uMetalToColor;
+uniform float uMetalTransitionProgress;
+uniform vec3 uMetalTransitionSeed;
+varying vec3 vMetalSpreadPos;
 `;
 
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <envmap_physical_pars_fragment>",
-      uniformDeclarations + sampleDirGlsl + customPars
-    );
+    const virusFogHelpers = `
+float _metalHash31(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.yzx + 33.33);
+  return fract((p.x + p.y) * p.z);
+}
+float _metalNoise3(vec3 p) {
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float n000 = _metalHash31(i + vec3(0.0, 0.0, 0.0));
+  float n100 = _metalHash31(i + vec3(1.0, 0.0, 0.0));
+  float n010 = _metalHash31(i + vec3(0.0, 1.0, 0.0));
+  float n110 = _metalHash31(i + vec3(1.0, 1.0, 0.0));
+  float n001 = _metalHash31(i + vec3(0.0, 0.0, 1.0));
+  float n101 = _metalHash31(i + vec3(1.0, 0.0, 1.0));
+  float n011 = _metalHash31(i + vec3(0.0, 1.0, 1.0));
+  float n111 = _metalHash31(i + vec3(1.0, 1.0, 1.0));
+  return mix(
+    mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y),
+    mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y),
+    f.z
+  );
+}
+float _metalFbmFog(vec3 p) {
+  float v = 0.0;
+  float a = 0.5;
+  for (int i = 0; i < 3; i++) {
+    v += a * _metalNoise3(p);
+    p = p * 2.07 + vec3(13.1, 7.7, 19.3);
+    a *= 0.5;
+  }
+  return v;
+}
+`;
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <envmap_physical_pars_fragment>",
+        uniformDeclarations + sampleDirGlsl + virusFogHelpers + customPars
+      )
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+if (uMetalTransitionProgress < 0.999) {
+  vec3 fogSamplePos = vMetalSpreadPos * 3.8 + vec3(0.0, uMetalTransitionProgress * 0.55, 0.0);
+  float fogNoise = _metalFbmFog(fogSamplePos);
+  float distFromSeed = length(vMetalSpreadPos - uMetalTransitionSeed);
+  float organicField = distFromSeed + (fogNoise - 0.5) * 0.78;
+  float waveFront = mix(-0.85, 3.25, uMetalTransitionProgress);
+  float feather = 0.42;
+  float virusMask = 1.0 - smoothstep(waveFront - feather, waveFront + feather, organicField);
+  float mistRim = 4.0 * virusMask * (1.0 - virusMask);
+  vec3 blendedMetal = mix(uMetalFromColor, uMetalToColor, virusMask);
+  vec3 mistTint = mix(uMetalFromColor, uMetalToColor, 0.7);
+  diffuseColor.rgb = blendedMetal + mistTint * mistRim * 0.16;
+}
+`
+      );
   };
 
   return mat;
