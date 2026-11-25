@@ -298,7 +298,7 @@ body::-webkit-scrollbar,
 .hero2-metal-card {
   position: relative;
   width: 100%;
-  padding: 10px 14px 12px;
+  padding: 11px 16px 13px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -314,7 +314,7 @@ body::-webkit-scrollbar,
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #FCFBFA;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   text-align: left;
   white-space: nowrap;
 }
@@ -322,8 +322,9 @@ body::-webkit-scrollbar,
 .hero2-metal-card-spheres {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px;
+  justify-content: space-evenly;
+  padding: 2px 0;
+  width: 100%;
 }
 
 .metal-sphere-btn {
