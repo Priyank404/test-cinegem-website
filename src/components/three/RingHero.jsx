@@ -1462,7 +1462,7 @@ export default function RingHero({
 
       gsap.to(uProgress, {
         value: 1.0,
-        duration: 2.4,
+        duration: 1.6,
         ease: "sine.inOut",
       });
     } else {
@@ -1470,7 +1470,7 @@ export default function RingHero({
         r: targetColor.r,
         g: targetColor.g,
         b: targetColor.b,
-        duration: 1.2,
+        duration: 0.9,
         ease: "sine.inOut",
       });
     }
@@ -1480,7 +1480,7 @@ export default function RingHero({
         r: targetSpecular.r,
         g: targetSpecular.g,
         b: targetSpecular.b,
-        duration: 2.4,
+        duration: 1.6,
         ease: "sine.inOut",
       });
     }
@@ -1489,7 +1489,7 @@ export default function RingHero({
       roughness: targetRoughness,
       clearcoat: metalPreset.clearcoat ?? 0.25,
       clearcoatRoughness: metalPreset.clearcoatRoughness ?? 0.14,
-      duration: 2.4,
+      duration: 1.6,
       ease: "sine.inOut",
       onComplete: () => {
         applyHdrConfigToLiveMaterials();
