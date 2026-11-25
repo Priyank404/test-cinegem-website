@@ -1784,7 +1784,7 @@ export default function HomePage() {
         }
 
         const el = exploreLinkRef.current;
-        el.style.transformOrigin = "right center";
+        el.style.transformOrigin = "left center";
         el.style.transform = `translateY(calc(-50% + ${yOffset}px + var(--pbox-footer-offset-y, 0px))) scale(var(--pbox-scale, 1))`;
         el.style.opacity = opacity.toFixed(3);
         el.style.visibility = opacity > 0 ? "visible" : "hidden";
@@ -1808,7 +1808,6 @@ export default function HomePage() {
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
         const el = exploreLinkRef.current;
         el.style.transform = "";
-        el.style.transformOrigin = "";
         el.style.opacity = "";
         el.style.visibility = "";
         el.style.pointerEvents = showExploreLink ? "auto" : "none";
@@ -2521,54 +2520,63 @@ export default function HomePage() {
         </Hero3DErrorBoundary>
       )}
 
-      {/* Left Showcase Controls (Desktop & Mac only): Rotate 360 Toggle & 3 Circular Metal Dots */}
+      {/* Left Showcase Controls (Desktop & Mac only): Glassy Card matching right TitleGlassyCard */}
       <div
         ref={leftControlsRef}
         className="hero2-left-controls"
         style={{ pointerEvents: "none" }}
       >
-        <button
-          type="button"
-          className={`hero2-rotate-toggle-btn ${isAutoRotateActive ? "is-active" : ""}`}
-          onClick={() => setIsAutoRotateActive((prev) => !prev)}
-          title={isAutoRotateActive ? "Click to pause 360° rotation" : "Click to resume 360° rotation"}
-          aria-label={isAutoRotateActive ? "Pause 360° rotation" : "Resume 360° rotation"}
-        >
-          <svg
-            className="rotate-icon"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-          <span>Rotate 360°</span>
-          <span
-            className="status-dot"
-            style={{
-              display: "inline-block",
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.35)",
-              boxShadow: isAutoRotateActive ? "0 0 8px rgba(74, 222, 128, 0.95)" : "none",
-              marginLeft: "4px",
-              transition: "background 0.3s ease, box-shadow 0.3s ease",
-            }}
-          />
-        </button>
+        <div className="glassy-card glassy-title-card hero2-left-glassy-card p-4 sm:p-6 md:p-8 flex flex-col gap-2 sm:gap-3">
+          <h2 className="font-[Poppins] font-semibold text-lg sm:text-2xl md:text-3xl text-[#FCFBFA] tracking-tight leading-tight m-0">
+            3D Studio Controls
+          </h2>
+          <p className="font-[Poppins] font-light text-[11px] sm:text-xs md:text-sm text-[#FCFBFA]/85 leading-relaxed m-0">
+            Interactive real-time 3D jewellery rendering. Rotate and customize precious metals with photorealistic diamond refraction.
+          </p>
 
-        <div className="hero2-metal-card">
-          <div className="hero2-metal-card-label">Metal Color</div>
-          <div
-            className="hero2-metal-card-spheres"
-            role="radiogroup"
-            aria-label="Metal Color"
+          <div className="hero2-left-card-actions flex flex-col gap-2.5 mt-1 sm:mt-1.5 w-full">
+            <button
+              type="button"
+              className={`hero2-rotate-toggle-btn ${isAutoRotateActive ? "is-active" : ""}`}
+              onClick={() => setIsAutoRotateActive((prev) => !prev)}
+              title={isAutoRotateActive ? "Click to pause 360° rotation" : "Click to resume 360° rotation"}
+              aria-label={isAutoRotateActive ? "Pause 360° rotation" : "Resume 360° rotation"}
+            >
+              <svg
+                className="rotate-icon"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              <span>Rotate 360°</span>
+              <span
+                className="status-dot"
+                style={{
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: isAutoRotateActive ? "#4ade80" : "rgba(255, 255, 255, 0.35)",
+                  boxShadow: isAutoRotateActive ? "0 0 8px rgba(74, 222, 128, 0.95)" : "none",
+                  marginLeft: "4px",
+                  transition: "background 0.3s ease, box-shadow 0.3s ease",
+                }}
+              />
+            </button>
+
+            <div className="hero2-metal-card">
+              <div className="hero2-metal-card-label">Metal Color</div>
+              <div
+                className="hero2-metal-card-spheres"
+                role="radiogroup"
+                aria-label="Metal Color"
           >
             {[
               {
@@ -2739,8 +2747,10 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
+  {/* "Explore 3D Viewer" Glassy Card — visible during Beat 5 */}
       <div
         ref={exploreLinkRef}
         className="hero2-explore-link"
