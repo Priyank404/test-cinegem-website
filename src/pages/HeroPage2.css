@@ -275,74 +275,134 @@ body::-webkit-scrollbar,
   }
 }
 
-/* 3 Circular Metal Dots Only (Yellow Gold, White Gold, Rose Gold) */
-.hero2-metal-pills {
-  display: flex;
-  align-items: center;
-  justify-content: space-evenly;
+/* Metal Color Layered Frosted Glass Card with 3 Metallic Spheres */
+.hero2-metal-card {
+  position: relative;
   width: 100%;
-  padding: 9px 14px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: 15px 18px 18px;
+  border-radius: 14px;
+  background: rgba(34, 24, 28, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 -4px 0 -2px rgba(255, 255, 255, 0.04),
+    0 12px 28px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   user-select: none;
 }
 
-.metal-dot-btn {
-  width: 22px;
-  height: 22px;
+.hero2-metal-card::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: -5px;
+  height: 5px;
+  border-radius: 10px 10px 0 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+  pointer-events: none;
+}
+
+.hero2-metal-card-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.hero2-metal-card-spheres {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 3px;
+}
+
+.metal-sphere-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: none;
   padding: 0;
   outline: none;
   cursor: pointer;
-  position: relative;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
 }
 
-.metal-dot-btn--yellowGold {
-  background: radial-gradient(circle at 35% 35%, #FFF4C2 0%, #E6C065 45%, #B8860B 85%, #704E00 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.28);
+@media (min-width: 1025px) and (max-width: 1536px),
+       (min-width: 1025px) and (max-height: 940px) {
+  .metal-sphere-btn {
+    width: 34px;
+    height: 34px;
+  }
 }
 
-.metal-dot-btn--whiteGold {
-  background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #E8E8EE 45%, #B0B0BA 85%, #686872 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.28);
-}
-
-.metal-dot-btn--roseGold {
-  background: radial-gradient(circle at 35% 35%, #FFEAE2 0%, #E5A99B 45%, #BF6F5E 85%, #743428 100%);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.28);
-}
-
-.metal-dot-btn:hover:not(.is-selected) {
-  transform: scale(1.1);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.metal-dot-btn.is-selected {
-  transform: scale(1.14);
+.metal-sphere-btn--yellowGold {
+  background: radial-gradient(circle at 32% 28%, #FFFCE0 0%, #FFE47A 16%, #DFB145 46%, #8D6515 80%, #C69835 98%);
   box-shadow:
-    0 0 0 2px rgba(24, 22, 26, 0.75),
-    0 0 0 3.5px rgba(255, 255, 255, 0.88),
-    0 3px 10px rgba(0, 0, 0, 0.35);
+    inset 0 1px 3px rgba(255, 255, 255, 0.72),
+    inset -2px -3px 6px rgba(45, 28, 0, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
-.hero2-metal-color-label {
-  width: 100%;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(252, 251, 250, 0.78);
-  white-space: nowrap;
-  user-select: none;
+.metal-sphere-btn--whiteGold {
+  background: radial-gradient(circle at 32% 28%, #FFFFFF 0%, #F4F5F8 18%, #C4C7CE 48%, #767A84 82%, #B9BCC4 98%);
+  box-shadow:
+    inset 0 1px 3px rgba(255, 255, 255, 0.92),
+    inset -2px -3px 6px rgba(25, 28, 35, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.metal-sphere-btn--roseGold {
+  background: radial-gradient(circle at 32% 28%, #FFF3EE 0%, #FFD0BE 16%, #DB937D 46%, #834537 80%, #BA7765 98%);
+  box-shadow:
+    inset 0 1px 3px rgba(255, 255, 255, 0.76),
+    inset -2px -3px 6px rgba(48, 18, 14, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.metal-sphere-btn:hover:not(.is-selected) {
+  transform: scale(1.06);
+  filter: brightness(1.06);
+}
+
+.metal-sphere-btn::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: scale(0.94);
   pointer-events: none;
-  margin-top: -2px;
+}
+
+.metal-sphere-btn.is-selected::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.metal-sphere-btn--yellowGold.is-selected::after {
+  border-color: rgba(255, 232, 168, 0.92);
+  box-shadow: 0 0 10px rgba(245, 206, 110, 0.42), inset 0 0 4px rgba(255, 232, 168, 0.25);
+}
+
+.metal-sphere-btn--whiteGold.is-selected::after {
+  border-color: rgba(240, 244, 255, 0.92);
+  box-shadow: 0 0 10px rgba(235, 240, 255, 0.38), inset 0 0 4px rgba(240, 244, 255, 0.25);
+}
+
+.metal-sphere-btn--roseGold.is-selected::after {
+  border-color: rgba(255, 218, 198, 0.92);
+  box-shadow: 0 0 10px rgba(245, 190, 168, 0.45), inset 0 0 4px rgba(255, 218, 198, 0.25);
 }
 
 /* Tablet & Mobile exclusion: Left controls are strictly Desktop & Mac */

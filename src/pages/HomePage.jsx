@@ -2549,37 +2549,33 @@ export default function HomePage() {
           />
         </button>
 
-        <div
-          className="hero2-metal-pills"
-          role="radiogroup"
-          aria-label="Precious Metal Selection"
-        >
-          {[
-            { key: "yellowGold", label: "Yellow Gold" },
-            { key: "whiteGold", label: "White Gold" },
-            { key: "roseGold", label: "Rose Gold" },
-          ].map((metal) => {
-            const isSelected = metalPresetKey === metal.key;
-            return (
-              <button
-                key={metal.key}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                className={`metal-dot-btn metal-dot-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
-                onClick={() => setMetalPresetKey(metal.key)}
-                title={metal.label}
-                aria-label={metal.label}
-              />
-            );
-          })}
-        </div>
-        <div className="hero2-metal-color-label" aria-live="polite">
-          {metalPresetKey === "yellowGold"
-            ? "Yellow Gold"
-            : metalPresetKey === "whiteGold"
-              ? "White Gold"
-              : "Rose Gold"}
+        <div className="hero2-metal-card">
+          <div className="hero2-metal-card-label">Metal Color</div>
+          <div
+            className="hero2-metal-card-spheres"
+            role="radiogroup"
+            aria-label="Metal Color"
+          >
+            {[
+              { key: "yellowGold", label: "Yellow Gold" },
+              { key: "whiteGold", label: "White Gold" },
+              { key: "roseGold", label: "Rose Gold" },
+            ].map((metal) => {
+              const isSelected = metalPresetKey === metal.key;
+              return (
+                <button
+                  key={metal.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={`metal-sphere-btn metal-sphere-btn--${metal.key} ${isSelected ? "is-selected" : ""}`}
+                  onClick={() => setMetalPresetKey(metal.key)}
+                  title={metal.label}
+                  aria-label={metal.label}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
