@@ -414,7 +414,8 @@ body::-webkit-scrollbar,
 
   /* Hide the desktop-only SEO paragraph on mobile/tablet portrait */
   .hero2-left-controls p,
-  .hero2-left-controls h2 {
+  .hero2-left-controls h2,
+  .hero2-left-seo-text {
     display: none !important;
   }
 
