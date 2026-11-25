@@ -325,26 +325,22 @@ if (uMetalTransitionProgress < 0.999) {
   float halfExt = max(uMetalBoundsHalfExtent, 0.4);
   float normY = (vMetalWorldPos.y - uMetalBoundsCenter.y) / halfExt;
 
-  // Wavefront travels strictly from bottom (-1.35) to top (+1.35)
-  float waveFront = mix(-1.35, 1.35, uMetalTransitionProgress);
+  // Wavefront travels strictly from bottom (-1.25) to top (+1.25)
+  float waveFront = mix(-1.25, 1.25, uMetalTransitionProgress);
 
-  // Sleek, refined gradient bar band (reduced thickness)
-  float barHalfWidth = 0.16;
+  // Slim, elegant gradient transition band matching reference image
+  float barHalfWidth = 0.085;
 
-  // Transition factor:
+  // Transition factor with smooth progressive fade:
   // Below the bar (normY < waveFront - barHalfWidth): 1.0 (New / To Color)
   // Above the bar (normY > waveFront + barHalfWidth): 0.0 (Previous / From Color)
-  // Inside the bar: Smooth hermite transition bridging from previous to new color
-  float barT = smoothstep(waveFront - barHalfWidth, waveFront + barHalfWidth, normY);
+  // Inside the bar: Smooth hermite transition with soft cosine feathering
+  float normDist = clamp((normY - (waveFront - barHalfWidth)) / (barHalfWidth * 2.0), 0.0, 1.0);
+  float barT = normDist * normDist * (3.0 - 2.0 * normDist);
   float toColorFactor = 1.0 - barT;
 
-  // Highlight specular sheen across the thick bar center
-  float barCenterDist = clamp(abs(normY - waveFront) / barHalfWidth, 0.0, 1.0);
-  float barGleam = pow(1.0 - barCenterDist, 2.2);
-
   vec3 baseBlend = mix(uMetalFromColor, uMetalToColor, toColorFactor);
-  vec3 gleamColor = mix(vec3(1.0), uMetalToColor, 0.45);
-  diffuseColor.rgb = baseBlend + gleamColor * barGleam * 0.18;
+  diffuseColor.rgb = baseBlend;
 }
 `
       );
