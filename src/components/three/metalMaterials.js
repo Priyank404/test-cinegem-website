@@ -324,17 +324,17 @@ float _metalFbmFog(vec3 p) {
         "#include <color_fragment>",
         `#include <color_fragment>
 if (uMetalTransitionProgress < 0.999) {
-  vec3 fogSamplePos = vMetalSpreadPos * 3.8 + vec3(0.0, uMetalTransitionProgress * 0.55, 0.0);
+  vec3 fogSamplePos = vMetalSpreadPos * 3.6 - vec3(0.0, uMetalTransitionProgress * 0.75, 0.0);
   float fogNoise = _metalFbmFog(fogSamplePos);
-  float distFromSeed = length(vMetalSpreadPos - uMetalTransitionSeed);
-  float organicField = distFromSeed + (fogNoise - 0.5) * 0.78;
-  float waveFront = mix(-0.85, 3.25, uMetalTransitionProgress);
-  float feather = 0.42;
+  float heightNorm = clamp((vMetalSpreadPos.y + 1.0) * 0.5, 0.0, 1.0);
+  float organicField = heightNorm + clamp(vMetalSpreadPos.x, -1.0, 1.0) * uMetalTransitionSeed.x + (fogNoise - 0.5) * 0.38;
+  float waveFront = mix(-0.70, 1.70, uMetalTransitionProgress);
+  float feather = 0.36;
   float virusMask = 1.0 - smoothstep(waveFront - feather, waveFront + feather, organicField);
   float mistRim = 4.0 * virusMask * (1.0 - virusMask);
   vec3 blendedMetal = mix(uMetalFromColor, uMetalToColor, virusMask);
-  vec3 mistTint = mix(uMetalFromColor, uMetalToColor, 0.7);
-  diffuseColor.rgb = blendedMetal + mistTint * mistRim * 0.16;
+  vec3 mistTint = mix(uMetalFromColor, uMetalToColor, 0.65);
+  diffuseColor.rgb = blendedMetal + mistTint * mistRim * 0.14;
 }
 `
       );

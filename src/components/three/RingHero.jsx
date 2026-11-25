@@ -1463,14 +1463,14 @@ export default function RingHero({
       uFrom.value.copy(currentBlended);
       uTo.value.copy(targetColor);
 
-      // Seed wave from crown / upper shoulder depending on target metal
+      // Gentle horizontal lean for bottom-to-top upward mist sweep
       if (uSeed) {
         if (metalPreset.key === "yellow_gold") {
-          uSeed.value.set(0.32, 0.92, 0.22);
+          uSeed.value.set(0.08, -1.0, 0.0);
         } else if (metalPreset.key === "white_gold") {
-          uSeed.value.set(0.0, 0.96, 0.0);
+          uSeed.value.set(0.0, -1.0, 0.0);
         } else {
-          uSeed.value.set(-0.32, 0.92, -0.22);
+          uSeed.value.set(-0.08, -1.0, 0.0);
         }
       }
 
@@ -1479,16 +1479,16 @@ export default function RingHero({
 
       gsap.to(uProgress, {
         value: 1.0,
-        duration: 1.4,
-        ease: "power2.inOut",
+        duration: 2.4,
+        ease: "sine.inOut",
       });
     } else {
       gsap.to(metalMat.color, {
         r: targetColor.r,
         g: targetColor.g,
         b: targetColor.b,
-        duration: 0.9,
-        ease: "power2.inOut",
+        duration: 1.2,
+        ease: "sine.inOut",
       });
     }
 
@@ -1497,8 +1497,8 @@ export default function RingHero({
         r: targetSpecular.r,
         g: targetSpecular.g,
         b: targetSpecular.b,
-        duration: 1.4,
-        ease: "power2.inOut",
+        duration: 2.4,
+        ease: "sine.inOut",
       });
     }
 
@@ -1506,8 +1506,8 @@ export default function RingHero({
       roughness: targetRoughness,
       clearcoat: metalPreset.clearcoat ?? 0.25,
       clearcoatRoughness: metalPreset.clearcoatRoughness ?? 0.14,
-      duration: 1.4,
-      ease: "power2.inOut",
+      duration: 2.4,
+      ease: "sine.inOut",
       onComplete: () => {
         applyHdrConfigToLiveMaterials();
       },
