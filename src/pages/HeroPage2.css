@@ -275,7 +275,7 @@ body::-webkit-scrollbar,
   }
 }
 
-/* Metal Color Layered Frosted Glass Card with 3 Metallic Spheres */
+/* Metal Color Frosted Glass Card with 3 Metallic Spheres */
 .hero2-metal-card {
   position: relative;
   width: 100%;
@@ -284,26 +284,11 @@ body::-webkit-scrollbar,
   background: rgba(34, 24, 28, 0.42);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 -4px 0 -2px rgba(255, 255, 255, 0.04),
     0 12px 28px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   user-select: none;
-}
-
-.hero2-metal-card::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  top: -5px;
-  height: 5px;
-  border-radius: 10px 10px 0 0;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: none;
-  pointer-events: none;
 }
 
 .hero2-metal-card-label {
