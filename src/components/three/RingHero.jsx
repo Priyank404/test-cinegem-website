@@ -764,9 +764,6 @@ export default function RingHero({
   // the interactive window (Beat 5). Remains visible throughout the section.
   const [showDragHint, setShowDragHint] = useState(false);
   const dismissedOnceRef = useRef(false);
-  const [mobileInteracting, setMobileInteracting] = useState(false);
-  const mobileInteractingRef = useRef(false);
-  const [inInteractiveWindow, setInInteractiveWindow] = useState(false);
   const [isMobileMode, setIsMobileMode] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [gpuUnsupported, setGpuUnsupported] = useState(false);
@@ -898,23 +895,9 @@ export default function RingHero({
     window.addEventListener("resize", updateProfile);
     window.addEventListener("orientationchange", updateProfile);
 
-    const handleScrollOrWheel = () => {
-      if (mobileInteractingRef.current && !dragStateRef.current.dragging) {
-        mobileInteractingRef.current = false;
-        setMobileInteracting(false);
-        if (interactiveBoxRef.current) {
-          interactiveBoxRef.current.style.pointerEvents = "none";
-        }
-      }
-    };
-    window.addEventListener("scroll", handleScrollOrWheel, { passive: true });
-    window.addEventListener("wheel", handleScrollOrWheel, { passive: true });
-
     return () => {
       window.removeEventListener("resize", updateProfile);
       window.removeEventListener("orientationchange", updateProfile);
-      window.removeEventListener("scroll", handleScrollOrWheel);
-      window.removeEventListener("wheel", handleScrollOrWheel);
     };
   }, []);
 
@@ -2136,7 +2119,6 @@ export default function RingHero({
     // drag with the pan/zoom stripped out.
     function onInteractiveDown(clientX, clientY) {
       if (!interactiveActiveRef.current) return;
-      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       dragStateRef.current = {
         pending: true,
         dragging: false,
@@ -2211,7 +2193,6 @@ export default function RingHero({
     }
     function onCanvasPointerDown(e) {
       if (!interactiveActiveRef.current) return;
-      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
@@ -2231,16 +2212,22 @@ export default function RingHero({
     window.addEventListener("pointerup", onInteractiveUp);
     window.addEventListener("pointercancel", onInteractiveUp);
 
-    // Dedicated 360-degree invisible interaction box for mobile & touch devices:
+    // Dedicated 360-degree invisible interaction box matched to PerspectiveBox bounds
+    // for mobile & tablet portrait: dragging inside rotates, outside scrolls normally.
     const box = interactiveBoxRef.current;
     function onBoxPointerDown(e) {
       if (!interactiveActiveRef.current) return;
-      if (viewport?.profile === "portrait" && !mobileInteractingRef.current) return;
       if (e.cancelable) e.preventDefault();
       onInteractiveDown(e.clientX, e.clientY);
     }
+    function onBoxTouchPrevent(e) {
+      if (!interactiveActiveRef.current) return;
+      if (e.cancelable) e.preventDefault();
+    }
     if (box) {
       box.addEventListener("pointerdown", onBoxPointerDown);
+      box.addEventListener("touchstart", onBoxTouchPrevent, { passive: false });
+      box.addEventListener("touchmove", onBoxTouchPrevent, { passive: false });
     }
 
     // ── Debug-only: always-on diagnostic pointerdown listener ───────────
@@ -2835,18 +2822,16 @@ export default function RingHero({
               }
 
               if (interactiveBoxRef.current) {
-                const boxActive =
-                  inInteractiveRange && (!isPortrait || mobileInteractingRef.current);
+                const boxActive = inInteractiveRange && isPortrait;
                 interactiveBoxRef.current.style.pointerEvents = boxActive
                   ? "auto"
                   : "none";
-                interactiveBoxRef.current.style.display = inInteractiveRange
+                interactiveBoxRef.current.style.display = boxActive
                   ? "block"
                   : "none";
               }
 
               if (rangeChanged) {
-                setInInteractiveWindow(inInteractiveRange);
                 setIsMobileMode(isPortrait);
                 if (RINGHERO_DEBUG_INTERACTION) {
                   console.log(
@@ -2854,8 +2839,6 @@ export default function RingHero({
                   );
                 }
                 if (!inInteractiveRange) {
-                  mobileInteractingRef.current = false;
-                  setMobileInteracting(false);
                   dragStateRef.current.dragging = false;
                   if (interactiveBoxRef.current) {
                     interactiveBoxRef.current.style.cursor = "grab";
@@ -3574,11 +3557,8 @@ export default function RingHero({
             autoRotateAngleRef.current = currentSpinYRef.current;
             manualRotRef.current.y = currentSpinYRef.current;
 
-            // Smooth return of tilt X back to default upright orientation (0)
-            const shouldDampTilt =
-              viewport.profile === "portrait"
-                ? (!mobileInteractingRef.current || !interactiveActiveRef.current)
-                : (!interactiveActiveRef.current);
+            // Smooth return of tilt X back to default upright orientation (0) when exiting Beat 5
+            const shouldDampTilt = !interactiveActiveRef.current;
 
             if (shouldDampTilt && !dragStateRef.current.dragging) {
               const safeDt = Math.min(dt, 0.1);
@@ -4028,6 +4008,8 @@ export default function RingHero({
       window.removeEventListener("pointermove", onWindowPointerMove);
       if (box) {
         box.removeEventListener("pointerdown", onBoxPointerDown);
+        box.removeEventListener("touchstart", onBoxTouchPrevent);
+        box.removeEventListener("touchmove", onBoxTouchPrevent);
       }
       if (debugPointerDown) {
         window.removeEventListener("pointerdown", debugPointerDown, {
@@ -4106,16 +4088,6 @@ export default function RingHero({
     sceneEpoch,
   ]);
 
-  const handleToggleMobileInteraction = (e) => {
-    e.stopPropagation();
-    const next = !mobileInteractingRef.current;
-    mobileInteractingRef.current = next;
-    setMobileInteracting(next);
-    if (interactiveBoxRef.current) {
-      interactiveBoxRef.current.style.pointerEvents = next ? "auto" : "none";
-    }
-  };
-
   return (
     <>
       <div
@@ -4151,19 +4123,18 @@ export default function RingHero({
           touchAction: RESPONSIVE_V2 ? "pan-y" : undefined,
         }}
       />
-      {/* 360-degree invisible interaction box for mobile & touch devices.
-          Centered comfortably around the ring in Beat 5. Outside this box, and in the bottom
-          viewport margin (the scroll zone), touches scroll the website naturally. */}
+      {/* 360-degree invisible interaction hit-area aligned 1:1 with the PerspectiveBox on mobile & tablet portrait.
+          Touches inside immediately rotate the 3D ring; touches outside scroll the page naturally. */}
       <div
         ref={interactiveBoxRef}
         aria-label="Interactive 3D ring rotation area"
         style={{
           position: "fixed",
-          left: "50%",
-          top: "63.8%",
-          transform: "translate(-50%, -50%)",
-          width: "min(92vw, 390px)",
-          height: "min(56vh, 484px)",
+          left: "var(--pbox-outer-left, 12px)",
+          top: "var(--pbox-outer-top, 300px)",
+          transform: "translateY(var(--pbox-translate-y, 0px))",
+          width: "var(--pbox-outer-width, min(92vw, 390px))",
+          height: "var(--pbox-outer-height, min(56vh, 484px))",
           zIndex: 4,
           touchAction: "none",
           userSelect: "none",
@@ -4173,101 +4144,6 @@ export default function RingHero({
           cursor: "grab",
         }}
       />
-
-      {/* Mobile "Tap & Interact" toggle button — minimal frosted glass matching the original hint pill.
-          Allows mobile users to opt into 3D ring rotation without trapping scrolling thumbs.
-          Positioned comfortably inside the bottom edge of the perspective showcase box.
-          Tapping activates interaction; tapping again or scrolling automatically disengages it. */}
-      {isMobileMode && inInteractiveWindow && (
-        <button
-          className="ring-hero-drag-hint ring-hero-drag-hint--mobile"
-          type="button"
-          onClick={handleToggleMobileInteraction}
-          aria-pressed={mobileInteracting}
-          aria-label={
-            mobileInteracting
-              ? "Stop 3D interaction and enable scrolling"
-              : "Tap to interact with 3D ring"
-          }
-          style={{
-            position: "fixed",
-            left: "50%",
-            bottom: "calc(var(--pbox-bottom-offset, 112px) + var(--pbox-btn-pad, 14px))",
-            transform: "translateX(-50%) translateY(var(--pbox-translate-y, 0px))",
-            zIndex: 10,
-            pointerEvents: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            borderRadius: "999px",
-            background: mobileInteracting
-              ? "rgba(22, 22, 28, 0.75)"
-              : "rgba(10, 10, 12, 0.55)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            border: mobileInteracting
-              ? "1px solid rgba(255, 255, 255, 0.2)"
-              : "1px solid rgba(255, 255, 255, 0.08)",
-            color: "rgba(255, 255, 255, 0.9)",
-            fontSize: "12px",
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            fontFamily: "inherit",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            touchAction: "manipulation",
-            WebkitTapHighlightColor: "transparent",
-            transition:
-              "background 0.3s ease, border-color 0.3s ease, color 0.3s ease",
-          }}
-        >
-          {mobileInteracting ? (
-            <>
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-              <span>Interacting • Tap to scroll</span>
-            </>
-          ) : (
-            <>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  animation: "ringHeroDragHintSway 1.6s ease-in-out infinite",
-                }}
-              >
-                <path d="M9 11V6a1.5 1.5 0 0 1 3 0v4" />
-                <path d="M12 10V4.5a1.5 1.5 0 0 1 3 0V10" />
-                <path d="M15 10.5V6a1.5 1.5 0 0 1 3 0v7" />
-                <path d="M9 11l-1.2-1.2a1.4 1.4 0 0 0-2 2L9 15.4C10 18 12 20 15 20c3 0 4.5-2 4.5-5.5V10" />
-              </svg>
-              <span>Tap &amp; Interact</span>
-            </>
-          )}
-        </button>
-      )}
 
       {/* Desktop "Drag to explore" hint — purely visual, positioned inside the top of the showcase box.
           pointerEvents:"none" so it never intercepts the drag itself. Fades in when the interactive
