@@ -275,19 +275,17 @@ body::-webkit-scrollbar,
   }
 }
 
-/* Metal Color Frosted Glass Card with 3 Metallic Spheres */
+/* Metal Color Frosted Glass Card with 3 Metallic Spheres (matches 3D Interactive & Rotate buttons) */
 .hero2-metal-card {
   position: relative;
   width: 100%;
   padding: 15px 18px 18px;
-  border-radius: 14px;
-  background: rgba(34, 24, 28, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   user-select: none;
 }
 
