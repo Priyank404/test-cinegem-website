@@ -2557,11 +2557,46 @@ export default function HomePage() {
             aria-label="Metal Color"
           >
             {[
-              { key: "yellowGold", label: "Yellow Gold" },
-              { key: "whiteGold", label: "White Gold" },
-              { key: "roseGold", label: "Rose Gold" },
+              {
+                key: "yellowGold",
+                label: "Yellow Gold",
+                baseTop: "#F6DF98",
+                baseMid: "#C99A3B",
+                baseEdge: "#5B3E0D",
+                belly: "#604310",
+                topGlow: "#FFF7D4",
+                rightBounce: "#F2D17C",
+                bottomOccl: "#261803",
+              },
+              {
+                key: "whiteGold",
+                label: "White Gold",
+                baseTop: "#EEF0F4",
+                baseMid: "#B6BAC3",
+                baseEdge: "#565A63",
+                belly: "#6C707A",
+                topGlow: "#FFFFFF",
+                rightBounce: "#DFE3EA",
+                bottomOccl: "#1F2126",
+              },
+              {
+                key: "roseGold",
+                label: "Rose Gold",
+                baseTop: "#F6C8B6",
+                baseMid: "#C7846D",
+                baseEdge: "#623023",
+                belly: "#703C2E",
+                topGlow: "#FFF1EA",
+                rightBounce: "#EBB09C",
+                bottomOccl: "#2A110B",
+              },
             ].map((metal) => {
               const isSelected = metalPresetKey === metal.key;
+              const clipId = `metal-sphere-clip-${metal.key}`;
+              const baseGradId = `metal-sphere-base-${metal.key}`;
+              const rimGradId = `metal-sphere-rim-${metal.key}`;
+              const blurSoftId = `metal-sphere-blur-soft-${metal.key}`;
+              const blurCoreId = `metal-sphere-blur-core-${metal.key}`;
               return (
                 <button
                   key={metal.key}
@@ -2572,7 +2607,119 @@ export default function HomePage() {
                   onClick={() => setMetalPresetKey(metal.key)}
                   title={metal.label}
                   aria-label={metal.label}
-                />
+                >
+                  <svg
+                    viewBox="0 0 100 100"
+                    className="metal-sphere-svg"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <clipPath id={clipId}>
+                        <circle cx="50" cy="50" r="49.5" />
+                      </clipPath>
+                      <radialGradient
+                        id={baseGradId}
+                        cx="42%"
+                        cy="36%"
+                        r="68%"
+                        fx="34%"
+                        fy="28%"
+                      >
+                        <stop offset="0%" stopColor={metal.baseTop} />
+                        <stop offset="52%" stopColor={metal.baseMid} />
+                        <stop offset="88%" stopColor={metal.baseEdge} />
+                        <stop offset="100%" stopColor={metal.bottomOccl} />
+                      </radialGradient>
+                      <radialGradient id={rimGradId} cx="50%" cy="50%" r="50%">
+                        <stop offset="72%" stopColor="rgba(255,255,255,0)" />
+                        <stop offset="93%" stopColor={metal.topGlow} stopOpacity="0.22" />
+                        <stop offset="100%" stopColor={metal.bottomOccl} stopOpacity="0.5" />
+                      </radialGradient>
+                      <filter id={blurSoftId} x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="8" />
+                      </filter>
+                      <filter id={blurCoreId} x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="4" />
+                      </filter>
+                    </defs>
+                    <g clipPath={`url(#${clipId})`}>
+                      {/* Metallic sphere base body */}
+                      <circle cx="50" cy="50" r="50" fill={`url(#${baseGradId})`} />
+
+                      {/* Satin dark center-belly contrast band for authentic 3D depth */}
+                      <ellipse
+                        cx="54"
+                        cy="48"
+                        rx="22"
+                        ry="18"
+                        fill={metal.belly}
+                        opacity="0.72"
+                        filter={`url(#${blurSoftId})`}
+                      />
+
+                      {/* Overhead softbox studio glow */}
+                      <ellipse
+                        cx="52"
+                        cy="15"
+                        rx="30"
+                        ry="12"
+                        fill={metal.topGlow}
+                        opacity="0.58"
+                        filter={`url(#${blurSoftId})`}
+                      />
+
+                      {/* Right secondary softbox bounce highlight */}
+                      <ellipse
+                        cx="81"
+                        cy="45"
+                        rx="14"
+                        ry="24"
+                        transform="rotate(8 81 45)"
+                        fill={metal.rightBounce}
+                        opacity="0.65"
+                        filter={`url(#${blurSoftId})`}
+                      />
+
+                      {/* Primary left softbox halo */}
+                      <ellipse
+                        cx="24"
+                        cy="39"
+                        rx="16"
+                        ry="25"
+                        transform="rotate(-14 24 39)"
+                        fill={metal.topGlow}
+                        opacity="0.82"
+                        filter={`url(#${blurSoftId})`}
+                      />
+
+                      {/* Crisp hot specular reflection core */}
+                      <ellipse
+                        cx="22"
+                        cy="38"
+                        rx="8"
+                        ry="14"
+                        transform="rotate(-15 22 38)"
+                        fill="#FFFFFF"
+                        opacity="0.92"
+                        filter={`url(#${blurCoreId})`}
+                      />
+
+                      {/* Grounded lower curve shadow occlusion */}
+                      <ellipse
+                        cx="50"
+                        cy="94"
+                        rx="44"
+                        ry="14"
+                        fill={metal.bottomOccl}
+                        opacity="0.86"
+                        filter={`url(#${blurSoftId})`}
+                      />
+
+                      {/* Subtle spherical Fresnel rim */}
+                      <circle cx="50" cy="50" r="50" fill={`url(#${rimGradId})`} />
+                    </g>
+                  </svg>
+                </button>
               );
             })}
           </div>
