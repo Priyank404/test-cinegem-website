@@ -378,6 +378,7 @@ body::-webkit-scrollbar,
     top: calc(var(--pbox-outer-top, 300px) + var(--pbox-btn-pad, 14px)) !important;
     right: auto !important;
     width: var(--pbox-outer-width, calc(100vw - 32px)) !important;
+    max-width: none !important;
     transform: translateY(var(--pbox-translate-y, 0px)) !important;
     z-index: 12 !important;
     display: flex !important;
@@ -386,7 +387,35 @@ body::-webkit-scrollbar,
     justify-content: space-between !important;
     padding: 0 var(--pbox-btn-pad, 14px) !important;
     gap: 12px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     transition: opacity 0.45s ease !important;
+  }
+
+  /* Strip the outer TitleGlassyCard wrapper styling completely on mobile/tablet */
+  .hero2-left-controls .glassy-title-card,
+  .hero2-left-controls .hero2-left-glassy-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Hide the desktop-only SEO paragraph on mobile/tablet portrait */
+  .hero2-left-controls p,
+  .hero2-left-controls h2 {
+    display: none !important;
   }
 
   .hero2-left-controls .hero2-rotate-toggle-btn {
@@ -422,6 +451,7 @@ body::-webkit-scrollbar,
     align-items: center !important;
     gap: 10px !important;
     padding: 0 !important;
+    width: auto !important;
   }
 
   .hero2-left-controls .metal-sphere-btn {
