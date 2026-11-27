@@ -672,6 +672,13 @@ body::-webkit-scrollbar,
    untouched and continue to use the desktop layout.
    ===================================================================== */
 
+/* Tablet & Mobile Section Runway (<= 1024px) */
+@media (max-width: 1024px) {
+  .hero2-section {
+    min-height: 240vh !important;
+  }
+}
+
 /* Tablet Portrait (641px - 1024px, aspect <= 1.25) */
 @media (min-width: 641px) and (max-width: 1024px) and (max-aspect-ratio: 1.25/1) {
   .hero2-section {

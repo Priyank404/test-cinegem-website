@@ -333,6 +333,10 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
           float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));
           col = mix(vec3(gray), col, clamp(baseSaturation, 0.0, 2.0));
         }
+        if (dot(col, col) < 0.04) {
+          float studioSky = clamp(abs(d.y) * 0.5 + 0.5, 0.3, 1.0);
+          col = max(col, vec3(studioSky * 0.45));
+        }
         return col;
       }
 

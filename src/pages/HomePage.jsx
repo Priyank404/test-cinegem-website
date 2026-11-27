@@ -521,11 +521,13 @@ export default function HomePage() {
       duration: isTouch ? 1.0 : 1.4, // longer inertia tail on desktop — was 1.1
       easing: lenisEasing,
       smoothWheel: true,
-      syncTouch: false, // Keep native hardware touch momentum on mobile for buttery 60fps/120fps compositor inertia
-      // Kept intentionally light — this only interpolates native
-      // scroll input into something continuous; RingHero's own
-      // ScrollTrigger scrub value is what actually controls how the
-      // 3D scene lags/tracks that (now-smooth) scroll position.
+      syncTouch: isTouch,
+      syncTouchLerp: 0.08,
+      touchInertiaExponent: 1.05,
+      touchMultiplier: 0.72,
+      // Kept intentionally calibrated — syncTouch intercepts native touch fling
+      // and damps velocity aggressively via touchInertiaExponent (1.12 vs 1.7 default),
+      // preventing runaway single-flick scrolls past multiple beats.
     });
 
     lenisRef.current = lenis;

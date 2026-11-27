@@ -4195,6 +4195,7 @@ export default function RingHero({
           Touches inside immediately rotate the 3D ring; touches outside scroll the page naturally. */}
       <div
         ref={interactiveBoxRef}
+        data-lenis-prevent
         aria-label="Interactive 3D ring rotation area"
         style={{
           position: "fixed",
