@@ -1896,6 +1896,7 @@ export default function RingHero({
     function applyViewport() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (!w || !h || (w === viewport.w && h === viewport.h)) return;
+      const prevProfile = viewport.profile;
       viewport.w = w;
       viewport.h = h;
       viewport.aspect = w / h;
@@ -1916,6 +1917,9 @@ export default function RingHero({
       }
       composer?.setSize(w, h);
       settleFramesRef.current = 0;
+      if (prevProfile && prevProfile !== viewport.profile) {
+        setupScrollTimeline();
+      }
     }
 
     scene = new THREE.Scene();
@@ -2070,17 +2074,17 @@ export default function RingHero({
             ...(opts?.metalEnv || {}),
           };
           envPreviewRendererRef.current.requestPreview(c, {
-            ...opts,
             baseTexture: gemEnvTexturesRef.current.base,
             spotTexture: gemEnvTexturesRef.current.rawSpot || gemEnvTexturesRef.current.spot,
             metalTexture: gemEnvTexturesRef.current.metalRaw || gemEnvTexturesRef.current.metalEnvMap?._rawTexture,
             metalSpotTexture: gemEnvTexturesRef.current.metalSpot || gemEnvTexturesRef.current.metalSpotRaw || gemEnvTexturesRef.current.spot || gemEnvTexturesRef.current.rawSpot,
-            baseEnv: hdrConfigRef.current.gemBaseEnv,
-            spotEnv: hdrConfigRef.current.gemSpotEnv,
+            baseEnv: opts?.baseEnv || hdrConfigRef.current.gemBaseEnv,
+            spotEnv: opts?.spotEnv || hdrConfigRef.current.gemSpotEnv,
             metalEnv: mEnv,
             metalSpotEnv: opts?.metalSpotEnv || hdrConfigRef.current.metalSpotEnv,
             metalEnvView: opts?.metalEnvView ?? hdrConfigRef.current.metalEnvView ?? 0,
             gammaMode: hdrConfigRef.current.gemGammaMode,
+            ...opts,
           });
         }
       });
@@ -2866,12 +2870,21 @@ export default function RingHero({
         cornerParkState.value = baselineTarget.cornerPark ?? 0;
       }
 
+      const isTouchDevice =
+        typeof window !== "undefined" &&
+        (window.matchMedia("(pointer: coarse)").matches ||
+          navigator.maxTouchPoints > 0 ||
+          Boolean(deviceTier.isMobile) ||
+          deviceTier.tier === "mobile" ||
+          (RESPONSIVE_V2 && viewport.profile === "portrait"));
+      const effectiveScrub = isTouchDevice ? 0.25 : 1.2;
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: scrollContainerSelector,
           start: "top top",
           end: "bottom bottom",
-          scrub: 1.2,
+          scrub: effectiveScrub,
           onUpdate: (self) => {
             const progress = self.progress;
             const beatPosition = progress * (activeBeats.length - 1);

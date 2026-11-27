@@ -512,10 +512,16 @@ export default function HomePage() {
     // right at the scroll target.
     const lenisEasing = (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t));
 
+    const isTouch =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(pointer: coarse)").matches ||
+        navigator.maxTouchPoints > 0);
+
     const lenis = new Lenis({
-      duration: 1.4, // longer inertia tail — was 1.1
+      duration: isTouch ? 1.0 : 1.4, // longer inertia tail on desktop — was 1.1
       easing: lenisEasing,
       smoothWheel: true,
+      syncTouch: false, // Keep native hardware touch momentum on mobile for buttery 60fps/120fps compositor inertia
       // Kept intentionally light — this only interpolates native
       // scroll input into something continuous; RingHero's own
       // ScrollTrigger scrub value is what actually controls how the
@@ -560,11 +566,13 @@ export default function HomePage() {
       lenis.raf(virtualTime);
     }
     gsap.ticker.add(lenisTick);
-    // Let Lenis solely own scroll-driven timing instead of GSAP silently
-    // skipping ticks after a tab goes idle/backgrounded — this avoids a
-    // "jump" the moment you return to the tab, where GSAP would
-    // otherwise try to catch up several skipped frames at once.
-    gsap.ticker.lagSmoothing(0);
+    // On touch/mobile devices, retain GSAP's lagSmoothing to absorb minor mobile GPU frame fluctuations
+    // and prevent jerky frame skipping. On desktop, lagSmoothing(0) ensures Lenis owns scroll timing.
+    if (!isTouch) {
+      gsap.ticker.lagSmoothing(0);
+    } else {
+      gsap.ticker.lagSmoothing(500, 33);
+    }
 
     // Keep ScrollTrigger's internal scroll tracking synced to Lenis's
     // interpolated position every time Lenis emits a scroll update,
@@ -773,6 +781,7 @@ export default function HomePage() {
     metalEnvView,
     metalHdrUrl,
     gemBaseEnv,
+    interactiveGemBaseEnv,
     gemSpotEnv,
     gemEnvView,
     gemGammaMode,
@@ -1921,11 +1930,17 @@ export default function HomePage() {
 
     ScrollTrigger.refresh();
 
+    const isTouchDevice =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(pointer: coarse)").matches ||
+        navigator.maxTouchPoints > 0);
+    const effectiveScrub = isTouchDevice ? 0.25 : 1.2;
+
     const trigger = ScrollTrigger.create({
       trigger: "#scroll-content",
       start: "top top",
       end: "bottom bottom",
-      scrub: 1.2,
+      scrub: effectiveScrub,
       onUpdate: (self) => {
         handleScrollProgress(self.progress);
         if (vantaBeatRef.current) {
@@ -4415,6 +4430,7 @@ function MaterialDevPanel({
               onRefreshPreviews?.();
             }}
             onJumpToBeat5={onJumpToBeat5}
+            onRefreshPreviews={onRefreshPreviews}
           />
         )}
       </div>
@@ -5122,7 +5138,12 @@ function InteractiveGemControls({
   onResetStudioSpec,
   onCopyBeats04,
   onJumpToBeat5,
+  onRefreshPreviews,
 }) {
+  useEffect(() => {
+    onRefreshPreviews?.();
+  }, [onRefreshPreviews]);
+
   const update = (key) => (e) => {
     const val = Number(e.target.value);
     setConfig((prev) => {
@@ -5133,6 +5154,7 @@ function InteractiveGemControls({
       }
       return next;
     });
+    onRefreshPreviews?.();
   };
 
   const updateBool = (key) => (e) => {
@@ -5144,6 +5166,7 @@ function InteractiveGemControls({
       }
       return next;
     });
+    onRefreshPreviews?.();
   };
 
   return (

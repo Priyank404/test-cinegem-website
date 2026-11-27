@@ -181,8 +181,7 @@ p, span, div, li, a, label, button, input, textarea {
   }
 
   html {
-    scroll-behavior: smooth;
-    scroll-snap-type: y proximity;
+    scroll-behavior: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
