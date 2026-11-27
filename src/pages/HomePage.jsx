@@ -518,13 +518,13 @@ export default function HomePage() {
         navigator.maxTouchPoints > 0);
 
     const lenis = new Lenis({
-      duration: isTouch ? 1.0 : 1.4, // longer inertia tail on desktop — was 1.1
+      duration: isTouch ? 0.9 : 1.4, // Responsive mobile tracking
       easing: lenisEasing,
       smoothWheel: true,
-      syncTouch: isTouch, // Regulate mobile touch velocity and prevent runaway native momentum
-      syncTouchLerp: 0.08, // Silky smooth deceleration curve on release
-      touchInertiaExponent: 1.18, // Damps runaway flick velocity so a fast swipe doesn't fling the whole site
-      touchMultiplier: 0.78, // Calibrate finger sensitivity so scrolling is calm, controlled, and deliberate
+      syncTouch: isTouch,
+      syncTouchLerp: 0.12, // Faster, snappier touch response on finger release
+      touchInertiaExponent: 1.35, // Balanced flick momentum - brisk without overshooting
+      touchMultiplier: 1.15, // Direct 1:1 responsive finger tracking (increased from 0.78 for faster scroll)
       // Kept intentionally light — this only interpolates native
       // scroll input into something continuous; RingHero's own
       // ScrollTrigger scrub value is what actually controls how the

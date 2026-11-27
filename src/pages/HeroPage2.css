@@ -886,7 +886,7 @@ body::-webkit-scrollbar,
 @media (max-width: 640px) {
   .hero2-section {
     padding: 0 16px !important;
-    min-height: 240vh !important;
+    min-height: 200vh !important;
   }
 
   /* Synchronized Title Cards for all 3 Beats (Beat 2, Beat 3, Beat 5) on Mobile */
