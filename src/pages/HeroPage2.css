@@ -672,17 +672,11 @@ body::-webkit-scrollbar,
    untouched and continue to use the desktop layout.
    ===================================================================== */
 
-/* Tablet & Mobile Section Runway (<= 1024px) */
-@media (max-width: 1024px) {
-  .hero2-section {
-    min-height: 240vh !important;
-  }
-}
-
 /* Tablet Portrait (641px - 1024px, aspect <= 1.25) */
 @media (min-width: 641px) and (max-width: 1024px) and (max-aspect-ratio: 1.25/1) {
   .hero2-section {
     padding: 0 24px !important;
+    min-height: 220vh !important;
   }
 
   /* Clean Column Architecture: Title Card is centered at the top below logo */
@@ -892,6 +886,7 @@ body::-webkit-scrollbar,
 @media (max-width: 640px) {
   .hero2-section {
     padding: 0 16px !important;
+    min-height: 240vh !important;
   }
 
   /* Synchronized Title Cards for all 3 Beats (Beat 2, Beat 3, Beat 5) on Mobile */

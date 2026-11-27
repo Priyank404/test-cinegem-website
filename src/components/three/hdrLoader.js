@@ -45,7 +45,7 @@ export function loadEnvironmentTexture(url, pmrem, onProgress, formatHint) {
           const envRT = pmrem.fromEquirectangular(texture);
 
           texture.wrapS = THREE.RepeatWrapping;
-          texture.wrapT = THREE.RepeatWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.generateMipmaps = false;
