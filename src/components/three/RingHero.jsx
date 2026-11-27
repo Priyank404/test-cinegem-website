@@ -1185,55 +1185,42 @@ export default function RingHero({
       liveLoadedTexturesRef.current.baseHdrUrl = effectiveBaseHdrUrl;
       liveLoadedTexturesRef.current.baseMono = baseMono;
       if (effectiveBaseHdrUrl) {
-        if (effectiveBaseHdrUrl === metalHdrUrl && gemEnvTexturesRef.current.metalRaw) {
-          const texture = gemEnvTexturesRef.current.metalRaw;
-          gemEnvTexturesRef.current.base = texture;
-          gemMaterialsRef.current.forEach((mat) => {
-            if (mat && mat.isRoughRefractionMaterial) {
-              mat.envMapBase = texture;
-              mat.baseMono = baseMono ? 1.0 : 0.0;
-              mat.needsUpdate = true;
+        loadRawEquirect(effectiveBaseHdrUrl, { mono: baseMono, fileName: baseFileNameHint })
+          .then(({ texture, meta }) => {
+            if (gemEnvTexturesRef.current.base && gemEnvTexturesRef.current.base !== texture && gemEnvTexturesRef.current.base !== gemEnvTexturesRef.current.metalRaw) {
+              gemEnvTexturesRef.current.base.dispose();
             }
-          });
-          onRefreshPreviews?.();
-        } else {
-          loadRawEquirect(effectiveBaseHdrUrl, { mono: baseMono, fileName: baseFileNameHint })
-            .then(({ texture, meta }) => {
-              if (gemEnvTexturesRef.current.base && gemEnvTexturesRef.current.base !== texture && gemEnvTexturesRef.current.base !== gemEnvTexturesRef.current.metalRaw) {
-                gemEnvTexturesRef.current.base.dispose();
-              }
-              if (
-                gemEnvTexturesRef.current.prevBaseBlobUrl &&
-                gemEnvTexturesRef.current.prevBaseBlobUrl !== effectiveBaseHdrUrl &&
-                gemEnvTexturesRef.current.prevBaseBlobUrl.startsWith("blob:")
-              ) {
-                URL.revokeObjectURL(gemEnvTexturesRef.current.prevBaseBlobUrl);
-              }
-              if (effectiveBaseHdrUrl.startsWith("blob:")) {
-                gemEnvTexturesRef.current.prevBaseBlobUrl = effectiveBaseHdrUrl;
-              }
+            if (
+              gemEnvTexturesRef.current.prevBaseBlobUrl &&
+              gemEnvTexturesRef.current.prevBaseBlobUrl !== effectiveBaseHdrUrl &&
+              gemEnvTexturesRef.current.prevBaseBlobUrl.startsWith("blob:")
+            ) {
+              URL.revokeObjectURL(gemEnvTexturesRef.current.prevBaseBlobUrl);
+            }
+            if (effectiveBaseHdrUrl.startsWith("blob:")) {
+              gemEnvTexturesRef.current.prevBaseBlobUrl = effectiveBaseHdrUrl;
+            }
 
-              gemEnvTexturesRef.current.base = texture;
-              gemEnvTexturesRef.current.baseMeta = meta;
-              onBaseMetaUpdate?.(meta);
+            gemEnvTexturesRef.current.base = texture;
+            gemEnvTexturesRef.current.baseMeta = meta;
+            onBaseMetaUpdate?.(meta);
 
-              gemMaterialsRef.current.forEach((mat) => {
-                if (mat && mat.isRoughRefractionMaterial) {
-                  mat.envMapBase = texture;
-                  mat.baseMono = baseMono ? 1.0 : 0.0;
-                  mat.needsUpdate = true;
-                }
-              });
-              onRefreshPreviews?.();
-            })
-            .catch((err) => {
-              console.error(
-                "[RingHero] Failed to dynamically hot-swap Base EXR:",
-                err,
-              );
-              onBaseMetaUpdate?.({ error: err?.message || String(err) });
+            gemMaterialsRef.current.forEach((mat) => {
+              if (mat && mat.isRoughRefractionMaterial) {
+                mat.envMapBase = texture;
+                mat.baseMono = baseMono ? 1.0 : 0.0;
+                mat.needsUpdate = true;
+              }
             });
-        }
+            onRefreshPreviews?.();
+          })
+          .catch((err) => {
+            console.error(
+              "[RingHero] Failed to dynamically hot-swap Base EXR:",
+              err,
+            );
+            onBaseMetaUpdate?.({ error: err?.message || String(err) });
+          });
       }
     }
 
@@ -1353,15 +1340,6 @@ export default function RingHero({
               gemEnvTexturesRef.current.metalRaw = tex?._rawTexture || null;
               metalMaterialRef.current.envMap = tex;
               metalMaterialRef.current.needsUpdate = true;
-              if (effectiveBaseHdrUrl === metalHdrUrl && tex?._rawTexture) {
-                gemEnvTexturesRef.current.base = tex._rawTexture;
-                gemMaterialsRef.current.forEach((mat) => {
-                  if (mat && mat.isRoughRefractionMaterial) {
-                    mat.envMapBase = tex._rawTexture;
-                    mat.needsUpdate = true;
-                  }
-                });
-              }
               gemMaterialsRef.current.forEach((mat) => {
                 if (mat && mat.isMatteGemMaterial) {
                   mat.envMap = tex;
@@ -2456,19 +2434,17 @@ export default function RingHero({
       }),
       (isFallbackDevice || !effectiveBaseHdrUrl)
         ? Promise.resolve({ texture: null, meta: null })
-        : (effectiveBaseHdrUrl === effectiveMetalHdrUrl
-            ? Promise.resolve(null)
-            : loadRawEquirect(((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
-                mono: gemBaseEnv?.mono ?? true,
-                fileName: ((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "Diamond-Base-HDRI-mobile.exr" : (baseFileNameHint || "env_metal_029_1798f1cf07-metal.hdr")),
-                onProgress: (xhr) => {
-                  if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
-                  updateOverallProgress("Diamond base environment loaded");
-                },
-              }).catch((err) => {
-                console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
-                return { texture: null, meta: null };
-              })),
+        : loadRawEquirect(((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "/hdr/Diamond-Base-HDRI-mobile.exr" : effectiveBaseHdrUrl), {
+            mono: gemBaseEnv?.mono ?? true,
+            fileName: ((deviceTier.tier === "mobile" && effectiveBaseHdrUrl?.includes("Diamond-Base-HDRI.exr")) ? "Diamond-Base-HDRI-mobile.exr" : (baseFileNameHint || "env_metal_029_1798f1cf07-metal.hdr")),
+            onProgress: (xhr) => {
+              if (xhr.loaded) progressMap.gemBaseHdr.loaded = xhr.loaded;
+              updateOverallProgress("Diamond base environment loaded");
+            },
+          }).catch((err) => {
+            console.warn("RingHero: Diamond base HDRI failed to load, continuing with fallback:", err);
+            return { texture: null, meta: null };
+          }),
       (isFallbackDevice || !gemSpotHdrUrl) ? Promise.resolve({ texture: null, meta: null }) : loadRawEquirect(((deviceTier.tier === "mobile" && gemSpotHdrUrl?.includes("Diamond-Spotlight-HDRI.exr")) ? "/hdr/Diamond-Spotlight-HDRI-mobile.exr" : gemSpotHdrUrl), {
         mono: gemSpotEnv?.mono ?? true,
         fileName: ((deviceTier.tier === "mobile" && gemSpotHdrUrl?.includes("Diamond-Spotlight-HDRI.exr")) ? "Diamond-Spotlight-HDRI-mobile.exr" : (spotFileNameHint || "Metal-Spotlight-HDRI.hdr")),
@@ -2500,19 +2476,7 @@ export default function RingHero({
         gemEnvTexturesRef.current.metalEnvMap = loadedMetalEnv;
         gemEnvTexturesRef.current.metalRaw = loadedMetalEnv?._rawTexture || null;
 
-        const effectiveBaseResult = (effectiveBaseHdrUrl === effectiveMetalHdrUrl && loadedMetalEnv?._rawTexture)
-          ? {
-              texture: loadedMetalEnv._rawTexture,
-              meta: {
-                name: "env_metal_029_1798f1cf07-metal.hdr",
-                width: loadedMetalEnv._rawTexture.image?.width || 2048,
-                height: loadedMetalEnv._rawTexture.image?.height || 1024,
-                channels: "4 (Shared Metal HDR)",
-                approxMB: "4.0",
-                isMono: false,
-              },
-            }
-          : loadedBaseResult;
+        const effectiveBaseResult = loadedBaseResult;
 
         gemEnvTexturesRef.current.base = effectiveBaseResult?.texture || null;
         gemEnvTexturesRef.current.baseMeta = effectiveBaseResult?.meta || null;
