@@ -202,6 +202,7 @@ export const DEFAULT_GEM_BASE_ENV = {
   lod: 0.5,
   mono: true,
   scaleInvert: false,
+  saturation: 0,
 };
 
 // 3D Interactive Viewer Section Diamond Slot Defaults (Beat 5: Power 2.59, Gamma 0.78, Rot 63°, Scale 1.554/3.601, Trans -0.083/0)
@@ -217,6 +218,7 @@ export const INTERACTIVE_GEM_BASE_ENV = {
   lod: 0.5,
   mono: true,
   scaleInvert: false,
+  saturation: 0,
 };
 
 export const GEM_BASE_ENV_HORIZON = {
@@ -231,6 +233,7 @@ export const GEM_BASE_ENV_HORIZON = {
   lod: 0.5,
   mono: true,
   scaleInvert: false,
+  saturation: 0,
 };
 
 const DEFAULT_GEM_SPOT_ENV = {
@@ -639,12 +642,12 @@ export default function HomePage() {
     "/hdr/env_metal_029_1798f1cf07-metal.hdr"
   );
   const [gemBaseHdrUrl, setGemBaseHdrUrl] = useState(
-    "/hdr/env_metal_029_1798f1cf07.hdr"
+    "/hdr/env_metal_029_1798f1cf07-metal.hdr"
   );
   const [gemSpotHdrUrl, setGemSpotHdrUrl] = useState(
     isFallbackDevice
       ? ""
-      : "/hdr/Diamond-Spotlight-HDRI.exr",
+      : "/hdr/Metal-Spotlight-HDRI.hdr",
   );
   const [gemMode, setGemMode] = useState(isFallbackDevice ? "matte" : null); // null = preset default ("refraction"), or "matte"
   const [meshDebugList, setMeshDebugList] = useState([]);
@@ -658,6 +661,7 @@ export default function HomePage() {
   const [metalSpotFileMeta, setMetalSpotFileMeta] = useState(null);
   const [sceneLightsConfig, setSceneLightsConfig] = useState(DEFAULT_SCENE_LIGHTS_CONFIG);
   const [gemBaseEnv, setGemBaseEnv] = useState(DEFAULT_GEM_BASE_ENV);
+  const [interactiveGemBaseEnv, setInteractiveGemBaseEnv] = useState(INTERACTIVE_GEM_BASE_ENV);
   const [gemSpotEnv, setGemSpotEnv] = useState(DEFAULT_GEM_SPOT_ENV);
   const [gemEnvView, setGemEnvView] = useState(0); // 0 = Base+Spot
   const [gemGammaMode, setGemGammaMode] = useState(0); // 0 = Octane pow(x, γ), 1 = Legacy pow(x, 1/γ)
@@ -694,13 +698,14 @@ export default function HomePage() {
   });
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG);
   const [postFxConfig, setPostFxConfig] = useState(DEFAULT_POSTFX_CONFIG);
-  const [baseFileNameHint, setBaseFileNameHint] = useState("env_metal_029_1798f1cf07.hdr");
-  const [spotFileNameHint, setSpotFileNameHint] = useState("Diamond-Spotlight-HDRI.exr");
+  const [baseFileNameHint, setBaseFileNameHint] = useState("env_metal_029_1798f1cf07-metal.hdr");
+  const [spotFileNameHint, setSpotFileNameHint] = useState("Metal-Spotlight-HDRI.hdr");
 
   // Live 2:1 EXR preview canvas refs and renderer callback (Task B)
   const renderEnvPreviewRef = useRef(null);
   const envCanvasRef = useRef(null);
   const baseCanvasRef = useRef(null);
+  const interactiveCanvasRef = useRef(null);
   const spotCanvasRef = useRef(null);
   const metalCanvasRef = useRef(null);
 
@@ -723,6 +728,14 @@ export default function HomePage() {
     if (baseCanvasRef.current) {
       renderEnvPreviewRef.current(baseCanvasRef.current, {
         mode: 0,
+        baseEnv: gemBaseEnv,
+        ...commonOpts,
+      });
+    }
+    if (interactiveCanvasRef.current) {
+      renderEnvPreviewRef.current(interactiveCanvasRef.current, {
+        mode: 0,
+        baseEnv: interactiveGemBaseEnv,
         ...commonOpts,
       });
     }
@@ -741,7 +754,7 @@ export default function HomePage() {
         ...commonOpts,
       });
     }
-  }, [previewConfig, bloomConfig.threshold, metalHdrConfig, metalSpotEnv, metalEnvView]);
+  }, [previewConfig, bloomConfig.threshold, metalHdrConfig, metalSpotEnv, metalEnvView, gemBaseEnv, interactiveGemBaseEnv]);
 
   const [postFxEnabled, setPostFxEnabled] = useState(true);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -2427,7 +2440,7 @@ export default function HomePage() {
         onMetalSpotMetaUpdate={setMetalSpotFileMeta}
         sceneLightsConfig={sceneLightsConfig}
         gemBaseEnv={gemBaseEnv}
-        interactiveGemBaseEnv={INTERACTIVE_GEM_BASE_ENV}
+        interactiveGemBaseEnv={interactiveGemBaseEnv}
         gemSpotEnv={gemSpotEnv}
         gemEnvView={gemEnvView}
         gemGammaMode={gemGammaMode}
@@ -2962,6 +2975,8 @@ export default function HomePage() {
               setSceneLightsConfig={setSceneLightsConfig}
               gemBaseEnv={gemBaseEnv}
               setGemBaseEnv={setGemBaseEnv}
+              interactiveGemBaseEnv={interactiveGemBaseEnv}
+              setInteractiveGemBaseEnv={setInteractiveGemBaseEnv}
               gemSpotEnv={gemSpotEnv}
               setGemSpotEnv={setGemSpotEnv}
               gemEnvView={gemEnvView}
@@ -2986,9 +3001,11 @@ export default function HomePage() {
               setSpotFileNameHint={setSpotFileNameHint}
               envCanvasRef={envCanvasRef}
               baseCanvasRef={baseCanvasRef}
+              interactiveCanvasRef={interactiveCanvasRef}
               spotCanvasRef={spotCanvasRef}
               metalCanvasRef={metalCanvasRef}
               onRefreshPreviews={updatePreviews}
+              onJumpToBeat5={() => handleDotClick(4, DEFAULT_HOME_SECTIONS[4])}
               experimentalAtmosphere={experimentalAtmosphere}
               setExperimentalAtmosphere={setExperimentalAtmosphere}
               layoutConfig={layoutConfig}
@@ -3013,10 +3030,13 @@ export default function HomePage() {
                 setMetalSpotFileNameHint("Metal-Spotlight-HDRI.hdr");
                 setMetalSpotFileMeta(null);
                 setSceneLightsConfig(DEFAULT_SCENE_LIGHTS_CONFIG);
-                setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
-                setGemSpotHdrUrl("/hdr/Diamond-Spotlight-HDRI.exr");
+                setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07-metal.hdr");
+                setBaseFileNameHint("env_metal_029_1798f1cf07-metal.hdr");
+                setGemSpotHdrUrl("/hdr/Metal-Spotlight-HDRI.hdr");
+                setSpotFileNameHint("Metal-Spotlight-HDRI.hdr");
                 setGemMode(null);
                 setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
+                setInteractiveGemBaseEnv(INTERACTIVE_GEM_BASE_ENV);
                 setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
                 setGemEnvView(0);
                 setGemGammaMode(0);
@@ -3033,6 +3053,17 @@ export default function HomePage() {
                 setMetalHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
                 setMetalHdrConfig(DEFAULT_METAL_HDR_CONFIG);
                 setMetalSpotEnv(DEFAULT_METAL_SPOT_ENV);
+                setMetalEnvView(0);
+                setMetalSpotHdrUrl("");
+                setMetalSpotFileNameHint("");
+                setMetalSpotFileMeta(null);
+                setSceneLightsConfig(DEFAULT_SCENE_LIGHTS_CONFIG);
+                setGemBaseHdrUrl("/hdr/env_metal_029_1798f1cf07.hdr");
+                setGemSpotHdrUrl("");
+                setGemMode("matte");
+                setGemBaseEnv(DEFAULT_GEM_BASE_ENV);
+                setInteractiveGemBaseEnv(INTERACTIVE_GEM_BASE_ENV);
+                setGemSpotEnv(DEFAULT_GEM_SPOT_ENV);
                 setMetalEnvView(0);
                 setMetalSpotHdrUrl("");
                 setMetalSpotFileNameHint("");
@@ -3211,6 +3242,8 @@ function MaterialDevPanel({
   setSceneLightsConfig,
   gemBaseEnv,
   setGemBaseEnv,
+  interactiveGemBaseEnv,
+  setInteractiveGemBaseEnv,
   gemSpotEnv,
   setGemSpotEnv,
   gemEnvView,
@@ -3235,9 +3268,11 @@ function MaterialDevPanel({
   setSpotFileNameHint,
   envCanvasRef,
   baseCanvasRef,
+  interactiveCanvasRef,
   spotCanvasRef,
   metalCanvasRef,
   onRefreshPreviews,
+  onJumpToBeat5,
   experimentalAtmosphere,
   setExperimentalAtmosphere,
   layoutConfig,
@@ -4306,33 +4341,34 @@ function MaterialDevPanel({
           </div>
         </div>
 
-        {/* 1. Base EXR Slot */}
+        {/* 1. Base EXR Slot (Scroll Beats 0-4) */}
         <ExrSlotControls
-          title="1. Base EXR (Facet Definition)"
+          title="1. Base EXR — Scroll Beats 0-4 (Home & Story)"
+          subtitle="Pre-transition facet definition"
           badgeColor="#8ecbff"
           url={gemBaseHdrUrl}
           setUrl={setGemBaseHdrUrl}
           presets={[
             {
               key: "env_029_default",
-              label: "💎 New Default (Power 0.69, 0°)",
-              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              label: "💎 Shared Metal HDR Default (Power 0.69, 0°)",
+              value: "/hdr/env_metal_029_1798f1cf07-metal.hdr",
               config: DEFAULT_GEM_BASE_ENV,
             },
             {
               key: "env_029_interactive",
               label: "💎 3D Viewer Interactive (Power 2.59, 63°)",
-              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              value: "/hdr/env_metal_029_1798f1cf07-metal.hdr",
               config: INTERACTIVE_GEM_BASE_ENV,
             },
             {
               key: "env_029_horizon",
               label: "💎 Clean Horizon Arch (Power 0.32, -2°)",
-              value: "/hdr/env_metal_029_1798f1cf07.hdr",
+              value: "/hdr/env_metal_029_1798f1cf07-metal.hdr",
               config: GEM_BASE_ENV_HORIZON,
             },
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
-            { label: "🏛️ Studio Metal HDR", value: "/hdr/env_metal_029_1798f1cf07-metal.hdr" },
+            { label: "🏛️ Legacy Separate Diamond HDR", value: "/hdr/env_metal_029_1798f1cf07.hdr" },
           ]}
           config={gemBaseEnv}
           setConfig={setGemBaseEnv}
@@ -4351,7 +4387,8 @@ function MaterialDevPanel({
           setUrl={setGemSpotHdrUrl}
           presets={[
             { label: "🚫 None (Disabled / Fallback)", value: "" },
-            { label: "💡 Diamond Spotlight EXR (Pinpoints)", value: "/hdr/Diamond-Spotlight-HDRI.exr" },
+            { label: "💡 Metal Spotlight HDR (Shared Default)", value: "/hdr/Metal-Spotlight-HDRI.hdr" },
+            { label: "💡 Diamond Spotlight EXR (Legacy Pinpoints)", value: "/hdr/Diamond-Spotlight-HDRI.exr" },
             { label: "💎 Diamond Base EXR", value: "/hdr/Diamond-Base-HDRI.exr" },
           ]}
           config={gemSpotEnv}
@@ -4362,6 +4399,24 @@ function MaterialDevPanel({
           setFileNameHint={setSpotFileNameHint}
           isSpotSlot={true}
         />
+
+        {/* 3. 3D Interactive Section Diamond (Beat 5 / Post-Transition) */}
+        {interactiveGemBaseEnv && setInteractiveGemBaseEnv && (
+          <InteractiveGemControls
+            config={interactiveGemBaseEnv}
+            setConfig={setInteractiveGemBaseEnv}
+            canvasRef={interactiveCanvasRef}
+            onResetStudioSpec={() => {
+              setInteractiveGemBaseEnv(INTERACTIVE_GEM_BASE_ENV);
+              onRefreshPreviews?.();
+            }}
+            onCopyBeats04={() => {
+              setInteractiveGemBaseEnv({ ...gemBaseEnv });
+              onRefreshPreviews?.();
+            }}
+            onJumpToBeat5={onJumpToBeat5}
+          />
+        )}
       </div>
 
       {/* [EXPERIMENTAL_ATMOSPHERE] Atmospheric Fog, Macro DOF & Weightless Float */}
@@ -4924,6 +4979,19 @@ function ExrSlotControls({
         />
       )}
 
+      {/* Saturation control for diamond base environment (0% = neutral grayscale, removes color tint) */}
+      {!isSpotSlot && (
+        <SliderRow
+          label="Saturation"
+          value={config.saturation ?? 0}
+          min={0}
+          max={200}
+          step={1}
+          unit="%"
+          onChange={update("saturation")}
+        />
+      )}
+
       {/* Real Octane sliders */}
       <SliderRow
         label="Power"
@@ -5016,6 +5084,325 @@ function ExrSlotControls({
         max={1.0}
         step={0.001}
         onChange={update("transV")}
+      />
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 6,
+          cursor: "pointer",
+          fontSize: 9.5,
+          opacity: 0.8,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={config.scaleInvert ?? false}
+          onChange={updateBool("scaleInvert")}
+        />
+        Invert scale convention (p / scale instead of p * scale)
+      </label>
+    </div>
+  );
+}
+
+/**
+ * InteractiveGemControls
+ * -----------------------------------------------------------------------------
+ * Dedicated control panel for the 3D Interactive Section (Beat 5) Diamond.
+ * Active after the scroll transition (frames 156-214 blend into 223+).
+ * -----------------------------------------------------------------------------
+ */
+function InteractiveGemControls({
+  config,
+  setConfig,
+  canvasRef,
+  onResetStudioSpec,
+  onCopyBeats04,
+  onJumpToBeat5,
+}) {
+  const update = (key) => (e) => {
+    const val = Number(e.target.value);
+    setConfig((prev) => {
+      const next = { ...prev, [key]: val };
+      if (prev.lockScale) {
+        if (key === "scaleU") next.scaleV = val;
+        if (key === "scaleV") next.scaleU = val;
+      }
+      return next;
+    });
+  };
+
+  const updateBool = (key) => (e) => {
+    const checked = e.target.checked;
+    setConfig((prev) => {
+      const next = { ...prev, [key]: checked };
+      if (key === "lockScale" && checked) {
+        next.scaleV = prev.scaleU;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        marginBottom: 8,
+        padding: "10px 12px",
+        background: "rgba(121, 255, 225, 0.04)",
+        border: "1px solid rgba(121, 255, 225, 0.28)",
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontWeight: 700, color: "#79ffe1", fontSize: 11 }}>
+          ✨ 3. 3D INTERACTIVE DIAMOND (BEAT 5)
+        </span>
+        <span
+          style={{
+            fontSize: 9,
+            background: "rgba(121, 255, 225, 0.16)",
+            padding: "2px 6px",
+            borderRadius: 4,
+            color: "#79ffe1",
+            fontWeight: 600,
+          }}
+        >
+          Post-Transition Target
+        </span>
+      </div>
+
+      <div style={{ fontSize: 9.5, opacity: 0.75, marginBottom: 8, lineHeight: 1.35 }}>
+        Dedicated settings for the diamond after scroll transition (frames 156–214 blend into 223+). Serves the shared metal HDR with desaturation and independent 2D transformation.
+      </div>
+
+      {/* Quick Action & Navigation Buttons */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+        {onJumpToBeat5 && (
+          <button
+            type="button"
+            onClick={onJumpToBeat5}
+            style={{
+              flex: "1 1 100%",
+              background: "rgba(121, 255, 225, 0.18)",
+              border: "1px solid rgba(121, 255, 225, 0.45)",
+              color: "#79ffe1",
+              borderRadius: 6,
+              padding: "6px 10px",
+              fontSize: 10,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+            title="Smoothly scroll to the 3D Interactive Viewer (Beat 5) to inspect live changes"
+          >
+            🚀 Jump to 3D Viewer (Beat 5)
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onResetStudioSpec}
+          style={{
+            flex: 1,
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            color: "#fff",
+            borderRadius: 4,
+            padding: "5px 8px",
+            fontSize: 9.5,
+            cursor: "pointer",
+          }}
+          title="Reset to calibrated Studio Spec defaults (Power 2.59, Gamma 0.78, Rot 63°)"
+        >
+          🎯 Studio Spec
+        </button>
+        <button
+          type="button"
+          onClick={onCopyBeats04}
+          style={{
+            flex: 1,
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            color: "#fff",
+            borderRadius: 4,
+            padding: "5px 8px",
+            fontSize: 9.5,
+            cursor: "pointer",
+          }}
+          title="Copy current Beats 0-4 Diamond settings into Beat 5"
+        >
+          📋 Copy Beats 0-4
+        </button>
+      </div>
+
+      {/* 2:1 Equirect Preview Canvas for Beat 5 */}
+      {canvasRef && (
+        <div style={{ marginBottom: 8 }}>
+          <canvas
+            ref={canvasRef}
+            width={512}
+            height={256}
+            style={{
+              width: "100%",
+              height: "auto",
+              aspectRatio: "2/1",
+              display: "block",
+              borderRadius: 4,
+              border: "1px solid rgba(121, 255, 225, 0.25)",
+              background: "#0c1017",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mono toggle */}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 8,
+          cursor: "pointer",
+          fontSize: 10,
+          color: config.mono ? "#79ffe1" : "#888",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={config.mono ?? true}
+          onChange={updateBool("mono")}
+        />
+        <span>Mono (1 channel half-float) — <em>saves ~75% VRAM</em></span>
+      </label>
+
+      {/* Saturation control */}
+      <SliderRow
+        label="Saturation"
+        value={config.saturation ?? 0}
+        min={0}
+        max={200}
+        step={1}
+        unit="%"
+        onChange={update("saturation")}
+      />
+      <div style={{ fontSize: 9, opacity: 0.65, marginTop: -4, marginBottom: 6, color: "#79ffe1" }}>
+        * 0% removes metal color tint from facets; 100% preserves full HDR color
+      </div>
+
+      {/* Real Octane sliders */}
+      <SliderRow
+        label="Power"
+        value={config.power}
+        min={0}
+        max={10.0}
+        step={0.05}
+        onChange={update("power")}
+      />
+      <SliderRow
+        label="Gamma"
+        value={config.gamma}
+        min={0.2}
+        max={4.0}
+        step={0.01}
+        onChange={update("gamma")}
+      />
+      <SliderRow
+        label="Rotation"
+        value={config.rot}
+        min={-180}
+        max={180}
+        step={1}
+        unit="°"
+        onChange={update("rot")}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 6,
+          marginBottom: 2,
+        }}
+      >
+        <span style={{ fontSize: 10, opacity: 0.8 }}>Scale (2D Transform)</span>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 9,
+            cursor: "pointer",
+            opacity: 0.85,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={config.lockScale ?? false}
+            onChange={updateBool("lockScale")}
+          />
+          Lock U=V
+        </label>
+      </div>
+
+      <div style={{ fontSize: 9, opacity: 0.65, marginTop: 1, marginBottom: 4, color: "#79ffe1" }}>
+        * Octane scale &lt; 1 zooms in (verify against Octane)
+      </div>
+
+      <SliderRow
+        label="Scale U"
+        value={config.scaleU}
+        min={0.05}
+        max={5.0}
+        step={0.001}
+        onChange={update("scaleU")}
+      />
+      <SliderRow
+        label="Scale V"
+        value={config.scaleV}
+        min={0.05}
+        max={5.0}
+        step={0.001}
+        onChange={update("scaleV")}
+      />
+
+      <SliderRow
+        label="Translate U"
+        value={config.transU}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transU")}
+      />
+      <SliderRow
+        label="Translate V"
+        value={config.transV}
+        min={-1.0}
+        max={1.0}
+        step={0.001}
+        onChange={update("transV")}
+      />
+
+      <SliderRow
+        label="LOD (Blur/Sharpness)"
+        value={config.lod ?? 0.5}
+        min={0.0}
+        max={4.0}
+        step={0.1}
+        onChange={update("lod")}
       />
 
       <label

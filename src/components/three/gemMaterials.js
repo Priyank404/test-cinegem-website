@@ -197,6 +197,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       baseScaleInvert: { value: 0.0 },
       baseLod: { value: 0.5 },
       baseMono: { value: 1.0 },
+      baseSaturation: { value: 0.0 },
 
       // Spotlight EXR slot parameters (Octane 2D transformation & exposure)
       spotPower: { value: 4.0 },
@@ -265,6 +266,7 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       uniform float baseScaleInvert;
       uniform float baseLod;
       uniform float baseMono;
+      uniform float baseSaturation;
 
       uniform float spotPower;
       uniform float spotGamma;
@@ -326,7 +328,12 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
       vec3 sampleBaseKernel(vec3 d, float lod) {
         vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
         vec4 s = textureLod(envMapBase, uv, lod);
-        return (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+        vec3 col = (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+        if (baseSaturation < 0.999) {
+          float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));
+          col = mix(vec3(gray), col, clamp(baseSaturation, 0.0, 2.0));
+        }
+        return col;
       }
 
       vec3 baseRaw(vec3 d) {
@@ -656,6 +663,8 @@ export class RoughRefractionMaterial extends THREE.ShaderMaterial {
   set baseLod(v) { if (this.uniforms?.baseLod) this.uniforms.baseLod.value = v; }
   get baseMono() { return this.uniforms?.baseMono?.value; }
   set baseMono(v) { if (this.uniforms?.baseMono) this.uniforms.baseMono.value = v ? 1.0 : 0.0; }
+  get baseSaturation() { return this.uniforms?.baseSaturation?.value; }
+  set baseSaturation(v) { if (this.uniforms?.baseSaturation) this.uniforms.baseSaturation.value = v; }
 
   // Spotlight slot parameters
   get spotPower() { return this.uniforms?.spotPower?.value; }

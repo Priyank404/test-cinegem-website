@@ -31,6 +31,7 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
       baseScaleInvert: { value: 0.0 },
       baseLod: { value: 0.5 },
       baseMono: { value: 1.0 },
+      baseSaturation: { value: (parameters.baseSaturation ?? 0) / 100.0 },
 
       spotPower: { value: parameters.spotPower ?? 4.0 },
       spotGamma: { value: parameters.spotGamma ?? 1.8 },
@@ -92,6 +93,7 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
       uniform float baseScaleInvert;
       uniform float baseLod;
       uniform float baseMono;
+      uniform float baseSaturation;
 
       uniform float spotPower;
       uniform float spotGamma;
@@ -134,6 +136,10 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
         vec2 uv = octaneUv(equirectUv(d), baseRot, baseScale, baseTrans, baseScaleInvert);
         vec4 s = textureLod(envMapBase, uv, lod);
         vec3 col = (baseMono > 0.5) ? vec3(s.r) : s.rgb;
+        if (baseSaturation < 0.999) {
+          float gray = dot(col, vec3(0.2126, 0.7152, 0.0722));
+          col = mix(vec3(gray), col, clamp(baseSaturation, 0.0, 2.0));
+        }
         if (dot(col, col) < 0.04) {
           float studioSky = clamp(d.y * 0.5 + 0.5, 0.45, 1.0);
           col = max(col, vec3(studioSky * 0.70, studioSky * 0.75, studioSky * 0.90));
@@ -319,8 +325,18 @@ export class RoughRefractionMaterialBaked extends THREE.ShaderMaterial {
   set baseGamma(v) { if (this.uniforms?.baseGamma) this.uniforms.baseGamma.value = v; }
   get baseRot() { return this.uniforms?.baseRot?.value; }
   set baseRot(v) { if (this.uniforms?.baseRot) this.uniforms.baseRot.value = v; }
+  get baseScale() { return this.uniforms?.baseScale?.value; }
+  set baseScale(v) { if (this.uniforms?.baseScale) this.uniforms.baseScale.value.copy(v); }
+  get baseTrans() { return this.uniforms?.baseTrans?.value; }
+  set baseTrans(v) { if (this.uniforms?.baseTrans) this.uniforms.baseTrans.value.copy(v); }
+  get baseScaleInvert() { return this.uniforms?.baseScaleInvert?.value; }
+  set baseScaleInvert(v) { if (this.uniforms?.baseScaleInvert) this.uniforms.baseScaleInvert.value = v ? 1.0 : 0.0; }
   get baseLod() { return this.uniforms?.baseLod?.value; }
   set baseLod(v) { if (this.uniforms?.baseLod) this.uniforms.baseLod.value = v; }
+  get baseMono() { return this.uniforms?.baseMono?.value; }
+  set baseMono(v) { if (this.uniforms?.baseMono) this.uniforms.baseMono.value = v ? 1.0 : 0.0; }
+  get baseSaturation() { return this.uniforms?.baseSaturation?.value; }
+  set baseSaturation(v) { if (this.uniforms?.baseSaturation) this.uniforms.baseSaturation.value = v; }
 
   // Spotlight slot parameters
   get spotPower() { return this.uniforms?.spotPower?.value; }

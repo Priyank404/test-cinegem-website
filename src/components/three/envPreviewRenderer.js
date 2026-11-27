@@ -66,6 +66,7 @@ export class EnvPreviewRenderer {
       uniform float baseScaleInvert;
       uniform float baseLod;
       uniform float baseMono;
+      uniform float baseSaturation;
 
       uniform float spotPower;
       uniform float spotGamma;
@@ -153,11 +154,21 @@ export class EnvPreviewRenderer {
         float b = 0.0;
         if (uRaw > 0.5) {
           vec4 rawB = texture2D(envMapBase, uvOut);
-          b = (baseMono > 0.5) ? rawB.r : rawB.r;
+          vec3 bCol = (baseMono > 0.5) ? vec3(rawB.r) : rawB.rgb;
+          if (baseSaturation < 0.999) {
+            float grayB = dot(bCol, vec3(0.2126, 0.7152, 0.0722));
+            bCol = mix(vec3(grayB), bCol, clamp(baseSaturation, 0.0, 2.0));
+          }
+          b = bCol.r;
         } else {
           vec2 uvB = octaneUv(uvOut, baseRot, baseScale, baseTrans, baseScaleInvert);
           vec4 rawB = texture2D(envMapBase, uvB);
-          float bVal = (baseMono > 0.5) ? rawB.r : rawB.r;
+          vec3 bCol = (baseMono > 0.5) ? vec3(rawB.r) : rawB.rgb;
+          if (baseSaturation < 0.999) {
+            float grayB = dot(bCol, vec3(0.2126, 0.7152, 0.0722));
+            bCol = mix(vec3(grayB), bCol, clamp(baseSaturation, 0.0, 2.0));
+          }
+          float bVal = bCol.r;
           b = shapeTexel(bVal, basePower, baseGamma);
         }
 
@@ -216,6 +227,7 @@ export class EnvPreviewRenderer {
         baseScaleInvert: { value: 0.0 },
         baseLod: { value: 0.5 },
         baseMono: { value: 1.0 },
+        baseSaturation: { value: 0.0 },
 
         spotPower: { value: 4.0 },
         spotGamma: { value: 1.8 },
@@ -383,6 +395,7 @@ export class EnvPreviewRenderer {
     u.baseScaleInvert.value = baseEnv.scaleInvert ? 1.0 : 0.0;
     u.baseLod.value = baseEnv.lod ?? 0.5;
     u.baseMono.value = baseEnv.mono ? 1.0 : 0.0;
+    u.baseSaturation.value = (typeof baseEnv.saturation === "number") ? (baseEnv.saturation / 100.0) : 0.0;
 
     u.spotPower.value = spotEnv.power ?? 4.0;
     u.spotGamma.value = spotEnv.gamma ?? 1.8;
