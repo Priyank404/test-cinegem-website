@@ -32,8 +32,8 @@ const BOX_START_FRAME = 205.5;
 const BOX_DRAW_COMPLETE_FRAME = 220; // Matches EXPLORE_LINK_GLOBAL_FRAME
 const BOX_PERSPECTIVE_START_FRAME = 216;
 const BOX_PERSPECTIVE_COMPLETE_FRAME = 220;
-const BOX_EXIT_START_FRAME = 241;
-const BOX_EXIT_COMPLETE_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
+const BOX_EXIT_START_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
+const BOX_EXIT_COMPLETE_FRAME = 249.5;
 
 // Feature Flag: Desktop Dynamic Scaling Perspective Box
 // Set to true for the synchronized growth & descent effect on desktop;
@@ -411,19 +411,12 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const container = containerRef.current;
         if (!container) return;
 
-        const isMobileOrTablet =
-          geomRef.current.isMobile ||
-          geomRef.current.isPortrait ||
-          (typeof window !== "undefined" &&
-            (window.innerWidth <= 1024 ||
-              (navigator.maxTouchPoints > 1 && window.innerWidth <= 1366)));
-        const isDesktopTier =
-          ENABLE_DESKTOP_DYNAMIC_GROWING_BOX && !isMobileOrTablet;
+        const isDesktopTier = ENABLE_DESKTOP_DYNAMIC_GROWING_BOX && !geomRef.current.isMobile && !geomRef.current.isPortrait;
         const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
         const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
 
-        // Visibility range gating: Desktop keeps the showcase active through the footer (frame 260);
-        // Mobile & Tablet MUST NOT appear in footer section (frame >= 245).
+        // Visibility range gating: Desktop & Mac keep the showcase active through the footer (frame 260);
+        // Mobile & Tablet Portrait still exit at BOX_EXIT_COMPLETE_FRAME.
         const inWindow = isDesktopTier
           ? frame >= boxStartFrame
           : frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
@@ -483,7 +476,20 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         let perspT =
           rawPerspProgress * rawPerspProgress * (3 - 2 * rawPerspProgress);
 
-        // Exit Transition for Mobile & Tablet: cleanly retracts ahead of footer reveal (frame 241 -> 245)
+        // Perspective Gradient Exit Bloom:
+        // Mobile & Tablet Portrait fade out ahead of line un-draw (frame 241 -> 245);
+        // Desktop & Mac keep the showcase active and shrink smoothly above the footer.
+        if (!isDesktopTier && frame >= 241) {
+          const rawPerspFade = Math.min(
+            1,
+            Math.max(0, (frame - 241) / (BOX_EXIT_START_FRAME - 241))
+          );
+          const easePerspFade =
+            rawPerspFade * rawPerspFade * (3 - 2 * rawPerspFade);
+          perspT = perspT * (1 - easePerspFade);
+        }
+
+        // 3. Exit Transition (Mobile & Tablet Portrait only: frame 245 -> 250)
         let exitT = 0;
         if (!isDesktopTier && frame >= BOX_EXIT_START_FRAME) {
           const rawExit = Math.min(
@@ -495,7 +501,6 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
             )
           );
           exitT = rawExit * rawExit * (3 - 2 * rawExit);
-          perspT = perspT * (1 - exitT);
         }
 
         // Update stroke-dasharray & stroke-dashoffset for entry drawing and reverse exit retract
@@ -645,11 +650,18 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
               (targetCenterY - winH * 0.5) * easeFooter
             );
           } else {
-            // Mobile & Tablet: showcase box is dedicated to Beat 5 (frames 205.5–245)
-            // and completely exits before footer reveal (frame >= 245), so it never enters the footer.
-            currentScale = 1.0;
-            translateY = 0;
-            footerOffsetY = 0;
+            const maxAllowedLift = geomRef.current.isMobile ? 16 : 22;
+            const footerProgress = Math.min(
+              1,
+              Math.max(
+                0,
+                (frame - BOX_EXIT_START_FRAME) /
+                  (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
+              )
+            );
+            const easeLift =
+              footerProgress * footerProgress * (3 - 2 * footerProgress);
+            translateY -= Math.round(maxAllowedLift * easeLift);
           }
         }
 

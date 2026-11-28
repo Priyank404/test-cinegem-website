@@ -1827,7 +1827,7 @@ export default function HomePage() {
         }
       } else {
         // Mobile & Tablet Portrait viewports: retain clean top-docked card visibility at EXPLORE_LINK_GLOBAL_FRAME (220)
-        // after the ring lands and the perspective box completes drawing, fading out before footer reveal
+        // after the ring lands and the perspective box completes drawing
         const showExploreLink =
           frame >= EXPLORE_LINK_GLOBAL_FRAME &&
           frame < FOOTER_REVEAL_GLOBAL_START_FRAME;
@@ -1883,8 +1883,16 @@ export default function HomePage() {
         setActiveSectionIndex(newSectionIndex);
       }
 
-      // Scope swapped metal color to Beat 5 showcase (stays active through footer on Desktop, Mac & Mobile)
-      const inBeat5Showcase = frame >= (cardTimingConfig.beat5EntryStart ?? 180);
+      // Scope swapped metal color to Beat 5 showcase (stays active through footer on Desktop & Mac)
+      const isMobileOrPortrait =
+        typeof window !== "undefined" &&
+        (window.innerWidth <= 640 ||
+          (window.innerWidth <= 1024 &&
+            window.innerWidth / Math.max(1, window.innerHeight) <= 1.25));
+      const inBeat5Showcase = isMobileOrPortrait
+        ? frame >= (cardTimingConfig.beat5EntryStart ?? 180) &&
+          frame < FOOTER_REVEAL_GLOBAL_START_FRAME + 7
+        : frame >= (cardTimingConfig.beat5EntryStart ?? 180);
       if (!inBeat5Showcase && metalPresetKeyRef.current !== "yellowGold") {
         setMetalPresetKey("yellowGold");
       }
