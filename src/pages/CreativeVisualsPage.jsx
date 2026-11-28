@@ -436,9 +436,9 @@ function ScrollStoryLayout({
             />
           )}
 
-          {/* Section 4: Full-Width Turntable Media (full-2) */}
+          {/* Section 4: Parallax Turntable Media (full-2) */}
           {s4FullScreen && (
-            <FullWidthVideo media={s4FullScreen} src={s4FullScreen.src} onOpen={onOpen} />
+            <FullWidthVideo media={s4FullScreen} src={s4FullScreen.src} driftUp onOpen={onOpen} />
           )}
         </div>
       ))}

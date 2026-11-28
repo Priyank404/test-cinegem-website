@@ -118,9 +118,60 @@ export default function FullScreenShowcase({ src, media, driftUp = false, bgColo
   const trackRef = useRef(null);
   const sectionRef = useRef(null);
   const videoRef = useRef(null);
+  const [offset, setOffset] = useState(0);
   const vw = useViewportWidth();
   const bgStyle = useVideoBgColor(activeMedia?.src || src, bgColor);
+  const isSnappingRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
   const isVideo = isMediaVideo(activeMedia);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const onScroll = () => {
+      const rect = track.getBoundingClientRect();
+      const vh = window.innerHeight;
+
+      if (driftUp) {
+        const total = rect.height - vh;
+        if (total > 0) {
+          const scrolled = -rect.top;
+          const progress = Math.min(1, Math.max(0, scrolled / total));
+          setOffset(progress * -40);
+        }
+      }
+
+      // Magnetic snap: when the user stops scrolling close to top: 0, lock it flush
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (isSnappingRef.current) return;
+        const currentRect = track.getBoundingClientRect();
+        // If within magnetic lock zone (-60px to 120px)
+        if (currentRect.top > -60 && currentRect.top < 120 && Math.abs(currentRect.top) > 2) {
+          isSnappingRef.current = true;
+          const targetScroll = window.scrollY + currentRect.top;
+          window.scrollTo({
+            top: targetScroll,
+            behavior: "smooth",
+          });
+          setTimeout(() => {
+            isSnappingRef.current = false;
+          }, 500);
+        }
+      }, 120);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [driftUp]);
 
   if (!activeMedia?.src && !src) return null;
 
@@ -129,12 +180,14 @@ export default function FullScreenShowcase({ src, media, driftUp = false, bgColo
       ref={trackRef}
       className="fullscreen-video-track relative w-full"
       style={{
-        height: "100vh",
+        height: "190vh",
+        scrollSnapAlign: "start",
+        scrollSnapStop: "normal",
       }}
     >
       <section
         ref={sectionRef}
-        className="relative w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0 z-20"
+        className="sticky top-0 w-screen min-h-screen h-screen flex items-center justify-center overflow-hidden my-0 z-20"
         style={{
           background: bgStyle,
           marginLeft: vw ? `calc(50% - ${vw / 2}px)` : undefined,
@@ -151,6 +204,7 @@ export default function FullScreenShowcase({ src, media, driftUp = false, bgColo
             onClick={() => onOpen?.(activeMedia)}
             className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
             style={{
+              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
               WebkitMaskImage:
                 "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
               maskImage:
@@ -169,6 +223,7 @@ export default function FullScreenShowcase({ src, media, driftUp = false, bgColo
             onClick={() => onOpen?.(activeMedia)}
             className="block w-full h-full max-h-screen max-w-full object-contain select-none cursor-pointer"
             style={{
+              ...(driftUp ? { transform: `translateY(${offset}px)` } : {}),
               WebkitMaskImage:
                 "linear-gradient(to right, transparent 0%, black 2%, black 98%, transparent 100%)",
               maskImage:
