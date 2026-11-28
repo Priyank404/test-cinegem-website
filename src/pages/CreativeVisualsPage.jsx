@@ -247,28 +247,6 @@ function OriginalFullWidthVideo({ src, driftUp }) {
           setOffset(progress * -40);
         }
       }
-
-      // Magnetic snap: when the user stops scrolling close to top: 0, lock it flush
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-
-      scrollTimeoutRef.current = setTimeout(() => {
-        if (isSnappingRef.current) return;
-        const currentRect = track.getBoundingClientRect();
-        // If within magnetic lock zone (-60px to 120px)
-        if (currentRect.top > -60 && currentRect.top < 120 && Math.abs(currentRect.top) > 2) {
-          isSnappingRef.current = true;
-          const targetScroll = window.scrollY + currentRect.top;
-          window.scrollTo({
-            top: targetScroll,
-            behavior: "smooth",
-          });
-          setTimeout(() => {
-            isSnappingRef.current = false;
-          }, 500);
-        }
-      }, 80);
     };
 
     onScroll();
@@ -458,9 +436,9 @@ function ScrollStoryLayout({
             />
           )}
 
-          {/* Section 4: Parallax Turntable Media (full-2) */}
+          {/* Section 4: Full-Width Turntable Media (full-2) */}
           {s4FullScreen && (
-            <FullWidthVideo media={s4FullScreen} src={s4FullScreen.src} driftUp onOpen={onOpen} />
+            <FullWidthVideo media={s4FullScreen} src={s4FullScreen.src} onOpen={onOpen} />
           )}
         </div>
       ))}
