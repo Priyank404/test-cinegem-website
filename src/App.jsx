@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 import HomePage                from '@/pages/HomePage'
 import OnBodyVisualizationPage from '@/pages/OnBodyVisualizationPage'
@@ -88,6 +89,7 @@ export default function App() {
       <ScrollToTop />
       <CustomCursor />
       <MobileDebugOverlay />
+      <SpeedInsights />
       <Routes>
         <Route path="/"                 element={<HomePage />} />
         <Route path="/hero2"            element={<Navigate to="/" replace />} />

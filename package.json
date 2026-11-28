@@ -23,6 +23,7 @@
     "@react-spring/web": "^10.1.2",
     "@react-three/drei": "^9.109.2",
     "@react-three/fiber": "^8.17.6",
+    "@vercel/speed-insights": "^2.1.1",
     "dotenv": "^17.4.2",
     "draco3d": "^1.5.7",
     "framer-motion": "^11.3.24",
