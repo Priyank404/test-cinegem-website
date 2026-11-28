@@ -9,6 +9,9 @@ import { BrowserRouter } from 'react-router-dom'
 
 import App from './App'
 import './styles/globals.css'
+import { initRuntimeProtection } from './utils/runtimeProtect'
+
+initRuntimeProtection()
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>

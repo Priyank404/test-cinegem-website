@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:prod": "vite --mode production",
-    "build": "node scripts/copy-draco.mjs && node scripts/validate-public-refs.mjs && vite build && node scripts/seo-postbuild.mjs",
+    "build": "node scripts/copy-draco.mjs && node scripts/validate-public-refs.mjs && vite build && node scripts/protect-assets.mjs && node scripts/seo-postbuild.mjs",
     "validate:assets": "node scripts/validate-public-refs.mjs",
     "preview": "vite preview",
     "prod": "npm run build && vite preview",
@@ -48,6 +48,7 @@
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "javascript-obfuscator": "^5.11.0",
     "p-limit": "^7.3.3",
     "playwright": "^1.64.1",
     "postcss": "^8.4.41",

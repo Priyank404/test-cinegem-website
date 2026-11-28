@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+import { loadSecureEnv } from "../../utils/secureAssetLoader.js";
 
 /**
  * Checks whether a given URL or data string represents an EXR file.
@@ -37,7 +38,8 @@ export function loadEnvironmentTexture(url, pmrem, onProgress, formatHint) {
       if (loader.setOutputFormat) loader.setOutputFormat(THREE.RGBAFormat);
     }
 
-    loader.load(
+    loadSecureEnv(
+      loader,
       url,
       (texture) => {
         try {
@@ -110,7 +112,8 @@ export function loadRawEquirect(
       if (loader.setDataType) loader.setDataType(THREE.HalfFloatType);
     }
 
-    loader.load(
+    loadSecureEnv(
+      loader,
       url,
       (loadedTexture) => {
         try {

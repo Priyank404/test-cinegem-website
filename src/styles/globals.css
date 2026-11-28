@@ -17,6 +17,16 @@
   object-fit: cover;
 }
 
+/* Media & Canvas anti-save / anti-selection protection */
+img,
+video,
+canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Poppins Font Utility Classes
    ───────────────────────────────────────────────────────────────────────────── */

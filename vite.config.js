@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import fs from "fs";
 import path from "path";
+import JavaScriptObfuscator from "javascript-obfuscator";
+import { getAssetVaultMap, VAULT_KEY_HEX } from "./scripts/asset-vault-config.mjs";
 
 function saveTimelinePlugin() {
   return {
@@ -78,37 +80,184 @@ function stripPendingFaqPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), saveTimelinePlugin(), stripPendingFaqPlugin()],
+function minifyGlslString(src) {
+  // Preserve ${...} template expressions safely
+  const exprs = [];
+  const placeholderText = src.replace(/\$\{[^}]*\}/g, (match) => {
+    const idx = exprs.length;
+    exprs.push(match);
+    return `__CGEM_EXPR_${idx}__`;
+  });
 
-  resolve: {
-    alias: {
-      "@": resolve(__dirname, "src"),
+  // Strip /* ... */ block comments and // ... line comments (not URLs)
+  const noComments = placeholderText
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+
+  const lines = noComments
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  let out = "";
+  let prevWasDirective = false;
+
+  for (const line of lines) {
+    const isDirective = line.startsWith("#");
+    const compact = isDirective
+      ? line.replace(/[ \t]+/g, " ")
+      : line
+          .replace(/[ \t]+/g, " ")
+          .replace(/\s*([;{}(),=])\s*/g, "$1");
+
+    if (isDirective) {
+      if (out.length > 0 && !out.endsWith("\n")) out += "\n";
+      out += compact + "\n";
+      prevWasDirective = true;
+    } else {
+      if (out.length > 0 && !prevWasDirective && !out.endsWith("\n")) {
+        out += " ";
+      }
+      out += compact;
+      prevWasDirective = false;
+    }
+  }
+
+  return out.replace(/__CGEM_EXPR_(\d+)__/g, (_, idx) => exprs[Number(idx)]);
+}
+
+function glslMinifyPlugin() {
+  return {
+    name: "glsl-minify-plugin",
+    apply: "build",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.endsWith(".js") && !id.endsWith(".jsx")) return null;
+      if (id.includes("node_modules")) return null;
+      if (
+        !code.includes("ShaderMaterial") &&
+        !code.includes("onBeforeCompile") &&
+        !code.includes("vertexShader") &&
+        !code.includes("fragmentShader") &&
+        !code.includes("/* glsl */")
+      ) {
+        return null;
+      }
+
+      const glslMarker =
+        /\b(gl_Position|gl_FragColor|gl_FragCoord|void\s+main\s*\(|precision\s+highp|#include\s*<|uniform\s+\w+|varying\s+\w+)\b/;
+
+      const transformed = code.replace(/`([\s\S]*?)`/g, (full, inner) => {
+        if (!glslMarker.test(inner)) return full;
+        return "`" + minifyGlslString(inner) + "`";
+      });
+
+      return transformed !== code ? { code: transformed, map: null } : null;
     },
-  },
+  };
+}
 
-  build: {
-    target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
-    cssTarget: "chrome87",
-  },
+function appObfuscatorPlugin() {
+  return {
+    name: "app-obfuscator-plugin",
+    apply: "build",
+    enforce: "post",
+    renderChunk(code, chunk) {
+      // Only obfuscate application chunks, keep vendor/three/react fast and untouched
+      if (!chunk.fileName.endsWith(".js")) return null;
+      if (
+        chunk.fileName.includes("vendor") ||
+        chunk.fileName.includes("draco")
+      ) {
+        return null;
+      }
 
-  define: {
-    "import.meta.env.VITE_MEDIA_BASE_URL": JSON.stringify(
-      process.env.VITE_MEDIA_BASE_URL || "https://media.cinegemstudio.com"
-    ),
-  },
+      const result = JavaScriptObfuscator.obfuscate(code, {
+        compact: true,
+        controlFlowFlattening: false,
+        deadCodeInjection: false,
+        debugProtection: false,
+        disableConsoleOutput: true,
+        identifierNamesGenerator: "hexadecimal",
+        log: false,
+        numbersToExpressions: false,
+        renameGlobals: false,
+        selfDefending: false,
+        simplify: true,
+        splitStrings: true,
+        splitStringsChunkLength: 10,
+        stringArray: true,
+        stringArrayCallsTransform: true,
+        stringArrayEncoding: ["rc4"],
+        stringArrayIndexShift: true,
+        stringArrayRotate: true,
+        stringArrayShuffle: true,
+        stringArrayWrappersCount: 1,
+        stringArrayThreshold: 0.75,
+        transformObjectKeys: false,
+        unicodeEscapeSequence: false,
+      });
 
-  server: {
-    host: true, // listen on all interfaces
-    port: 5173,
-
-    // allow Cloudflare Tunnel hostname
-    allowedHosts: true,
-
-    historyApiFallback: true,
-
-    watch: {
-      ignored: ["**/*.zip", "**/*.tar.gz", "**/dist/**", "**/responsive-report/**"],
+      return { code: result.getObfuscatedCode(), map: null };
     },
-  },
+  };
+}
+
+export default defineConfig(({ command }) => {
+  const isBuild = command === "build";
+  const publicDir = path.resolve(__dirname, "public");
+  const vaultMap = isBuild ? getAssetVaultMap(publicDir) : {};
+
+  return {
+    plugins: [
+      glslMinifyPlugin(),
+      react(),
+      saveTimelinePlugin(),
+      stripPendingFaqPlugin(),
+      appObfuscatorPlugin(),
+    ],
+
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "src"),
+      },
+    },
+
+    build: {
+      target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
+      cssTarget: "chrome87",
+      sourcemap: false,
+      rolldownOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              return "vendor";
+            }
+          },
+        },
+      },
+    },
+
+    define: {
+      "import.meta.env.VITE_MEDIA_BASE_URL": JSON.stringify(
+        process.env.VITE_MEDIA_BASE_URL || "https://media.cinegemstudio.com"
+      ),
+      __ASSET_VAULT_MAP__: JSON.stringify(vaultMap),
+      __ASSET_VAULT_KEY__: JSON.stringify(isBuild ? VAULT_KEY_HEX : ""),
+    },
+
+    server: {
+      host: true, // listen on all interfaces
+      port: 5173,
+
+      // allow Cloudflare Tunnel hostname
+      allowedHosts: true,
+
+      historyApiFallback: true,
+
+      watch: {
+        ignored: ["**/*.zip", "**/*.tar.gz", "**/dist/**", "**/responsive-report/**"],
+      },
+    },
+  };
 });

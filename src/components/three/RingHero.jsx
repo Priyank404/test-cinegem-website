@@ -35,6 +35,7 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { PMREMGenerator } from "three";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { loadSecureGLTF } from "../../utils/secureAssetLoader";
 
 import { metalPresets, buildMetalMaterial } from "./metalMaterials";
 import {
@@ -2392,7 +2393,8 @@ export default function RingHero({
           const gLoader = new GLTFLoader();
           gLoader.setDRACOLoader(dLoader);
 
-          gLoader.load(
+          loadSecureGLTF(
+            gLoader,
             effectiveGlbUrl,
             (gltf) => {
               progressMap.glb.loaded = progressMap.glb.total;

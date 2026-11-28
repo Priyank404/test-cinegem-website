@@ -295,10 +295,17 @@ console.log(`  ✓ Written dist/_redirects`);
 // 6. Generate _headers
 const headersTxt = `/*
   X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: same-origin
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+  Cross-Origin-Resource-Policy: same-origin
+
+/assets/v/*
+  Content-Type: application/octet-stream
+  X-Robots-Tag: noindex, nofollow
+  Cross-Origin-Resource-Policy: same-origin
 
 /3d-viewer
   X-Robots-Tag: noindex, follow
