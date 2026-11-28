@@ -32,8 +32,8 @@ const BOX_START_FRAME = 205.5;
 const BOX_DRAW_COMPLETE_FRAME = 220; // Matches EXPLORE_LINK_GLOBAL_FRAME
 const BOX_PERSPECTIVE_START_FRAME = 216;
 const BOX_PERSPECTIVE_COMPLETE_FRAME = 220;
-const BOX_EXIT_START_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
-const BOX_EXIT_COMPLETE_FRAME = 249.5;
+const BOX_EXIT_START_FRAME = 241;
+const BOX_EXIT_COMPLETE_FRAME = 245; // Matches FOOTER_REVEAL_GLOBAL_START_FRAME
 
 // Feature Flag: Desktop Dynamic Scaling Perspective Box
 // Set to true for the synchronized growth & descent effect on desktop;
@@ -411,13 +411,22 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const container = containerRef.current;
         if (!container) return;
 
-        const isDesktopTier = ENABLE_DESKTOP_DYNAMIC_GROWING_BOX && !geomRef.current.isMobile && !geomRef.current.isPortrait;
+        const isMobileOrTablet =
+          geomRef.current.isMobile ||
+          geomRef.current.isPortrait ||
+          (typeof window !== "undefined" &&
+            (window.innerWidth <= 1024 ||
+              (navigator.maxTouchPoints > 1 && window.innerWidth <= 1366)));
+        const isDesktopTier =
+          ENABLE_DESKTOP_DYNAMIC_GROWING_BOX && !isMobileOrTablet;
         const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
         const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
 
-        // Visibility range gating: keep the showcase active through the footer (frame 260)
-        // on ALL devices, smoothly shrinking and lifting above the footer in lockstep with the ring.
-        const inWindow = frame >= boxStartFrame;
+        // Visibility range gating: Desktop keeps the showcase active through the footer (frame 260);
+        // Mobile & Tablet MUST NOT appear in footer section (frame >= 245).
+        const inWindow = isDesktopTier
+          ? frame >= boxStartFrame
+          : frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
 
         if (!inWindow) {
           if (lastStateRef.current.visible) {
@@ -474,8 +483,20 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         let perspT =
           rawPerspProgress * rawPerspProgress * (3 - 2 * rawPerspProgress);
 
-        // Exit transition is disabled as the showcase box remains active through the footer on all devices
-        const exitT = 0;
+        // Exit Transition for Mobile & Tablet: cleanly retracts ahead of footer reveal (frame 241 -> 245)
+        let exitT = 0;
+        if (!isDesktopTier && frame >= BOX_EXIT_START_FRAME) {
+          const rawExit = Math.min(
+            1,
+            Math.max(
+              0,
+              (frame - BOX_EXIT_START_FRAME) /
+                (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
+            )
+          );
+          exitT = rawExit * rawExit * (3 - 2 * rawExit);
+          perspT = perspT * (1 - exitT);
+        }
 
         // Update stroke-dasharray & stroke-dashoffset for entry drawing and reverse exit retract
         const halfPerimeter = geomRef.current.halfPerimeter || 1340;
@@ -624,36 +645,11 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
               (targetCenterY - winH * 0.5) * easeFooter
             );
           } else {
-            // Mobile & Tablet Portrait: Sync footer shrink & vertical lift 1:1 with Three.js ring
-            const winH = geomRef.current.winH || 844;
-            const isMobile = geomRef.current.isMobile;
-
-            // Match RingHero.jsx portrait calculations exactly:
-            const aspect = (geomRef.current.winW || 390) / Math.max(1, winH);
-            const tPortrait = Math.min(1, Math.max(0, (aspect - 0.55) / (0.75 - 0.55)));
-            const easeTPortrait = tPortrait * tPortrait * (3 - 2 * tPortrait);
-            const portraitViewerShift = isMobile ? -0.27 : (1 - easeTPortrait) * -0.20 + easeTPortrait * -0.25;
-            const baseNy = portraitViewerShift;
-            const targetFooterNy = isMobile
-              ? Math.min(0.28, Math.max(0.16, 160 / winH))
-              : Math.min(0.24, Math.max(0.10, 135 / winH));
-
-            // Total vertical lift in screen pixels (matching RingHero.jsx NDC -> screen pixel delta):
-            const totalLiftPx = (targetFooterNy - baseNy) * (winH / 2);
-
-            const footerT = Math.min(
-              1,
-              Math.max(
-                0,
-                (frame - BOX_EXIT_START_FRAME) / (260 - BOX_EXIT_START_FRAME)
-              )
-            );
-            const easeFooter = footerT * footerT * (3 - 2 * footerT);
-
-            const portraitFooterScale = isMobile ? 0.90 : 0.84;
-            currentScale = 1.0 + (portraitFooterScale - 1.0) * easeFooter;
-            translateY = Math.round(-totalLiftPx * easeFooter);
-            footerOffsetY = translateY;
+            // Mobile & Tablet: showcase box is dedicated to Beat 5 (frames 205.5–245)
+            // and completely exits before footer reveal (frame >= 245), so it never enters the footer.
+            currentScale = 1.0;
+            translateY = 0;
+            footerOffsetY = 0;
           }
         }
 
