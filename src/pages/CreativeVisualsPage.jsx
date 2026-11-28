@@ -52,6 +52,10 @@ function FullWidthVideoWithImagesBelow({
   const lastRightIndex = lastLeftIndex + 1;
   const totalDisplay = displayItems.length;
 
+  const featuredCornerClass = reverse
+    ? "rounded-t-[12px] md:rounded-t-none md:rounded-tr-[12px] md:rounded-br-[12px] md:rounded-tl-none md:rounded-bl-none"
+    : "rounded-t-[12px] md:rounded-t-none md:rounded-tl-[12px] md:rounded-bl-[12px] md:rounded-tr-none md:rounded-br-none";
+
   return (
     <section className="relative w-full max-w-[1920px] 2xl:max-w-[2040px] mx-auto px-4 sm:px-6 md:px-8 lg:px-10">
       <div className="glassy-container">
@@ -66,22 +70,19 @@ function FullWidthVideoWithImagesBelow({
               stretches to match that exact height, shrinking the video and glassy container. */}
           <div
             onClick={() => onOpen?.(activeFeatured)}
-            className={`w-full md:w-1/2 md:flex-1 relative self-stretch min-h-0 overflow-hidden isolate bg-black border-0 rounded-t-[12px] md:rounded-t-none cursor-pointer aspect-[4/5] sm:aspect-square md:aspect-auto ${
-              reverse
-                ? "md:rounded-r-[12px] md:rounded-l-none"
-                : "md:rounded-l-[12px] md:rounded-r-none"
-            }`}
+            style={{ WebkitMaskImage: "-webkit-radial-gradient(white, black)" }}
+            className={`w-full md:w-1/2 md:flex-1 relative self-stretch min-h-0 overflow-hidden isolate bg-black border-0 cursor-pointer aspect-[4/5] sm:aspect-square md:aspect-auto ${featuredCornerClass}`}
           >
-            <div className="w-full h-full md:absolute md:inset-0 overflow-hidden [border-radius:inherit] flex items-center justify-center">
+            <div
+              style={{ WebkitMaskImage: "-webkit-radial-gradient(white, black)" }}
+              className={`w-full h-full md:absolute md:inset-0 overflow-hidden [border-radius:inherit] flex items-center justify-center ${featuredCornerClass}`}
+            >
               <UniversalMediaTile
                 media={activeFeatured}
-                className={`w-full h-full [border-radius:inherit] rounded-t-[12px] md:rounded-t-none ${
-                  reverse
-                    ? "md:rounded-r-[12px] md:rounded-l-none"
-                    : "md:rounded-l-[12px] md:rounded-r-none"
-                }`}
-                videoClassName="w-full h-full object-cover block"
-                imageClassName="w-full h-full object-cover block"
+                style={{ WebkitMaskImage: "-webkit-radial-gradient(white, black)" }}
+                className={`w-full h-full [border-radius:inherit] ${featuredCornerClass}`}
+                videoClassName={`w-full h-full object-cover block [border-radius:inherit] ${featuredCornerClass}`}
+                imageClassName={`w-full h-full object-cover block [border-radius:inherit] ${featuredCornerClass}`}
               />
             </div>
           </div>

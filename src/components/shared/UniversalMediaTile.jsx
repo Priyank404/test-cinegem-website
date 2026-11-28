@@ -63,7 +63,7 @@ export function UniversalMediaTile({
     <div
       onClick={onClick ? () => onClick(item) : undefined}
       className={`relative overflow-hidden ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      style={style}
+      style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)', ...style }}
     >
       {isVideo ? (
         <video
@@ -76,7 +76,7 @@ export function UniversalMediaTile({
           playsInline={playsInline}
           preload={preload}
           onLoadedMetadata={onLoadedMetadata}
-          className={`${videoClassName || defaultMediaClass}`}
+          className={`[border-radius:inherit] ${videoClassName || defaultMediaClass}`}
         />
       ) : (
         <MediaImage
@@ -84,7 +84,7 @@ export function UniversalMediaTile({
           alt={item.alt || alt}
           sizes={sizes}
           priority={priority}
-          className={`${imageClassName || defaultMediaClass}`}
+          className={`[border-radius:inherit] ${imageClassName || defaultMediaClass}`}
         />
       )}
     </div>
