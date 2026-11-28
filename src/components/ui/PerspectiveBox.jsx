@@ -415,11 +415,9 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         const boxStartFrame = isDesktopTier ? DESKTOP_BOX_START_FRAME : BOX_START_FRAME;
         const boxDrawCompleteFrame = isDesktopTier ? DESKTOP_BOX_DRAW_COMPLETE_FRAME : BOX_DRAW_COMPLETE_FRAME;
 
-        // Visibility range gating: Desktop & Mac keep the showcase active through the footer (frame 260);
-        // Mobile & Tablet Portrait still exit at BOX_EXIT_COMPLETE_FRAME.
-        const inWindow = isDesktopTier
-          ? frame >= boxStartFrame
-          : frame >= boxStartFrame && frame < BOX_EXIT_COMPLETE_FRAME;
+        // Visibility range gating: keep the showcase active through the footer (frame 260)
+        // on ALL devices, smoothly shrinking and lifting above the footer in lockstep with the ring.
+        const inWindow = frame >= boxStartFrame;
 
         if (!inWindow) {
           if (lastStateRef.current.visible) {
@@ -476,32 +474,8 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
         let perspT =
           rawPerspProgress * rawPerspProgress * (3 - 2 * rawPerspProgress);
 
-        // Perspective Gradient Exit Bloom:
-        // Mobile & Tablet Portrait fade out ahead of line un-draw (frame 241 -> 245);
-        // Desktop & Mac keep the showcase active and shrink smoothly above the footer.
-        if (!isDesktopTier && frame >= 241) {
-          const rawPerspFade = Math.min(
-            1,
-            Math.max(0, (frame - 241) / (BOX_EXIT_START_FRAME - 241))
-          );
-          const easePerspFade =
-            rawPerspFade * rawPerspFade * (3 - 2 * rawPerspFade);
-          perspT = perspT * (1 - easePerspFade);
-        }
-
-        // 3. Exit Transition (Mobile & Tablet Portrait only: frame 245 -> 250)
-        let exitT = 0;
-        if (!isDesktopTier && frame >= BOX_EXIT_START_FRAME) {
-          const rawExit = Math.min(
-            1,
-            Math.max(
-              0,
-              (frame - BOX_EXIT_START_FRAME) /
-                (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
-            )
-          );
-          exitT = rawExit * rawExit * (3 - 2 * rawExit);
-        }
+        // Exit transition is disabled as the showcase box remains active through the footer on all devices
+        const exitT = 0;
 
         // Update stroke-dasharray & stroke-dashoffset for entry drawing and reverse exit retract
         const halfPerimeter = geomRef.current.halfPerimeter || 1340;
@@ -650,18 +624,36 @@ const PerspectiveBox = forwardRef(function PerspectiveBox(_props, ref) {
               (targetCenterY - winH * 0.5) * easeFooter
             );
           } else {
-            const maxAllowedLift = geomRef.current.isMobile ? 16 : 22;
-            const footerProgress = Math.min(
+            // Mobile & Tablet Portrait: Sync footer shrink & vertical lift 1:1 with Three.js ring
+            const winH = geomRef.current.winH || 844;
+            const isMobile = geomRef.current.isMobile;
+
+            // Match RingHero.jsx portrait calculations exactly:
+            const aspect = (geomRef.current.winW || 390) / Math.max(1, winH);
+            const tPortrait = Math.min(1, Math.max(0, (aspect - 0.55) / (0.75 - 0.55)));
+            const easeTPortrait = tPortrait * tPortrait * (3 - 2 * tPortrait);
+            const portraitViewerShift = isMobile ? -0.27 : (1 - easeTPortrait) * -0.20 + easeTPortrait * -0.25;
+            const baseNy = portraitViewerShift;
+            const targetFooterNy = isMobile
+              ? Math.min(0.28, Math.max(0.16, 160 / winH))
+              : Math.min(0.24, Math.max(0.10, 135 / winH));
+
+            // Total vertical lift in screen pixels (matching RingHero.jsx NDC -> screen pixel delta):
+            const totalLiftPx = (targetFooterNy - baseNy) * (winH / 2);
+
+            const footerT = Math.min(
               1,
               Math.max(
                 0,
-                (frame - BOX_EXIT_START_FRAME) /
-                  (BOX_EXIT_COMPLETE_FRAME - BOX_EXIT_START_FRAME)
+                (frame - BOX_EXIT_START_FRAME) / (260 - BOX_EXIT_START_FRAME)
               )
             );
-            const easeLift =
-              footerProgress * footerProgress * (3 - 2 * footerProgress);
-            translateY -= Math.round(maxAllowedLift * easeLift);
+            const easeFooter = footerT * footerT * (3 - 2 * footerT);
+
+            const portraitFooterScale = isMobile ? 0.90 : 0.84;
+            currentScale = 1.0 + (portraitFooterScale - 1.0) * easeFooter;
+            translateY = Math.round(-totalLiftPx * easeFooter);
+            footerOffsetY = translateY;
           }
         }
 

@@ -1708,11 +1708,9 @@ export default function RingHero({
       }
       // Sizing in Beat 5 (Interactive 3D Viewer & Footer Reveal):
       // - 3D Viewer (frames 205–245): comfortable scale with clear gap below the top explore card
-      // - Footer Reveal (frames 236–254 on mobile, 245–260 on desktop): scale comfortably so ring is centered in canvas above footer
-      const mobileFooterStart = isMobilePortrait ? 236 : 245;
-      const mobileFooterEnd = isMobilePortrait ? 254 : 260;
-      const isViewerSection = smooth(205, 218, localFrame) * (1 - smooth(mobileFooterStart, mobileFooterStart + 10, localFrame));
-      const footerFactor = smooth(mobileFooterStart, mobileFooterEnd, localFrame);
+      // - Footer Reveal (frames 245–260): scale comfortably so ring is centered in canvas above footer
+      const isViewerSection = smooth(205, 218, localFrame) * (1 - smooth(245, 255, localFrame));
+      const footerFactor = smooth(245, 260, localFrame);
       const mobileViewerScale = 0.82; // Sized so ring sits with generous ~30px breathing room in inner box
       const tabletViewerScale = 0.70; // Sized so ring frames with clean 35px+ clearance in perspective box on tablet
       const viewerScaleFactor = camera.aspect < 0.95
